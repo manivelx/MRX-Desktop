@@ -99,7 +99,7 @@ python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
-assert data['protocol_version'] == 1, data
+assert data['protocol_version'] == 2, data
 assert data['active_workspace'] == 1, data
 assert len(data['workspaces']) >= 1, data
 assert data.get('monitors'), data

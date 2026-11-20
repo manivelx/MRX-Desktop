@@ -1077,9 +1077,7 @@ mod monitor_tests {
 
     #[test]
     fn snapshot_emits_monitor_scoped_workspace_instances() {
-        let mut state = State::default();
-        state.settings = Settings::default();
-        state.monitors = monitors();
+        let mut state = State { settings: Settings::default(), monitors: monitors(), ..Default::default() };
         state.active_by_monitor.insert("DP-1".into(), 2);
         state.active_by_monitor.insert("HDMI-1".into(), 3);
         state.clients.insert(10, WindowInfo { id: 10, workspace: 2, monitor: "DP-1".into(), ..Default::default() });

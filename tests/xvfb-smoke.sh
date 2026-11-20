@@ -25,7 +25,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
+Xvfb -displayfd 3 -screen 0 2560x1440x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
 XVFB_PID=$!
 for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
 [[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
@@ -35,7 +35,7 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 xdpyinfo >/dev/null || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
-echo "PASS: Xvfb 1920x1080 X11 server started"
+echo "PASS: Xvfb 2560x1440 X11 server started"
 
 # Extensions needed for later compositing experiments. Their presence does not
 # imply hardware acceleration; Xvfb is a software test server.

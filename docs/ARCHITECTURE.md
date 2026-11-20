@@ -10,7 +10,7 @@
 - Transport: one newline-terminated JSON request and one JSON response per connection; no TCP listener.
 - Each request carries `protocol_version` and a monotonically allocated client-side `request_id`. The server rejects incompatible versions and echoes the ID; `mrxctl` verifies both before accepting a response.
 - The server bounds request framing, socket read/write timeouts and concurrent client workers. It refuses to replace a non-socket at the IPC path.
-- A push-style event subscription endpoint is **not implemented yet**. The shell's current MRX adapter still refreshes snapshots periodically. Do not confuse request/reply IPC with event streaming.
+- The server supports push-style snapshot event subscriptions over a separate long-lived Unix-socket connection. Subscriber workers are bounded and released on client disconnect. The current QML adapter still uses periodic snapshot refresh; wiring QML fully to the push stream and validating event ordering/backpressure remain open.
 
 ## Settings
 

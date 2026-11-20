@@ -225,6 +225,8 @@ pub struct WindowInfo {
     pub title: String,
     pub class: String,
     pub workspace: u32,
+    #[serde(default)]
+    pub monitor: String,
     pub x: i32,
     pub y: i32,
     pub width: u32,

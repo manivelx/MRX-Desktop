@@ -395,6 +395,8 @@ pub struct Response {
     pub error: Option<OperationError>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub health: Option<HealthReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -404,6 +406,13 @@ pub struct HealthReport {
     pub managed_windows: usize,
     pub monitor_count: usize,
     pub active_ipc_clients: usize,
+    pub active_subscriptions: usize,
+    pub subscription_events_sent: u64,
+    pub subscription_bytes_sent: u64,
+    pub subscription_disconnects: u64,
+    pub subscription_slow_clients_dropped: u64,
+    pub subscription_write_timeouts: u64,
+    pub subscription_max_write_latency_ms: u64,
     pub operations_queued: usize,
     pub operations_succeeded: usize,
     pub operations_failed: usize,
@@ -436,7 +445,7 @@ pub struct OperationResult {
 
 impl Response {
     pub fn ok(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None, sequence: None }
     }
 
     pub fn err(message: impl Into<String>) -> Self {
@@ -543,7 +552,7 @@ mod tests {
 
     #[test]
     fn health_report_serializes_process_and_service_metrics() {
-        let health=HealthReport{pid:42,uptime_ms:1234,managed_windows:3,monitor_count:2,active_ipc_clients:1,operations_queued:1,operations_succeeded:4,operations_failed:2};
+        let health=HealthReport{pid:42,uptime_ms:1234,managed_windows:3,monitor_count:2,active_ipc_clients:1,active_subscriptions:1,subscription_events_sent:7,subscription_bytes_sent:2048,subscription_disconnects:1,subscription_slow_clients_dropped:0,subscription_write_timeouts:0,subscription_max_write_latency_ms:4,operations_queued:1,operations_succeeded:4,operations_failed:2};
         let response=Response::with_health(health.clone());
         assert!(response.ok);
         assert_eq!(response.health,Some(health));

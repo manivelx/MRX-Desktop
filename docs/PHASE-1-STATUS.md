@@ -18,9 +18,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-GitHub Actions [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) passed on commit `422615cab39c298505d49e996ce80d927e165551`. It covered formatting, the full Rust workspace test suite, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and compiled-WM smoke test.
-
-That CI run covers two virtual RandR monitors, synthetic-screen filtering, independent workspace switching, dock workarea reservation and sticky dock behavior, urgency updates and client lifecycle.
+The latest recorded successful baseline is [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the current IPC v3 protocol bump and latest README/docs edits. The current branch's CI must pass before the current tip is described as validated.
 
 ## Remaining Phase 1 acceptance work
 

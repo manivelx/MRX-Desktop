@@ -1,8 +1,8 @@
 # Validation record
 
-## Latest successful full CI baseline
+## Latest successful pre-merge full CI baseline
 
-PASS — GitHub Actions [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) passed on commit `160a38916088503cf5ccf00b63217928c23669ba` on 2026-11-20.
+PASS — GitHub Actions [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) passed on commit `160a38916088503cf5ccf00b63217928c23669ba` on 2026-11-20. The merged default-branch commit is undergoing its own CI run.
 
 | Check | Result |
 |---|---|
@@ -33,9 +33,9 @@ The compiled WM smoke test covers:
 - Rust stable with rustfmt and Clippy.
 - X11 development libraries and Xvfb utilities installed by CI.
 
-## Not validated by CI
+## Not implemented / not validated by CI
 
-- End-to-end Quickshell consumption of pushed IPC events; the server subscription path and disconnect cleanup have automated coverage, but full shell event-driven behavior still needs runtime validation.
+- Push-based IPC events are not implemented in the current protocol; the Quickshell adapter polls snapshots. Event-stream design and QML subscription integration remain Phase 2 work.
 
 - Complete Quickshell/QML runtime or end-to-end desktop session.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.

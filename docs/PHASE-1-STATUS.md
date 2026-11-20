@@ -13,12 +13,12 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - RandR 1.5 monitor discovery, atom names, primary-monitor selection, active-CRTC fallback, notification refresh and 250ms reconciliation. Synthetic root-screen rectangles are discarded when actual output monitors are available.
 - Independent monitor-local workspaces, visibility, per-monitor snapshots and monitor-targeted IPC. Quickshell workspace bars route to the matching monitor.
 - Window monitor identity, per-monitor tiling, client migration after monitor removal and floating-window clamping.
-- IPC protocol v3 with request IDs/correlated responses, event subscription path, bounded socket framing/timeouts and connection cleanup; settings persistence and atomic writes.
+- IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts and connection cleanup; typed setting application and atomic writes. The current protocol has no push-subscription command; the shell still polls snapshots.
 - Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox and Xvfb server/WM smoke tests.
 
 ## Latest CI validation
 
-The latest recorded successful baseline is [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the current IPC v3 protocol bump and latest README/docs edits. The current branch's CI must pass before the current tip is described as validated.
+The latest recorded successful implementation baseline is [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the README and documentation-only updates. The current branch tip must pass its own CI run before it is described as validated.
 
 ## Remaining Phase 1 acceptance work
 

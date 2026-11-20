@@ -904,7 +904,7 @@ mod monitor_tests {
         vec![
             MonitorInfo { name: "DP-1".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },
             MonitorInfo { name: "HDMI-1".into(), x: 1920, y: 0, width: 2560, height: 1440, focused: false, active_workspace: 1 },
-            MonitorInfo { name: "DP-2".into(), x: -1280, y: 0, width: 1280, height: 1024, focused: false },
+            MonitorInfo { name: "DP-2".into(), x: -1280, y: 0, width: 1280, height: 1024, focused: false, active_workspace: 1 },
         ]
     }
 

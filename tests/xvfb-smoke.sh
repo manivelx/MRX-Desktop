@@ -46,7 +46,7 @@ cc "$ROOT/tests/create-preexisting-clients.c" -o "$RUNTIME/create-preexisting-cl
 FIXTURE_PID=$!
 for _ in $(seq 1 30); do [[ -s "$RUNTIME/preexisting-clients.txt" ]] && break; sleep 0.1; done
 [[ -s "$RUNTIME/preexisting-clients.txt" ]] || { echo "FAIL: startup fixture did not publish window IDs" >&2; exit 1; }
-read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN <"$RUNTIME/preexisting-clients.txt"
+read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN STARTUP_OFFDESKTOP <"$RUNTIME/preexisting-clients.txt"
 
 # Extensions needed for later compositing experiments. Their presence does not
 # imply hardware acceleration; Xvfb is a software test server.
@@ -72,8 +72,9 @@ for _ in $(seq 1 30); do
 import json, sys
 data=json.load(open(sys.argv[1],encoding='utf-8'))
 windows={str(w['id']):w for w in data['windows']}
-a,b,h=(windows.get(v) for v in sys.argv[2:])
-raise SystemExit(0 if a and a.get('above') and b and b.get('below') and h and h.get('minimized') else 1)
+a,b,h,off=(windows.get(v) for v in sys.argv[2:])
+raise SystemExit(0 if a and a.get('above') and b and b.get('below') and h and h.get('minimized')
+                 and off and not off.get('minimized') and off.get('workspace')==2 else 1)
 PY
   then STARTUP_ADOPTED=1; break; fi
   sleep 0.1

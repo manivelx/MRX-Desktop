@@ -754,11 +754,15 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let title=String::from_utf8_lossy(&title).into_owned();
      let existing_states=read_atom_list(&conn,window,net_wm_state);
      let existing_wm_state=read_cardinal(&conn,window,wm_state,wm_state).unwrap_or(1);
-     let minimized=existing_wm_state==3 || existing_states.contains(&net_wm_state_hidden);
-     if attributes.map_state==xproto::MapState::UNMAPPED && !minimized { continue; }
      let desktop_index=read_cardinal(&conn,window,desktop,AtomEnum::CARDINAL.into())
          .filter(|value|*value!=u32::MAX && *value<workspace_count)
          .map(|value|value+1);
+     // HIDDEN also marks clients on inactive desktops; only infer minimization
+     // from HIDDEN alone when the client's desktop is currently active.
+     let hidden=existing_states.contains(&net_wm_state_hidden);
+     let minimized=existing_wm_state==3 || (hidden && desktop_index.map_or(true,|workspace|workspace==1));
+     let desktop_hidden=existing_wm_state==1 && hidden && desktop_index.is_some();
+     if attributes.map_state==xproto::MapState::UNMAPPED && !minimized && !desktop_hidden { continue; }
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
      if dock {
          if let Some(strut)=read_dock_strut(&conn,window,net_wm_strut_partial,net_wm_strut) { s.docks.insert(window,strut); }

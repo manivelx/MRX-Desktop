@@ -369,6 +369,12 @@ mod tests {
     }
 
     #[test]
+    fn old_workspace_snapshots_default_missing_monitor_fields() {
+        let workspace: WorkspaceInfo = serde_json::from_str(r#"{"id":1,"name":"1","active":true,"windows":0}"#).unwrap();
+        assert_eq!(workspace.monitor, "");
+    }
+
+    #[test]
     fn old_window_snapshots_default_missing_monitor_fields() {
         let window: WindowInfo = serde_json::from_str(r#"{"id":42,"workspace":1}"#).unwrap();
         assert_eq!(window.id, 42);

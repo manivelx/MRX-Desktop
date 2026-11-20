@@ -68,6 +68,8 @@ grep -Fq 'WM.compositor !== "mrx" && Config.options.hyprland.autostartApps.enabl
 grep -Fq 'function relativeWorkspaceDirection(expression)' shell/services/WM.qml || fail 'MRX workspace dispatcher parser missing'
 grep -Fq 'Config.ready && WM.compositor !== "mrx"' shell/services/ConflictKiller.qml || fail 'MRX session may terminate tray/notification services'
 grep -Fq 'if (WM.compositor !== "mrx")' shell/services/FirstRunExperience.qml || fail 'MRX first run may execute compositor-specific wallpaper script'
+grep -Fq 'readonly property bool isMrx: WM.compositor === "mrx"' shell/services/Hyprsunset.qml || fail 'MRX night-light isolation missing'
+grep -Fq 'if (root.isMrx) return;' shell/services/Hyprsunset.qml || fail 'MRX may manipulate upstream night-light processes'
 grep -Fq 'if (root.compositor === "mrx")' shell/services/WM.qml || fail 'MRX command dispatch isolation missing'
 if grep -Eq 'root,clientlist,AtomEnum::WINDOW,&\[\]' crates/mrx-wm/src/main.rs; then fail 'startup path clears EWMH client list after adoption'; fi
 if grep -Eq 'set_wm_state\(&conn,target,wm_state,3\)' crates/mrx-wm/src/main.rs; then fail 'inactive virtual desktop incorrectly marks client Iconic'; fi

@@ -7,7 +7,7 @@ CTL="$ROOT/target/debug/mrxctl"
 for f in "$WM" "$CTL"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
-for c in Xvfb xdpyinfo xprop xmessage python3; do
+for c in Xvfb xdpyinfo xprop xmessage xrandr python3; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 
@@ -53,6 +53,40 @@ for _ in $(seq 1 50); do
 done
 "$CTL" ping >/dev/null || { cat "$RUNTIME/wm.log" >&2; exit 1; }
 echo "PASS: MRX WM IPC responds"
+
+# Create two virtual RandR 1.5 monitor objects after the WM starts. This
+# exercises the live resource-change notification path without physical
+# multi-output hardware; the original Xvfb screen remains the backing output.
+xrandr --setmonitor MRX-LEFT 960/254x1080/286+0+0 none
+xrandr --setmonitor MRX-RIGHT 960/254x1080/286+960+0 none
+MONITORS_READY=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+names = {m['name'] for m in data.get('monitors', [])}
+raise SystemExit(0 if {'MRX-LEFT', 'MRX-RIGHT'} <= names else 1)
+PY
+  then MONITORS_READY=1; break; fi
+  sleep 0.1
+done
+[[ "$MONITORS_READY" == 1 ]] || {
+  echo "FAIL: RandR virtual monitors were not refreshed in the WM snapshot" >&2
+  xrandr --listmonitors >&2 || true
+  cat "$RUNTIME/wm.log" >&2
+  exit 1
+}
+python3 - "$RUNTIME/snapshot.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+monitors = {m['name']: m for m in data['monitors']}
+assert (monitors['MRX-LEFT']['x'], monitors['MRX-LEFT']['y'],
+        monitors['MRX-LEFT']['width'], monitors['MRX-LEFT']['height']) == (0, 0, 960, 1080), monitors
+assert (monitors['MRX-RIGHT']['x'], monitors['MRX-RIGHT']['y'],
+        monitors['MRX-RIGHT']['width'], monitors['MRX-RIGHT']['height']) == (960, 0, 960, 1080), monitors
+print('PASS: live RandR resource changes refresh two independent monitor geometries')
+PY
 xprop -root _NET_NUMBER_OF_DESKTOPS _NET_DESKTOP_NAMES _NET_WORKAREA _NET_CLIENT_LIST_STACKING _NET_SUPPORTED >"$RUNTIME/ewmh.txt"
 grep -q '_NET_NUMBER_OF_DESKTOPS' "$RUNTIME/ewmh.txt"
 grep -q '_NET_DESKTOP_NAMES' "$RUNTIME/ewmh.txt"

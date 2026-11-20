@@ -332,6 +332,7 @@ PY
 done
 [[ "$RESTORE_MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Normal State'
+echo "PASS: EWMH minimize/restore retains the managed client and WM_STATE"
 
 # Also exercise the ICCCM WM_CHANGE_STATE IconicState/NormalState messages.
 "$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 icccm

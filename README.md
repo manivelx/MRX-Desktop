@@ -209,9 +209,9 @@ The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local 
 
 ### Latest CI baseline
 
-The latest successful pre-merge Rust/installer/Xvfb baseline is [GitHub Actions run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758), on commit `160a38916088503cf5ccf00b63217928c23669ba`. The merged default-branch commit has its own CI run in progress.
+The merged `main` commit passed [GitHub Actions run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) on commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6`. The full workflow passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox and the compiled-WM Xvfb smoke test.
 
-This result is tied to that exact commit. It does not prove the current branch tip is green, does not validate a complete Quickshell session, and does not validate physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
+That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 
 ## Roadmap
 

@@ -165,7 +165,7 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
     let supports_monitor_objects = randr_version.as_ref()
         .is_some_and(|version| (version.major_version, version.minor_version) >= (1, 5));
     if supports_monitor_objects {
-        match conn.randr_get_monitors(root, true) {
+        match conn.randr_get_monitors(root, false) {
             Ok(cookie) => match cookie.reply() {
             Ok(reply) => {
                 for monitor in reply.monitors {

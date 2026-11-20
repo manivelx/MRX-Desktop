@@ -7,10 +7,12 @@
 ## IPC protocol (v3)
 
 - Socket: `$XDG_RUNTIME_DIR/mrx.sock` (0600). When `XDG_RUNTIME_DIR` is unset, MRX uses a private per-user fallback runtime directory.
-- Transport: one newline-terminated JSON request and one JSON response per connection; no TCP listener.
-- Each request carries `protocol_version` and a client-side `request_id`. The server rejects incompatible versions and echoes the ID; `mrxctl` verifies both before accepting a response.
+- Transport: newline-delimited JSON over a local Unix socket; request/reply commands use one connection, while `subscribe` keeps a connection open for snapshot events. No TCP listener.
+- Each request carries `protocol_version` and a client-side `request_id`. The server rejects incompatible versions and echoes the ID; `mrxctl` verifies both before accepting a response or event.
 - The server bounds request framing, socket read/write timeouts and concurrent client workers. It refuses to replace a non-socket at the IPC path.
-- Push-style event subscriptions are **not implemented** in the current request schema or socket server. The QML adapter refreshes snapshots periodically. Replacing polling with an event stream is a Phase 2 item, not a completed feature.
+- `Request::Subscribe` streams an initial snapshot and change-only snapshots. `mrxctl subscribe` validates the event envelope and emits newline-delimited snapshots for Quickshell's `SplitParser`.
+- The WM currently checks for snapshot changes every 100 ms rather than publishing from an internal state-change bus. Disconnected clients are detected and release their worker slot; Quickshell reconnects and uses a slow one-shot snapshot fallback while the stream is unavailable.
+- Structured asynchronous mutation results, subscriber backpressure metrics and high-rate event-ordering tests remain outstanding.
 
 ## Settings
 

@@ -35,6 +35,8 @@ The compiled WM smoke test covers:
 
 ## Not validated by CI
 
+- Push-based IPC event subscriptions; the current IPC protocol is request/reply and the shell refreshes snapshots periodically.
+
 - Complete Quickshell/QML runtime or end-to-end desktop session.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.
 - NVIDIA 470 / GeForce GT 740 proprietary driver, real GLX acceleration or animation frame pacing.

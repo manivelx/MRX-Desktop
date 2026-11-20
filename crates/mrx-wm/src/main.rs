@@ -153,17 +153,20 @@ fn intern(conn:&RustConnection,name:&str)->Result<u32>{Ok(conn.intern_atom(false
 fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u16) -> Vec<MonitorInfo> {
     let mut monitors = Vec::new();
     if conn.extension_information(randr::X11_EXTENSION_NAME).ok().flatten().is_some() {
-        if let Ok(reply) = conn.randr_get_monitors(root, true).and_then(|cookie| cookie.reply()) {
-            for monitor in reply.monitors {
-                if monitor.width == 0 || monitor.height == 0 { continue; }
-                let name = conn.get_atom_name(monitor.name).and_then(|cookie| cookie.reply())
-                    .map(|atom| String::from_utf8_lossy(&atom.name).into_owned())
-                    .unwrap_or_else(|_| format!("monitor-{}", monitor.name));
-                monitors.push(MonitorInfo {
-                    name, x: monitor.x as i32, y: monitor.y as i32,
-                    width: monitor.width as u32, height: monitor.height as u32,
-                    focused: monitor.primary,
-                });
+        if let Ok(cookie) = conn.randr_get_monitors(root, true) {
+            if let Ok(reply) = cookie.reply() {
+                for monitor in reply.monitors {
+                    if monitor.width == 0 || monitor.height == 0 { continue; }
+                    let name = conn.get_atom_name(monitor.name).ok()
+                        .and_then(|cookie| cookie.reply().ok())
+                        .map(|atom| String::from_utf8_lossy(&atom.name).into_owned())
+                        .unwrap_or_else(|| format!("monitor-{}", monitor.name));
+                    monitors.push(MonitorInfo {
+                        name, x: monitor.x as i32, y: monitor.y as i32,
+                        width: monitor.width as u32, height: monitor.height as u32,
+                        focused: monitor.primary,
+                    });
+                }
             }
         }
     }

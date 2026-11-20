@@ -613,7 +613,11 @@ done
 [[ "$SHUTDOWN_EXITED" == 1 ]] || { echo "FAIL: orderly shutdown did not remove the IPC socket" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 wait "$WM_PID"
 WM_PID=""
-xprop -root _NET_SUPPORTED 2>/dev/null | grep -q 'ATOM' && { echo "FAIL: WM root properties survived shutdown" >&2; exit 1; }
+ROOT_SUPPORTED="$(xprop -root _NET_SUPPORTED 2>&1 || true)"
+ROOT_CHECK="$(xprop -root _NET_SUPPORTING_WM_CHECK 2>&1 || true)"
+echo "Shutdown root-property probe: $ROOT_SUPPORTED | $ROOT_CHECK"
+grep -q '_NET_SUPPORTED(ATOM)' <<<"$ROOT_SUPPORTED" && { echo "FAIL: _NET_SUPPORTED survived shutdown" >&2; exit 1; }
+grep -q 'window id' <<<"$ROOT_CHECK" && { echo "FAIL: _NET_SUPPORTING_WM_CHECK survived shutdown" >&2; exit 1; }
 echo "PASS: IPC shutdown exits cleanly, removes socket and clears WM-owned root properties"
 
 echo "PASS: isolated Xvfb smoke test complete"

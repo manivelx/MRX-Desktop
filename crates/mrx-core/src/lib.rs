@@ -238,6 +238,9 @@ pub struct WindowInfo {
     /// ICCCM WM_HINTS urgency bit; the client owns setting and clearing it.
     #[serde(default)]
     pub urgent: bool,
+    /// EWMH dock/panel clients are sticky and excluded from workspace tiling.
+    #[serde(default)]
+    pub dock: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

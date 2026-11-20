@@ -18,7 +18,7 @@ pub const SOCKET_NAME: &str = "mrx.sock";
 pub const DEFAULT_WORKSPACES: usize = 9;
 pub const MAX_WORKSPACES: usize = 32;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct Settings {
     pub animation: AnimationSettings,
@@ -63,17 +63,6 @@ pub struct WindowSettings {
     pub focus_follows_pointer: bool,
     pub master_ratio: f32,
     pub floating_modifier: String,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            animation: AnimationSettings::default(),
-            appearance: AppearanceSettings::default(),
-            workspace: WorkspaceSettings::default(),
-            window: WindowSettings::default(),
-        }
-    }
 }
 
 impl Default for AnimationSettings {

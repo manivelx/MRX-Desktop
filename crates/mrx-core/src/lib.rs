@@ -235,6 +235,9 @@ pub struct WindowInfo {
     pub focused: bool,
     pub floating: bool,
     pub fullscreen: bool,
+    /// ICCCM WM_HINTS urgency bit; the client owns setting and clearing it.
+    #[serde(default)]
+    pub urgent: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -311,6 +314,7 @@ mod tests {
         let window: WindowInfo = serde_json::from_str(r#"{"id":42,"workspace":1}"#).unwrap();
         assert_eq!(window.id, 42);
         assert_eq!(window.monitor, "");
+        assert!(!window.urgent);
     }
 
     #[test]

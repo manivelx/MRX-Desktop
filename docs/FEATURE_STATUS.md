@@ -13,7 +13,7 @@ This table distinguishes implemented code from complete, validated desktop behav
 | Floating and dialogs | Partial | Transient and fixed-size clients float; modality, stacking and complex dialog rules need more validation. |
 | Multi-monitor | Partial | RandR discovery/reconciliation, per-monitor tiling/workspaces, monitor-aware IPC and QML routing, hotplug state refresh and initial dock workareas are implemented. Physical multi-output, EDID and mixed-resolution behavior remain untested. |
 | Dock panels | Partial | Partial and legacy struts influence workareas; overlapping, vertical and multi-panel geometry needs physical/Xephyr coverage. |
-| IPC | Partial | Versioned request/reply protocol, request IDs, bounded framing/timeouts and event subscription lifecycle are implemented; operation result semantics, service restart and load testing remain. |
+| IPC | Partial | Versioned request/reply protocol v3, request IDs, bounded framing/timeouts and client-worker cleanup are implemented. Server-push subscriptions are not yet in the protocol; shell snapshot polling remains. |
 | Settings | Partial | TOML persistence and initial live-apply actions exist; full typed validation, transactional rollback and profiles remain. |
 | Shell integration | Partial | MRX adapter maps supported window/workspace APIs; not every imported QML service or action has a verified MRX implementation. |
 | Graphics/animations | Not implemented | XComposite/Damage capture, renderer, transitions and frame pacing are future work. |

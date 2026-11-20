@@ -5,6 +5,15 @@ use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
 #[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String }
+#[derive(Clone, Copy)]
+struct WorkspaceAtoms {
+    current: u32,
+    wm_state: u32,
+    net_wm_state: u32,
+    net_wm_state_hidden: u32,
+    net_active_window: u32,
+}
+
 #[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
 fn active_workspace_for(s: &State, monitor: &str) -> u32 {
@@ -445,7 +454,7 @@ fn focus_most_recent(
             xproto::PropMode::REPLACE, root, net_active_window, AtomEnum::WINDOW, &[id],
         );
     } else {
-        let _ = conn.delete_property(root, net_active_window);
+        let _ = conn.delete_property(root, atoms.net_active_window);
     }
 }
 
@@ -512,7 +521,7 @@ fn is_transient(conn: &RustConnection, window: Window) -> Result<bool> {
     Ok(reply.value32().and_then(|mut values| values.next()).is_some())
 }
 fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init(); let (conn,screen_num)=x11rb::connect(None).context("cannot connect to X11 display")?; let screen=&conn.setup().roots[screen_num]; let root=screen.root; conn.change_window_attributes(root,&ChangeWindowAttributesAux::new().event_mask(EventMask::SUBSTRUCTURE_REDIRECT|EventMask::SUBSTRUCTURE_NOTIFY|EventMask::PROPERTY_CHANGE|EventMask::BUTTON_PRESS)).context("another window manager may already own SubstructureRedirect")?.check()?;
- let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_normal_hints=intern(&conn,"WM_NORMAL_HINTS")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?;
+ let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_normal_hints=intern(&conn,"WM_NORMAL_HINTS")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?; let workspace_atoms=WorkspaceAtoms{current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window};
  let atoms=[net_active,net_close,desktop,current,count,clientlist,clientlist_stacking,net_wm_state,net_wm_state_fullscreen,net_wm_state_hidden,net_desktop_names,net_workarea,net_viewport,net_geometry]; conn.change_property32(xproto::PropMode::REPLACE,root,supported,AtomEnum::ATOM,&atoms)?; conn.change_property8(xproto::PropMode::REPLACE,root,name,utf8,b"MRX Rust Desktop")?; let check=conn.generate_id()?; conn.create_window(x11rb::COPY_DEPTH_FROM_PARENT,check,root,0,0,1,1,0,xproto::WindowClass::INPUT_OUTPUT,0,&xproto::CreateWindowAux::new())?; conn.change_property32(xproto::PropMode::REPLACE,root,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property32(xproto::PropMode::REPLACE,check,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property8(xproto::PropMode::REPLACE,check,name,utf8,b"MRX Rust Desktop")?;
  let mut monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
   let primary = monitors.iter().find(|m| m.focused).or_else(|| monitors.first()).map(|m| m.name.clone()).unwrap_or_default();
@@ -578,11 +587,11 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
  let mut last_monitor_refresh = std::time::Instant::now();
- loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::SwitchMonitor(name,id)=>{switch_monitor_workspace(&conn,root,&mut s,&name,id,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);}, Action::Switch(id)=>{
-    switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+ loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::SwitchMonitor(name,id)=>{switch_monitor_workspace(&conn,root,&mut s,&name,id,workspace_atoms);}, Action::Switch(id)=>{
+    switch_focused_workspace(&conn,root,&mut s,id,None,workspace_atoms);
 },
 Action::Relative(d)=>{
-    switch_focused_workspace(&conn,root,&mut s,0,Some(d),current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+    switch_focused_workspace(&conn,root,&mut s,0,Some(d),workspace_atoms);
 },
 Action::Focus(id)=>{
     let target_monitor=s.clients.get(&id).map(|w|w.monitor.clone());
@@ -665,12 +674,12 @@ Action::Focus(id)=>{
         if (10..=18).contains(&key) {
             let mut s=state.lock().unwrap();
             for w in s.clients.values_mut(){w.focused=false;}
-            switch_focused_workspace(&conn,root,&mut s,(key-9) as u32,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+            switch_focused_workspace(&conn,root,&mut s,(key-9) as u32,None,workspace_atoms);
         } else if key==113 || key==114 {
             let mut s=state.lock().unwrap();
             let delta=if key==114 {1} else {-1};
             for w in s.clients.values_mut(){w.focused=false;}
-            switch_focused_workspace(&conn,root,&mut s,0,Some(delta),current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+            switch_focused_workspace(&conn,root,&mut s,0,Some(delta),workspace_atoms);
         } else if key==24 {
             let s=state.lock().unwrap();
             if let Some(w)=s.clients.values().find(|w|w.focused) {
@@ -803,8 +812,7 @@ fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State,
 
 fn switch_monitor_workspace(
     conn: &RustConnection, root: Window, state: &mut State, monitor: &str,
-    requested: u32, current: u32, wm_state: u32, net_wm_state: u32,
-    net_wm_state_hidden: u32, net_active_window: u32,
+    requested: u32, atoms: WorkspaceAtoms,
 ) {
     let count = state.settings.workspace.count.max(1) as u32;
     if !state.monitors.iter().any(|m| m.name == monitor) { return; }
@@ -814,23 +822,22 @@ fn switch_monitor_workspace(
     for window in state.clients.values().filter(|w| w.monitor == monitor) {
         if window.workspace == id {
             let _ = conn.map_window(window.id);
-            let _ = set_wm_state(conn, window.id, wm_state, 1);
-            let _ = set_atom_state(conn, window.id, net_wm_state, net_wm_state_hidden, false);
+            let _ = set_wm_state(conn, window.id, atoms.wm_state, 1);
+            let _ = set_atom_state(conn, window.id, atoms.net_wm_state, atoms.net_wm_state_hidden, false);
         } else {
             let _ = conn.unmap_window(window.id);
             let _ = set_wm_state(conn, window.id, wm_state, 1);
-            let _ = set_atom_state(conn, window.id, net_wm_state, net_wm_state_hidden, true);
+            let _ = set_atom_state(conn, window.id, atoms.net_wm_state, atoms.net_wm_state_hidden, true);
         }
     }
     let _ = conn.delete_property(root, net_active_window);
-    let _ = conn.change_property32(xproto::PropMode::REPLACE, root, current, AtomEnum::CARDINAL, &[id - 1]);
+    let _ = conn.change_property32(xproto::PropMode::REPLACE, root, atoms.current, AtomEnum::CARDINAL, &[id - 1]);
     arrange(conn, root, state);
 }
 
 fn switch_focused_workspace(
     conn: &RustConnection, root: Window, state: &mut State, requested: u32,
-    relative: Option<i32>, current: u32, wm_state: u32, net_wm_state: u32,
-    net_wm_state_hidden: u32, net_active_window: u32,
+    relative: Option<i32>, atoms: WorkspaceAtoms,
 ) {
     let monitor = focused_monitor_name(state);
     let max = state.settings.workspace.count.max(1) as u32;
@@ -841,8 +848,7 @@ fn switch_focused_workspace(
             ((next - 1).rem_euclid(max as i32) + 1) as u32
         } else { next.clamp(1, max as i32) as u32 }
     } else { requested.clamp(1, max) };
-    switch_monitor_workspace(conn, root, state, &monitor, id, current, wm_state,
-        net_wm_state, net_wm_state_hidden, net_active_window);
+    switch_monitor_workspace(conn, root, state, &monitor, id, atoms);
 }
 
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {
@@ -960,9 +966,7 @@ mod monitor_tests {
 
     #[test]
     fn monitor_workspace_ids_are_independent() {
-        let mut state = State::default();
-        state.settings = Settings::default();
-        state.monitors = monitors();
+        let mut state = State { settings: Settings::default(), monitors: monitors(), ..Default::default() };
         state.active_by_monitor.insert("DP-1".into(), 2);
         state.active_by_monitor.insert("HDMI-1".into(), 3);
         set_focused_monitor(&mut state, "HDMI-1");
@@ -982,7 +986,7 @@ mod monitor_tests {
         state.clients.insert(11, WindowInfo { id: 11, workspace: 3, monitor: "HDMI-1".into(), ..Default::default() });
         set_focused_monitor(&mut state, "DP-1");
         let snapshot = snapshot(&state);
-        assert_eq!(snapshot.workspaces.len(), state.monitors.len() * state.settings.workspace.count as usize);
+        assert_eq!(snapshot.workspaces.len(), state.monitors.len() * state.settings.workspace.count);
         assert!(snapshot.workspaces.iter().any(|w| w.monitor == "DP-1" && w.id == 2 && w.active && w.windows == 1));
         assert!(snapshot.workspaces.iter().any(|w| w.monitor == "HDMI-1" && w.id == 3 && w.active && w.windows == 1));
         assert_eq!(snapshot.active_workspace, 2);

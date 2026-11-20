@@ -261,7 +261,7 @@ PY
 # Exercise EWMH horizontal+vertical maximize and restoration through real
 # ClientMessage requests. The snapshot must reflect both state atoms and
 # restore the pre-maximize geometry when both axes are removed.
-"$CTL" snapshot >"$RUNTIME/before-maximize.json"
+xwininfo -id "$WINDOW_ID" >"$RUNTIME/before-maximize.txt"
 cc "$ROOT/tests/send-net-wm-state.c" -o "$RUNTIME/send-net-wm-state" -lX11
 "$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 both
 MAXIMIZED=0
@@ -280,15 +280,22 @@ done
 "$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 both
 RESTORED=0
 for _ in $(seq 1 30); do
-  "$CTL" snapshot >"$RUNTIME/after-maximize.json"
-  if python3 - "$RUNTIME/before-maximize.json" "$RUNTIME/after-maximize.json" "$WINDOW_ID" <<'PY'
-import json, sys
-before = json.load(open(sys.argv[1], encoding='utf-8'))
-after = json.load(open(sys.argv[2], encoding='utf-8'))
-old = next(w for w in before['windows'] if str(w['id']) == sys.argv[3])
-new = next(w for w in after['windows'] if str(w['id']) == sys.argv[3])
-assert not new.get('maximized_horz') and not new.get('maximized_vert'), new
-assert (new['x'], new['y'], new['width'], new['height']) == (old['x'], old['y'], old['width'], old['height']), (old, new)
+  xwininfo -id "$WINDOW_ID" >"$RUNTIME/after-maximize.txt"
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/before-maximize.txt" "$RUNTIME/after-maximize.txt" "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, re, sys
+def geometry(path):
+    text = open(path, encoding='utf-8').read()
+    values = {}
+    for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'):
+        match = re.search(r'^\\s*' + re.escape(key) + r':\\s*(-?\\d+)', text, re.MULTILINE)
+        assert match, (key, text)
+        values[key] = int(match.group(1))
+    return tuple(values[key] for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'))
+snapshot = json.load(open(sys.argv[3], encoding='utf-8'))
+window = next(w for w in snapshot['windows'] if str(w['id']) == sys.argv[4])
+assert not window.get('maximized_horz') and not window.get('maximized_vert'), window
+assert geometry(sys.argv[1]) == geometry(sys.argv[2]), (geometry(sys.argv[1]), geometry(sys.argv[2]))
 print('PASS: EWMH maximize/restore round-trip preserves original geometry')
 PY
   then RESTORED=1; break; fi

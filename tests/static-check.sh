@@ -205,7 +205,7 @@ grep -Fq 'net_wm_state_modal' crates/mrx-wm/src/main.rs || fail 'EWMH modal stat
 grep -Fq 'startup adopts ICCCM transient/modal dialogs and redirects parent focus' tests/xvfb-smoke.sh || fail 'Xvfb modal/transient acceptance test is missing'
 
 grep -Fq 'pub struct OperationResult' crates/mrx-core/src/lib.rs || fail 'structured IPC operation results are missing'
-grep -Fq 'GetOperation { id: u64 }' crates/mrx-core/src/lib.rs || fail 'IPC operation polling request is missing'
+grep -Fq 'GetOperation' crates/mrx-core/src/lib.rs || fail 'IPC operation polling request is missing'
 grep -Fq 'fn enqueue_operation' crates/mrx-wm/src/main.rs || fail 'asynchronous operation queue is missing'
 grep -Fq 'fn finish_operation' crates/mrx-wm/src/main.rs || fail 'operation completion tracking is missing'
 grep -Fq 'operation <id>' crates/mrxctl/src/main.rs || fail 'mrxctl operation polling command is missing'

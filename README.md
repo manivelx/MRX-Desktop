@@ -73,7 +73,7 @@ The repository contains shell screenshots showing the imported/adapted visual di
 ### Developer experience
 
 - `mrxctl` command-line client.
-- Versioned local IPC with request IDs and bounded socket reads/writes.
+- Versioned local IPC (v3) with request IDs and bounded socket reads/writes.
 - Settings persistence and developer build helpers.
 - Automated formatting, tests, Clippy, build, installer sandbox and Xvfb integration.
 
@@ -209,7 +209,7 @@ The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local 
 
 ### Latest CI baseline
 
-The latest recorded full successful run is [GitHub Actions run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015), which passed the complete workflow on commit `422615cab39c298505d49e996ce80d927e165551`.
+The latest recorded successful baseline is [GitHub Actions run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015), on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the IPC v3 protocol bump and current documentation changes; the current tip needs its own green CI run.
 
 This result is tied to that exact commit. It does not prove the current branch tip is green, does not validate a complete Quickshell session, and does not validate physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

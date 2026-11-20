@@ -20,6 +20,11 @@ for gate in 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy 
 done
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
 grep -Fq 'Xvfb xdpyinfo xprop xmessage python3' check-deps.sh || fail 'dependency checker does not verify all required Xvfb smoke tools'
+grep -Fq 'xrandr --setmonitor MRX-LEFT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not create a virtual RandR monitor'
+grep -Fq 'xrandr --setmonitor MRX-RIGHT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not exercise a second monitor'
+grep -Fq 'xrandr' check-deps.sh || fail 'dependency checker omits xrandr'
+grep -Fq 'x11-xserver-utils' .github/workflows/ci.yml || fail 'CI omits the xrandr package'
+grep -Fq 'xorg-xrandr' scripts/install-deps-arch.sh || fail 'Arch dependency installer omits xrandr'
 pass 'developer build script runs the complete validation suite and dependency checks match the smoke test'
 
 python3 - <<'PY'

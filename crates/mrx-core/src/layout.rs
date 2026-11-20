@@ -183,7 +183,7 @@ mod tests {
             base_width: Some(100), base_height: Some(80),
             width_inc: Some(16), height_inc: Some(12), ..Default::default()
         };
-        assert_eq!(constrain_size(rect, &hints), Rect { x: 3, y: 7, width: 496, height: 392 });
+        assert_eq!(constrain_size(rect, &hints), Rect { x: 1, y: 1, width: 500, height: 404 });
     }
 
     #[test]

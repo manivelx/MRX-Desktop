@@ -89,7 +89,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
-| IPC | Protocol v3 with request IDs, bounded I/O and server-push subscriptions; structured operations and health reporting remain |
+| IPC | Protocol v3 request/reply, request IDs and bounded I/O; push events and health reporting remain |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
 | Graphics/animations | Renderer and workspace animations are future phases |
 | Installer | Experimental; isolated temporary-home regression tests only |
@@ -209,7 +209,7 @@ The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local 
 
 ### Latest CI baseline
 
-The latest successful Rust/installer/Xvfb baseline is [GitHub Actions run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758), on commit `160a38916088503cf5ccf00b63217928c23669ba`. Later changes are documentation/session compatibility adjustments and require their own final CI run.
+The latest successful pre-merge Rust/installer/Xvfb baseline is [GitHub Actions run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758), on commit `160a38916088503cf5ccf00b63217928c23669ba`. The merged default-branch commit has its own CI run in progress.
 
 This result is tied to that exact commit. It does not prove the current branch tip is green, does not validate a complete Quickshell session, and does not validate physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

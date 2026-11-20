@@ -1,6 +1,6 @@
 # Validation record
 
-## Latest successful full CI baseline
+## Latest successful full CI baseline (before IPC v3 protocol bump)
 
 PASS — GitHub Actions [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) passed on commit `422615cab39c298505d49e996ce80d927e165551` on 2026-11-20.
 
@@ -60,4 +60,4 @@ Use a disposable VM or nested X server for manual session tests. Keep the curren
 
 ## Interpretation
 
-The exact commit named above passes the current automated CI suite. This is a useful software baseline, not a production-readiness claim. It does not establish Quickshell runtime compatibility, physical monitor behavior, NVIDIA proprietary driver support or animation performance.
+The exact commit named above passed the then-current automated CI suite; it predates the current branch's IPC v3 protocol bump. This is a useful software baseline, not a production-readiness claim. It does not establish Quickshell runtime compatibility, physical monitor behavior, NVIDIA proprietary driver support or animation performance.

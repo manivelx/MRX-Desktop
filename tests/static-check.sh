@@ -128,7 +128,7 @@ pass 'former project identity is absent from project source'
 grep -Fq 'pub urgent: bool' crates/mrx-core/src/lib.rs || fail 'shared window snapshot omits ICCCM urgency'
 grep -Fq 'read_urgent_hint' crates/mrx-wm/src/main.rs || fail 'WM does not read ICCCM urgency hints'
 grep -Fq 'Some(Event::PropertyNotify(e))' crates/mrx-wm/src/main.rs || fail 'WM does not refresh urgency when WM_HINTS changes'
-grep -Fq 'WM_HINTS 32c' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not exercise urgency hint updates'
+grep -Fq 'set-wm-hints' tests/xvfb-smoke.sh && grep -Fq 'XSetWMHints' tests/set-wm-hints.c || fail 'Xvfb smoke test does not exercise ICCCM urgency hint updates'
 grep -Fq 'urgent:w.urgent ?? false' shell/services/MRXBackend.qml || fail 'Quickshell adapter discards window urgency'
 grep -Fq 'hasUrgentWindows' shell/modules/ii/bar/ActiveWindow.qml || fail 'Quickshell active-window widget omits urgency indicator'
 

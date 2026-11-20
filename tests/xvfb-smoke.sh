@@ -57,7 +57,7 @@ echo "PASS: MRX WM IPC responds"
 # Exercise the live RandR notification path by resizing the virtual X screen.
 # Unlike xrandr --setmonitor, this changes the active framebuffer geometry and
 # emits a RandR ScreenChangeNotify event that every conforming WM must handle.
-xrandr --fb 1600x900
+xrandr --fb 2560x1440
 SCREEN_UPDATED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
@@ -65,7 +65,7 @@ for _ in $(seq 1 30); do
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
 monitors = data.get('monitors', [])
-raise SystemExit(0 if any(m['width'] == 1600 and m['height'] == 900 for m in monitors) else 1)
+raise SystemExit(0 if any(m['width'] == 2560 and m['height'] == 1440 for m in monitors) else 1)
 PY
   then SCREEN_UPDATED=1; break; fi
   sleep 0.1

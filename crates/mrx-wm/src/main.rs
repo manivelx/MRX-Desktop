@@ -216,6 +216,15 @@ fn intern(conn:&RustConnection,name:&str)->Result<u32>{Ok(conn.intern_atom(false
 
 /// Query RandR 1.5 monitor objects. Fall back to the X screen geometry when
 /// RandR is unavailable or the server does not expose monitor objects.
+fn discard_synthetic_screen_monitor(monitors: &mut Vec<MonitorInfo>) {
+    // Some RandR servers expose the root framebuffer as a synthetic
+    // "screen" monitor alongside explicitly configured output monitors.
+    // Drop that overlapping fallback once real monitor objects are present.
+    if monitors.iter().any(|monitor| monitor.name != "screen") {
+        monitors.retain(|monitor| monitor.name != "screen");
+    }
+}
+
 fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u16) -> Vec<MonitorInfo> {
     let mut monitors = Vec::new();
     // RandR 1.5 exposes monitor objects independently from physical outputs.
@@ -252,6 +261,8 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
             Err(error) => warn!(%error, "RandR GetMonitors request failed; using active CRTC outputs"),
         }
     }
+
+    discard_synthetic_screen_monitor(&mut monitors);
 
     // Compatibility fallback: construct monitor rectangles from active CRTCs.
     // This still supports legacy RandR 1.2 servers and Xvfb configurations
@@ -1132,6 +1143,27 @@ mod monitor_tests {
     }
 
     #[test]
+    #[test]
+    fn synthetic_screen_monitor_is_removed_when_real_outputs_exist() {
+        let mut list = vec![
+            MonitorInfo { name: "screen".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },
+            MonitorInfo { name: "DP-1".into(), x: 0, y: 0, width: 960, height: 1080, focused: false, active_workspace: 1 },
+            MonitorInfo { name: "HDMI-1".into(), x: 960, y: 0, width: 960, height: 1080, focused: false, active_workspace: 1 },
+        ];
+        discard_synthetic_screen_monitor(&mut list);
+        assert_eq!(list.iter().map(|m|m.name.as_str()).collect::<Vec<_>>(), vec!["DP-1", "HDMI-1"]);
+    }
+
+    #[test]
+    fn synthetic_screen_monitor_is_kept_as_the_only_fallback() {
+        let mut list = vec![
+            MonitorInfo { name: "screen".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },
+        ];
+        discard_synthetic_screen_monitor(&mut list);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "screen");
+    }
+
     fn monitor_workspace_ids_are_independent() {
         let mut state = State { settings: Settings::default(), monitors: monitors(), ..Default::default() };
         state.active_by_monitor.insert("DP-1".into(), 2);

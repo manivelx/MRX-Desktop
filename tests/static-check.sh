@@ -12,7 +12,7 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrxctl/src/main.rs ]] || fail 'mrxctl source missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
 for gate in 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'cargo build --release --workspace'; do
@@ -40,6 +40,7 @@ if grep -Fq 'install -m644 "$ROOT/session/mrx.desktop" /usr/share/xsessions/mrx.
 if grep -Fq 'rm -f /usr/share/xsessions/mrx.desktop' uninstall.sh; then fail 'uninstaller must not remove a potentially pre-existing system-wide session entry'; fi
 grep -Fq 'picom.conf" ]] || install' install.sh || fail 'reinstall must preserve the existing Picom config'
 pass 'installer preserves user configuration and leaves system-wide session registration opt-in'
+bash ./tests/installer-sandbox.sh
 
 # The MRX shell must use its own backend rather than launch BSPWM as WM.
 grep -q 'mrx-wm' session/mrx-session || fail 'session does not launch MRX WM'

@@ -2,87 +2,100 @@
 
 # MRX Desktop
 
-**A keyboard-driven Linux desktop environment, built around a Rust X11 window manager and Quickshell.**
+**A keyboard-driven Linux desktop environment built around a Rust X11 window manager and Quickshell.**
 
 [![CI](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Arch%20%7C%20CachyOS-1793D1?logo=arch-linux&logoColor=white)](#platform)
 [![Rust](https://img.shields.io/badge/core-Rust-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![X11](https://img.shields.io/badge/display-X11-blue)](#architecture)
 
-[Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Keybindings](#keybindings) · [Documentation](#documentation) · [Contributing](#contributing)
+[Overview](#overview) · [Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Configuration](#configuration) · [Roadmap](#roadmap)
 
 </div>
 
 > [!WARNING]
-> **MRX is experimental software and is not ready for daily use.** The Rust window manager has a passing CI/Xvfb integration baseline, but the full Quickshell session, physical multi-monitor behavior, NVIDIA 470 / GT 740, and animation performance have not been validated. Do not replace your current desktop session with MRX or install it on a machine without a recovery path.
+> **MRX is experimental and is not ready for daily use.** The Rust window manager has an automated Xvfb integration baseline, but a complete Quickshell session, physical multi-monitor setups, NVIDIA 470 / GT 740 and graphics performance have not been validated. Do not replace your current desktop session with MRX.
 
 ---
 
 ## Overview
 
-MRX is an independent X11 desktop environment project. It combines a purpose-built **Rust window manager** with a **Quickshell/QML** desktop interface based on the supplied end4-pC X11 port.
+MRX is an independent X11 desktop environment project for Arch Linux and CachyOS. It combines a purpose-built **Rust window manager** with a **Quickshell/QML desktop shell** based on the supplied end4-pC X11 adaptation.
 
-The goal is a cohesive, keyboard-first desktop with predictable window management, monitor-local workspaces, a responsive shell, configurable settings and a reversible session. Rust owns window-management policy and runtime state; QML presents that state and provides the desktop experience.
+The goal is a keyboard-first desktop with predictable window management, monitor-local workspaces, configurable behavior and a coherent shell experience.
 
-The project is being developed for Arch Linux and CachyOS first.
+- **Rust owns policy:** window lifecycle, workspaces, monitor assignment, layouts and the authoritative state.
+- **Quickshell owns presentation:** panels, bars, controls and desktop interaction.
+- **A local IPC contract connects them:** the shell should consume MRX state instead of guessing what another window manager is doing.
+
+The project is developed in public and in phases. Features listed below distinguish implementation from release readiness.
 
 ## Screenshots
 
-These are the project's included shell screenshots. They illustrate the imported/adapted shell design; they are **not a claim that the complete MRX session has passed runtime validation**.
+The repository contains shell screenshots showing the imported/adapted visual direction. They are design references, not proof that the complete MRX session is runtime-validated.
 
 <div align="center">
-  <img src="shell/screenshots/1.png" alt="MRX shell screenshot 1" width="48%">
-  <img src="shell/screenshots/2.png" alt="MRX shell screenshot 2" width="48%">
-  <img src="shell/screenshots/3.png" alt="MRX shell screenshot 3" width="48%">
-  <img src="shell/screenshots/4.png" alt="MRX shell screenshot 4" width="48%">
-  <img src="shell/screenshots/5.png" alt="MRX shell screenshot 5" width="48%">
-  <img src="shell/screenshots/6.png" alt="MRX shell screenshot 6" width="48%">
+  <img src="shell/screenshots/1.png" alt="MRX desktop shell overview" width="48%">
+  <img src="shell/screenshots/2.png" alt="MRX desktop shell panel" width="48%">
+  <img src="shell/screenshots/3.png" alt="MRX desktop shell controls" width="48%">
+  <img src="shell/screenshots/4.png" alt="MRX desktop shell workspace view" width="48%">
+  <img src="shell/screenshots/5.png" alt="MRX desktop shell widgets" width="48%">
+  <img src="shell/screenshots/6.png" alt="MRX desktop shell settings" width="48%">
 </div>
 
 ## Features
 
-### Rust X11 window manager
+### Window management
 
-- Rust-owned X11 window-management loop and authoritative state snapshot.
+- Rust-based X11 window manager with a shared, authoritative window-state model.
 - Master/stack, columns and monocle layout geometry.
-- Floating policy for transient and fixed-size clients.
-- ICCCM-aware close requests, focus negotiation, urgency and common size hints.
-- EWMH desktop metadata, client lists, fullscreen requests and initial dock-strut workareas.
-- RandR monitor discovery, topology refresh and per-monitor tiling.
-- Independent monitor-local workspaces and monitor-aware IPC.
+- Floating behavior for transient and fixed-size clients.
+- ICCCM-aware polite close, focus negotiation, urgency and common size hints.
+- EWMH desktop metadata, client lists and initial fullscreen/dock handling.
+- Per-monitor window assignment and tiling.
+
+### Multi-monitor and workspaces
+
+- RandR 1.5 monitor discovery and topology refresh.
+- Monitor-local active workspaces with separate state per output.
+- Monitor-targeted workspace IPC and Quickshell workspace-bar routing.
+- Client migration when a monitor disappears, with floating-window clamping.
+- Initial EWMH dock strut/workarea support.
 
 ### Desktop shell
 
-- Quickshell/QML interface adapted to consume MRX monitor and window state.
-- Monitor-aware workspace-bar routing.
-- Initial MRX-specific compatibility adapter for supported actions.
-- Upstream-derived desktop modules and assets, with unsupported compositor operations requiring further audit.
+- Quickshell/QML interface adapted from the supplied end4-pC X11 port.
+- MRX-specific backend for monitor, workspace and window information.
+- Compatibility dispatch for a limited, explicit set of supported actions.
+- Imported upstream modules remain under audit; unsupported compositor actions are not claimed as implemented.
 
-### Developer tooling
+### Developer experience
 
-- `mrxctl` command-line IPC client.
-- Versioned IPC request envelopes, request IDs and bounded socket I/O.
-- Settings persistence and an isolated installer regression test.
-- CI checks for formatting, tests, Clippy, builds, static checks and Xvfb integration.
+- `mrxctl` command-line client.
+- Versioned local IPC with request IDs and bounded socket reads/writes.
+- Settings persistence and developer build helpers.
+- Automated formatting, tests, Clippy, build, installer sandbox and Xvfb integration.
 
 ## Project status
 
-MRX is being built in phases. The implementation is real, but the feature set is not yet complete.
+MRX is not a finished desktop environment yet. The table reflects the implementation status rather than marketing completion.
 
-| Area | Current state |
+| Component | Status |
 |---|---|
-| Rust workspace | Builds and passes unit tests in CI |
-| X11 window manager | Experimental; core management path implemented |
-| ICCCM/EWMH | Partial; additional state and lifecycle semantics remain |
-| RandR multi-monitor | Discovery, per-monitor workspaces and Xvfb virtual-monitor coverage |
-| Dock panels/workareas | Initial strut parsing and workarea application; mixed-output testing remains |
-| IPC | Versioned request/reply protocol; asynchronous event streaming is in progress |
-| Quickshell/QML | Adapter exists; full shell runtime is not validated |
-| Graphics and animations | Renderer feasibility and animation system not implemented |
-| Installer | Experimental; tested in an isolated temporary home only |
+| Rust workspace | Builds and passes tests in the recorded CI baseline |
+| X11 window manager | Core path implemented; experimental |
+| ICCCM/EWMH | Partial; maximize/restore, above/below and full hidden-state semantics remain |
+| RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
+| Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
+| Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
+| IPC | Versioned protocol and push subscription lifecycle; structured operations and health reporting remain |
+| Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
+| Graphics/animations | Renderer and workspace animations are future phases |
+| Installer | Experimental; isolated temporary-home regression tests only |
 | NVIDIA 470 / GT 740 | Not tested |
 
-See [Feature status](docs/FEATURE_STATUS.md), [Roadmap](ROADMAP.md) and [Phase 1 status](docs/PHASE-1-STATUS.md) for implementation detail and remaining acceptance criteria.
+See [Feature status](docs/FEATURE_STATUS.md), [Phase 1 status](docs/PHASE-1-STATUS.md), [Validation](docs/VALIDATION.md) and the [Roadmap](ROADMAP.md).
 
 ## Architecture
 
@@ -91,11 +104,11 @@ See [Feature status](docs/FEATURE_STATUS.md), [Roadmap](ROADMAP.md) and [Phase 1
                            │
                     MRX shell adapter
                            │
-                 Versioned local IPC (v2)
+                  Versioned local IPC
                            │
               ┌────────────┴────────────┐
               │                         │
-        mrxctl CLI                Rust desktop core
+           mrxctl                 Rust desktop core
                                         │
                                 Rust X11 window manager
                                         │
@@ -108,70 +121,78 @@ See [Feature status](docs/FEATURE_STATUS.md), [Roadmap](ROADMAP.md) and [Phase 1
                                       X11
 ```
 
-**Design rule:** Rust is the source of truth for window state and window-management policy. QML should call the supported MRX interface rather than independently reproducing WM behavior or forwarding unsupported commands to another window manager.
+**Design principle:** Rust is the source of truth for window state and window-management policy. QML presents state and sends supported actions through the MRX API. It must not silently issue compositor-specific commands that MRX does not implement.
 
 ## Installation
 
-### Supported development target
+### Platform
+
+The initial development target is:
 
 - Arch Linux
 - CachyOS
-- X11 session
+- X11
 - Stable Rust toolchain
+- Quickshell and required Qt/QML modules for the shell
 
-Quickshell and its required Qt/QML modules are needed for the shell. Exact dependency requirements remain under audit.
+Other distributions, Wayland sessions and GPU configurations are not currently supported claims.
 
 ### Build from source
 
-Clone the repository and enter it:
+Clone the repository:
 
 ```bash
 git clone https://github.com/manivelx/MRX-Desktop.git
 cd MRX-Desktop
 ```
 
-Install the currently declared Arch/CachyOS dependency set:
+Install the declared Arch/CachyOS development dependencies:
 
 ```bash
 ./install.sh --install-deps
 ```
 
-Run the complete developer validation and release build:
+Run the complete developer build and validation suite:
 
 ```bash
 ./build.sh
 ```
 
-This runs formatting, workspace tests, Clippy, debug build, static checks, Xvfb checks and a release build.
+The build helper runs formatting, workspace tests, Clippy, build checks, static checks and Xvfb tests. See [Building](docs/BUILDING.md) for the supported commands and prerequisites.
 
-### Install user files (experimental)
+### Experimental user install
 
-After building, the user-scoped installer can copy MRX binaries, configuration, shell files and a session entry:
+After reviewing the scripts and building successfully:
 
 ```bash
 ./install.sh
 ```
 
-The installer expects Quickshell to be available and installs files under the current user's home directory. It does not automatically register MRX system-wide with SDDM. System-wide registration is deliberately an explicit manual step.
-
-To remove the user-scoped installation:
+Remove the user-scoped installation with:
 
 ```bash
 ./uninstall.sh
 ```
 
 > [!CAUTION]
-> The installer is not yet approved for a daily-use machine. It has isolated install/reinstall/uninstall tests, but the complete session has not been tested in a disposable VM. Review the scripts before running them. Keep your existing session and recovery path. MRX must not replace your current BSPWM, SDDM theme or Quickshell lock screen.
+> The installer is still experimental. Its sandbox test uses a temporary home directory; it is not a disposable Arch/CachyOS VM test. Do not use it on your daily driver yet. Keep your current BSPWM session, SDDM theme, Quickshell lock screen and a known recovery path untouched. System-wide session registration is deliberately not automatic.
 
-For manual commands and developer prerequisites, see [Building](docs/BUILDING.md) and [Testing](docs/TESTING.md).
+## Configuration
 
-## Keybindings
+MRX reads its own configuration and settings. The live settings surface is still being expanded; not every imported shell setting is backed by a working MRX runtime option.
 
-The final MRX keybinding scheme is still being developed. The repository does not yet expose a complete, validated default keybinding reference, so this README intentionally does not invent one. See the current [configuration and session sources](session/) before testing shortcuts.
+Useful places to start:
+
+- `config/` — default configuration.
+- `session/` — session launcher and desktop entry.
+- `shell/services/MRXBackend.qml` — shell-to-WM adapter.
+- `docs/BUILDING.md` — build and dependency guidance.
+
+A complete, validated default keybinding reference is not published yet. Use the current session sources rather than assuming imported end4/Hyprland shortcuts all work under MRX.
 
 ## Development and testing
 
-Run these checks individually:
+The automated checks can also be run independently:
 
 ```bash
 cargo fmt --all -- --check
@@ -184,24 +205,24 @@ bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh
 ```
 
-The compiled-WM Xvfb smoke test exercises monitor discovery, independent monitor-local workspaces, dock workarea behavior, urgency and client lifecycle handling.
+The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local workspace switching, EWMH dock workareas, dock focus behavior, ICCCM urgency and client lifecycle behavior.
 
-### Latest validation
+### Latest CI baseline
 
-The latest recorded full CI validation is [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015), which passed the complete workflow on commit `422615cab39c298505d49e996ce80d927e165551`. It includes formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and compiled-WM smoke test.
+The latest recorded full successful run is [GitHub Actions run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015), which passed the complete workflow on commit `422615cab39c298505d49e996ce80d927e165551`.
 
-This is a CI result for the recorded commit, not evidence of physical hardware or complete Quickshell-session compatibility. Check [Validation](docs/VALIDATION.md) for the exact environment and limits.
+This result is tied to that exact commit. It does not prove the current branch tip is green, does not validate a complete Quickshell session, and does not validate physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 
 ## Roadmap
 
-- **Phase 0 — Foundation:** repository, contributor docs and CI.
-- **Phase 1 — X11 window manager:** ICCCM/EWMH correctness, monitor topology, layouts and workspace behavior.
-- **Phase 2 — Desktop core:** typed settings, IPC event streaming, service health and recovery.
-- **Phase 3 — Graphics:** capture, damage tracking, rendering and animation feasibility.
-- **Phase 4 — Shell:** complete QML audit, MRX-backed actions and visual consistency.
-- **Phase 5 — Release:** installer ownership/rollback, disposable-VM validation and signed releases.
+- **Phase 0 — Foundation:** repository, contributor documentation and CI.
+- **Phase 1 — Window manager:** ICCCM/EWMH correctness, RandR, workspaces, layouts and real-client validation.
+- **Phase 2 — Desktop core:** IPC events, typed settings, health and recovery.
+- **Phase 3 — Graphics:** capture, damage tracking, renderer and workspace animation feasibility.
+- **Phase 4 — Shell:** complete QML audit, MRX-backed actions, accessibility and visual consistency.
+- **Phase 5 — Release:** installer/rollback, VM validation, diagnostics and reproducible artifacts.
 
-The phases are not all complete. The live checklist is maintained in [ROADMAP.md](ROADMAP.md).
+Follow the live checklists in [ROADMAP.md](ROADMAP.md). The phases are deliberately not marked complete until their acceptance criteria have evidence.
 
 ## Documentation
 
@@ -217,20 +238,18 @@ The phases are not all complete. The live checklist is maintained in [ROADMAP.md
 
 ## Credits and upstream
 
-MRX's shell design and portions of its QML/assets are derived from the supplied [end-4 dots-hyprland](https://github.com/end-4/dots-hyprland) project and its X11 adaptation. Please review upstream documentation and license notices when working with imported files. MRX's Rust window manager and integration code are developed as a separate project.
+The shell design and some QML modules/assets are derived from the supplied [end-4 dots-hyprland](https://github.com/end-4/dots-hyprland) project and its X11 adaptation. Preserve the upstream license and attribution notices when modifying imported files. The MRX Rust window manager and integration layers are developed separately.
 
 ## Contributing
 
-Contributions are welcome, especially in protocol correctness, Rust architecture, tests, accessibility and shell integration.
-
-Before opening a pull request:
+Contributions are welcome in Rust/X11 protocol correctness, IPC, testing, accessibility, QML integration and documentation.
 
 1. Read [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Check the [roadmap](ROADMAP.md) and [feature status](docs/FEATURE_STATUS.md).
-3. Include commands actually run and their results.
-4. Add tests for behavior changes.
-5. Clearly identify untested runtime or hardware assumptions.
+2. Check the [Roadmap](ROADMAP.md) and [Feature status](docs/FEATURE_STATUS.md).
+3. Include the exact commands run and their outputs.
+4. Add tests for behavioral changes.
+5. Clearly state any runtime or hardware assumptions that remain untested.
 
 ## License
 
-MRX's own repository license is MIT, subject to the licenses and notices retained with upstream-derived code and assets. See [LICENSE](LICENSE) and the relevant upstream notices.
+MRX's own repository license is MIT, subject to the licenses and notices retained with upstream-derived code and assets. See [LICENSE](LICENSE) and the retained upstream notices.

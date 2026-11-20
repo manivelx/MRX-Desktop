@@ -22,9 +22,11 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-The current development branch is being revalidated after adding independent monitor-local workspaces, synthetic RandR root-monitor filtering, dock strut handling, and live ICCCM urgency coverage. See the [GitHub Actions history](https://github.com/manivelx/MRX-Desktop/actions) for the latest commit-specific result; do not treat cancelled or superseded runs as passing evidence.
+GitHub Actions [run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790) passed on commit `25179f24cd3ff76a7f49d83c81256a896ca68eab`.
 
-The compiled Xvfb smoke test covers two virtual RandR monitor objects, monitor-local workspace switching, EWMH desktop metadata and dock workareas, client mapping, urgency changes and ICCCM close. This remains virtual-server validation, not a physical multi-output or NVIDIA hardware test.
+The run passed Rust formatting, all workspace tests, Clippy with warnings denied, build, static checks, isolated installer regression tests, Xvfb server checks and the compiled WM Xvfb smoke test. The smoke test verifies two virtual RandR monitors, independent per-monitor workspace switching, EWMH dock workarea reservation, sticky dock behavior without focus theft, live ICCCM urgency updates through a correctly typed `WM_HINTS` property, and client lifecycle handling.
+
+This validates the software paths exercised by the Ubuntu/Xvfb runner. It does not validate Quickshell runtime rendering, physical multi-monitor hotplug, NVIDIA 470 / GT 740, GPU acceleration or animation frame pacing.
 
 ## Remaining work before Phase 1 can be considered complete
 

@@ -925,11 +925,11 @@ fn switch_monitor_workspace(
             let _ = set_atom_state(conn, window.id, atoms.net_wm_state, atoms.net_wm_state_hidden, false);
         } else {
             let _ = conn.unmap_window(window.id);
-            let _ = set_wm_state(conn, window.id, wm_state, 1);
+            let _ = set_wm_state(conn, window.id, atoms.wm_state, 1);
             let _ = set_atom_state(conn, window.id, atoms.net_wm_state, atoms.net_wm_state_hidden, true);
         }
     }
-    let _ = conn.delete_property(root, net_active_window);
+    let _ = conn.delete_property(root, atoms.net_active_window);
     let _ = conn.change_property32(xproto::PropMode::REPLACE, root, atoms.current, AtomEnum::CARDINAL, &[id - 1]);
     arrange(conn, root, state);
 }

@@ -243,6 +243,10 @@ pub struct WindowInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WorkspaceInfo {
     pub id: u32,
+    /// Monitor that owns this workspace instance. Workspace numbers are
+    /// local to a monitor and may therefore repeat across outputs.
+    #[serde(default)]
+    pub monitor: String,
     pub name: String,
     pub active: bool,
     pub windows: usize,

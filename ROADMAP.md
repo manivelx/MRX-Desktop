@@ -24,7 +24,7 @@ Items are marked complete only when implementation and relevant automated valida
 
 ## Phase 2 — Desktop core and IPC
 
-- [x] Version IPC messages and correlate request/response IDs.
+- [x] Version IPC messages (v3) and correlate request/response IDs.
 - [x] Bound IPC framing, timeouts and concurrent service clients.
 - [x] Add push-based event subscriptions and subscriber disconnect cleanup.
 - [ ] Standardize structured asynchronous operation results and error categories.

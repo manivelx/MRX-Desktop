@@ -2,11 +2,11 @@
 
 ## Latest CI result
 
-PASS — GitHub Actions [run #315](https://github.com/manivelx/MRX-Desktop/actions/runs/44760870725) validated the Phase 2 event-subscription branch head `743e58dd22fa4cf98ba3ade752ebff58a57cfd9b` on 2026-11-20.
+PASS — GitHub Actions [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970) validated the Phase 2 IPC subscription branch head `65118681ba2200da143e6ffe5f600bfaff801857` on 2026-11-20.
 
-The run passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and the compiled WM Xvfb smoke test. In addition to the Phase 1 coverage, the smoke test starts `mrxctl subscribe`, receives the initial snapshot, switches workspaces, and verifies a second change-only snapshot arrives over the same persistent connection. The Quickshell adapter now consumes this stream using `SplitParser` and retains a slow snapshot fallback while the stream is unavailable.
+The run passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and the compiled WM Xvfb smoke test. The smoke test starts `mrxctl subscribe`, receives an initial snapshot, changes the active workspace and verifies a change-only snapshot arrives over the same persistent connection. The WM now also probes the subscription socket for disconnects so abandoned subscribers release their bounded IPC worker slots.
 
-The WM currently checks serialized snapshot changes at 100 ms intervals and emits only when the state changes; this removes the shell's normal 500 ms polling loop but is not yet a fully event-broadcast implementation inside the WM.
+The Quickshell adapter consumes the stream with `SplitParser`, reconnects after process exit and retains a slow one-shot snapshot fallback while the stream is unavailable. The WM checks snapshot changes at 100 ms intervals; this removes normal shell polling but is not yet an internal event-broadcast architecture.
 
 ## Validation environment and limits
 

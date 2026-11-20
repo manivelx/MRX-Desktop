@@ -46,6 +46,8 @@ if grep -Fq 'rm -f /usr/share/xsessions/mrx.desktop' uninstall.sh; then fail 'un
 grep -Fq 'picom.conf" ]] || install' install.sh || fail 'reinstall must preserve the existing Picom config'
 pass 'installer preserves user configuration and leaves system-wide session registration opt-in'
 bash ./tests/installer-sandbox.sh
+grep -Fq 'bash "$ROOT/install.sh"' tests/installer-sandbox.sh || fail 'installer sandbox must invoke non-executable install.sh through bash'
+grep -Fq 'bash "$ROOT/uninstall.sh"' tests/installer-sandbox.sh || fail 'installer sandbox must invoke non-executable uninstall.sh through bash'
 
 # The MRX shell must use its own backend rather than launch BSPWM as WM.
 grep -q 'mrx-wm' session/mrx-session || fail 'session does not launch MRX WM'

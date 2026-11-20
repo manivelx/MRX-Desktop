@@ -175,6 +175,24 @@ window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
 assert window['monitor'] in {m['name'] for m in data['monitors']}, data
 print('PASS: managed window has a live monitor assignment')
 PY
+
+# Set the ICCCM urgency flag on the live client and verify PropertyNotify
+# refreshes the shared snapshot rather than leaving a stale initial value.
+xprop -id "$WINDOW_ID" -f WM_HINTS 32c -set WM_HINTS '0x100, 0, 0, 0, 0, 0, 0, 0, 0'
+URGENCY_APPLIED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+window = next((w for w in data['windows'] if str(w['id']) == sys.argv[2]), None)
+raise SystemExit(0 if window and window.get('urgent') is True else 1)
+PY
+  then URGENCY_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$URGENCY_APPLIED" == 1 ]] || { echo "FAIL: WM_HINTS urgency did not reach the IPC snapshot" >&2; xprop -id "$WINDOW_ID" WM_HINTS >&2 || true; cat "$RUNTIME/wm.log" >&2; exit 1; }
+echo "PASS: ICCCM WM_HINTS urgency updates the live window snapshot"
 "$CTL" close "$WINDOW_ID" >/dev/null
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

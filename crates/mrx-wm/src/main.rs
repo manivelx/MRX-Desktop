@@ -1075,12 +1075,14 @@ Action::Focus(id)=>{
          if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {
              let ws=requested+1;
              let is_dock=s.clients.get(&target).is_some_and(|w|w.dock);
-             let visible=s.clients.get(&target).is_some_and(|w|!w.dock && ws==active_workspace_for(&s,&w.monitor));
+             let minimized=s.clients.get(&target).is_some_and(|w|w.minimized);
+             let visible=s.clients.get(&target).is_some_and(|w|!w.dock && !w.minimized && ws==active_workspace_for(&s,&w.monitor));
              if is_dock { continue; }
              if let Some(w)=s.clients.get_mut(&target){
                  w.workspace=ws;
                  let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);
-                 if visible {let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}
+                 if minimized {let _=set_wm_state(&conn,target,wm_state,3);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}
+                 else if visible {let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}
                  else {let _=conn.unmap_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}
              }
              arrange(&conn,root,&s);

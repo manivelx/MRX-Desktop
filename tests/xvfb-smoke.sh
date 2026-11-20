@@ -332,7 +332,37 @@ PY
 done
 [[ "$RESTORE_MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Normal State'
-echo "PASS: EWMH minimize/restore retains the managed client and WM_STATE"
+
+# Also exercise the ICCCM WM_CHANGE_STATE IconicState/NormalState messages.
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 icccm
+ICCCM_MINIMIZED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next((w for w in data['windows'] if str(w['id']) == sys.argv[2]), None)
+raise SystemExit(0 if window and window.get('minimized') else 1)
+PY
+  then ICCCM_MINIMIZED=1; break; fi
+  sleep 0.1
+done
+[[ "$ICCCM_MINIMIZED" == 1 ]] || { echo "FAIL: ICCCM WM_CHANGE_STATE did not minimize the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 icccm
+ICCCM_RESTORED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next((w for w in data['windows'] if str(w['id']) == sys.argv[2]), None)
+raise SystemExit(0 if window and not window.get('minimized') else 1)
+PY
+  then ICCCM_RESTORED=1; break; fi
+  sleep 0.1
+done
+[[ "$ICCCM_RESTORED" == 1 ]] || { echo "FAIL: ICCCM WM_CHANGE_STATE did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+echo "PASS: ICCCM WM_CHANGE_STATE minimize/restore lifecycle"
 
 # Reuse the live test client as a dock and reserve 48px at the top edge.
 

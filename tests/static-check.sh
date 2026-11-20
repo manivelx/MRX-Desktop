@@ -150,3 +150,9 @@ grep -Fq 'WM.switchWorkspaceOnMonitor(wsModel.getWorkspaceIdAt(hoverIndex), wsMo
 grep -Fq 'fn publish_workarea' crates/mrx-wm/src/main.rs || fail 'EWMH workarea property is not published'
 grep -Fq 'publish_workarea(&conn,root,net_workarea' crates/mrx-wm/src/main.rs || fail 'EWMH workarea is not initialized for desktops'
 grep -Fq 'EWMH workarea is published for all nine desktops' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits EWMH workarea validation'
+
+grep -Fq 'read_dock_strut' crates/mrx-wm/src/main.rs || fail 'WM does not parse EWMH dock struts'
+grep -Fq 'monitor_workarea' crates/mrx-wm/src/main.rs || fail 'WM does not compute usable monitor workareas'
+grep -Fq 'is_dock_window' crates/mrx-wm/src/main.rs || fail 'WM does not identify EWMH dock window types'
+grep -Fq 'EWMH dock partial strut reduces usable workarea' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock strut reservation validation'
+grep -Fq 'right_and_bottom_struts_use_root_edge_distances' crates/mrx-wm/src/main.rs || fail 'dock strut root-edge geometry tests missing'

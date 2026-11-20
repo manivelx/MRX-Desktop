@@ -209,7 +209,7 @@ The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local 
 
 ### Latest CI baseline
 
-The latest recorded successful baseline is [GitHub Actions run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015), on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the IPC v3 protocol bump and current documentation changes; the current tip needs its own green CI run.
+The latest successful Rust/installer/Xvfb baseline is [GitHub Actions run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758), on commit `160a38916088503cf5ccf00b63217928c23669ba`. Later changes are documentation/session compatibility adjustments and require their own final CI run.
 
 This result is tied to that exact commit. It does not prove the current branch tip is green, does not validate a complete Quickshell session, and does not validate physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

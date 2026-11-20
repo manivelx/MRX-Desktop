@@ -255,7 +255,49 @@ assert window['monitor'] in {m['name'] for m in data['monitors']}, data
 print('PASS: managed window has a live monitor assignment')
 PY
 
+print('PASS: managed window has a live monitor assignment')
+PY
+
+# Exercise EWMH horizontal+vertical maximize and restoration through real
+# ClientMessage requests. The snapshot must reflect both state atoms and
+# restore the pre-maximize geometry when both axes are removed.
+"$CTL" snapshot >"$RUNTIME/before-maximize.json"
+cc "$ROOT/tests/send-net-wm-state.c" -o "$RUNTIME/send-net-wm-state" -lX11
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 both
+MAXIMIZED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
+raise SystemExit(0 if window.get('maximized_horz') and window.get('maximized_vert') else 1)
+PY
+  then MAXIMIZED=1; break; fi
+  sleep 0.1
+done
+[[ "$MAXIMIZED" == 1 ]] || { echo "FAIL: EWMH maximize state was not applied" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 both
+RESTORED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/after-maximize.json"
+  if python3 - "$RUNTIME/before-maximize.json" "$RUNTIME/after-maximize.json" "$WINDOW_ID" <<'PY'
+import json, sys
+before = json.load(open(sys.argv[1], encoding='utf-8'))
+after = json.load(open(sys.argv[2], encoding='utf-8'))
+old = next(w for w in before['windows'] if str(w['id']) == sys.argv[3])
+new = next(w for w in after['windows'] if str(w['id']) == sys.argv[3])
+assert not new.get('maximized_horz') and not new.get('maximized_vert'), new
+assert (new['x'], new['y'], new['width'], new['height']) == (old['x'], old['y'], old['width'], old['height']), (old, new)
+print('PASS: EWMH maximize/restore round-trip preserves original geometry')
+PY
+  then RESTORED=1; break; fi
+  sleep 0.1
+done
+[[ "$RESTORED" == 1 ]] || { echo "FAIL: EWMH maximize state did not restore original geometry" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+
 # Reuse the live test client as a dock and reserve 48px at the top edge.
+
 xprop -id "$WINDOW_ID" -f _NET_WM_WINDOW_TYPE 32a -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DOCK
 xprop -id "$WINDOW_ID" -f _NET_WM_STRUT_PARTIAL 32c -set _NET_WM_STRUT_PARTIAL '0, 0, 48, 0, 0, 0, 0, 0, 0, 1919, 0, 0'
 WORKAREA_APPLIED=0

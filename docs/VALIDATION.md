@@ -2,27 +2,11 @@
 
 ## Latest CI result
 
-PASS — GitHub Actions [run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790) validated commit `25179f24cd3ff76a7f49d83c81256a896ca68eab` on 2026-11-20.
+PASS — GitHub Actions [run #315](https://github.com/manivelx/MRX-Desktop/actions/runs/44760870725) validated the Phase 2 event-subscription branch head `743e58dd22fa4cf98ba3ade752ebff58a57cfd9b` on 2026-11-20.
 
-| Check | Result |
-|---|---|
-| `cargo fmt --all -- --check` | PASS |
-| `cargo test --workspace` | PASS |
-| `cargo clippy --workspace --all-targets -- -D warnings` | PASS |
-| `cargo build --workspace` | PASS |
-| `bash ./tests/static-check.sh` | PASS |
-| `bash ./tests/installer-sandbox.sh` | PASS |
-| `bash ./tests/xvfb-server-check.sh` | PASS |
-| `bash ./tests/xvfb-smoke.sh` | PASS |
+The run passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and the compiled WM Xvfb smoke test. In addition to the Phase 1 coverage, the smoke test starts `mrxctl subscribe`, receives the initial snapshot, switches workspaces, and verifies a second change-only snapshot arrives over the same persistent connection. The Quickshell adapter now consumes this stream using `SplitParser` and retains a slow snapshot fallback while the stream is unavailable.
 
-The compiled WM smoke test exercised:
-- IPC startup, snapshot and workspace switching.
-- Two virtual RandR monitors, synthetic root-screen filtering and independent per-monitor workspaces.
-- EWMH desktop metadata and dock strut workarea reservation.
-- Sticky dock behavior without keyboard-focus theft.
-- Live settings persistence.
-- ICCCM `WM_HINTS` urgency updates using `XSetWMHints`.
-- Client mapping, workspace state and close lifecycle.
+The WM currently checks serialized snapshot changes at 100 ms intervals and emits only when the state changes; this removes the shell's normal 500 ms polling loop but is not yet a fully event-broadcast implementation inside the WM.
 
 ## Validation environment and limits
 

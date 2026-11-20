@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use mrx_core::{Request, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo};
 use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::Duration};
 use tracing::{info, warn};
-use x11rb::{connection::Connection, properties::WmHints, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
+use x11rb::{connection::{Connection, RequestConnection}, properties::WmHints, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
 #[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo> }
 #[derive(Debug)] enum Action { Switch(u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
@@ -397,7 +397,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
            if atom==net_wm_state_fullscreen {
              let geometry=conn.get_geometry(e.window).ok().and_then(|cookie| cookie.reply().ok());
              let mut s=state.lock().unwrap();
-             let monitor=(s.monitor.x,s.monitor.y,s.monitor.width,s.monitor.height);
+             let monitor=s.clients.get(&e.window).and_then(|w| s.monitors.iter().find(|m| m.name == w.monitor)).or_else(|| s.monitors.iter().find(|m| m.focused)).or_else(|| s.monitors.first()).map(|m| (m.x,m.y,m.width,m.height)).unwrap_or((0,0,screen.width_in_pixels as u32,screen.height_in_pixels as u32));
              let border=s.settings.appearance.border_width;
              if let Some(w)=s.clients.get_mut(&e.window) {
                let enable=match action { 0=>false, 1=>true, 2=>!w.fullscreen, _=>w.fullscreen };

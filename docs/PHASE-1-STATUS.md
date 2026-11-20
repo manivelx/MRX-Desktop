@@ -18,7 +18,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-The latest recorded successful implementation baseline is [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) on commit `422615cab39c298505d49e996ce80d927e165551`. It predates the README and documentation-only updates. The current branch tip must pass its own CI run before it is described as validated.
+The latest successful software baseline is [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) on commit `160a38916088503cf5ccf00b63217928c23669ba`. It passed format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. Later documentation and session compatibility changes still need a final exact-head CI run.
 
 ## Remaining Phase 1 acceptance work
 

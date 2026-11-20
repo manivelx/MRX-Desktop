@@ -7,7 +7,8 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 - Rust X11 WM ownership/event loop, shared state snapshot and typed local IPC.
 - ICCCM polite close, WM_STATE updates, WM_TAKE_FOCUS negotiation, transient detection, live WM_HINTS urgency, WM_NORMAL_HINTS min/max/base/increment/aspect constraints, fixed-size floating policy and focus restoration after unmap/destruction.
-- Startup adoption of viewable non-override-redirect clients; floating and tiled ConfigureRequest policy.
+- Startup adoption of viewable non-override-redirect clients plus unmapped ICCCM Iconic clients; preserves initial EWMH fullscreen/maximize/hidden/ABOVE/BELOW atoms and valid per-window desktop assignments.
+- Floating and tiled ConfigureRequest policy.
 - EWMH desktop metadata, client list/stacking, close/active/current desktop/window desktop/fullscreen requests, horizontal/vertical maximize with geometry restoration, hidden/minimize lifecycle, ABOVE/BELOW stacking requests and initial dock strut/workarea handling.
 - Master/stack, columns and monocle layout geometry; per-monitor workareas for tiled layout.
 - RandR 1.5 monitor discovery, atom names, primary-monitor selection, active-CRTC fallback, notification refresh and 250ms reconciliation. Synthetic root-screen rectangles are discarded when actual output monitors are available.
@@ -22,7 +23,7 @@ The merged `main` baseline [run #403](https://github.com/manivelx/MRX-Desktop/ac
 
 ## Remaining Phase 1 acceptance work
 
-- Complete EWMH state semantics: initial-state adoption, full restacking policy and advanced dialog modality.
+- Complete EWMH state semantics: runtime restacking policy, exact geometry restoration after replacing another WM, and advanced dialog modality.
 - Improve ICCCM corner-case coverage: very small workareas, aspect/increment interactions, focus/withdrawal and transient/dialog behavior.
 - Validate overlapping/multiple/vertical struts, mixed-DPI/mixed-resolution geometry and physical hotplug/disconnect/reconnect on actual multi-output hardware.
 - Validate Xephyr/nested Xorg session behavior and complete QML runtime interactions.

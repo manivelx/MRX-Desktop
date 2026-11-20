@@ -18,7 +18,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-The latest successful pre-merge validation is [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) on commit `160a38916088503cf5ccf00b63217928c23669ba`. It passed format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The merged default-branch commit is being validated separately by GitHub Actions.
+The merged `main` baseline [run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) passed on commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke.
 
 ## Remaining Phase 1 acceptance work
 

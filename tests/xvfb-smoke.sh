@@ -87,6 +87,26 @@ assert (monitors['MRX-RIGHT']['x'], monitors['MRX-RIGHT']['y'],
         monitors['MRX-RIGHT']['width'], monitors['MRX-RIGHT']['height']) == (960, 0, 960, 1080), monitors
 print('PASS: live RandR resource changes refresh two independent monitor geometries')
 PY
+
+# Each monitor owns its own active workspace. Switching one output must not
+# change the active workspace of the other output.
+"$CTL" workspace 2 MRX-LEFT >/dev/null
+"$CTL" workspace 3 MRX-RIGHT >/dev/null
+"$CTL" snapshot >"$RUNTIME/snapshot.json"
+python3 - "$RUNTIME/snapshot.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+monitors = {m['name']: m for m in data['monitors']}
+assert monitors['MRX-LEFT']['active_workspace'] == 2, monitors
+assert monitors['MRX-RIGHT']['active_workspace'] == 3, monitors
+workspaces = {(w['monitor'], w['id']): w for w in data['workspaces']}
+assert workspaces[('MRX-LEFT', 2)]['active'] is True, workspaces
+assert workspaces[('MRX-RIGHT', 3)]['active'] is True, workspaces
+print('PASS: independent monitor-local workspace state is exposed through IPC')
+PY
+# Return both outputs to workspace one before testing window lifecycle behavior.
+"$CTL" workspace 1 MRX-LEFT >/dev/null
+"$CTL" workspace 1 MRX-RIGHT >/dev/null
 xprop -root _NET_NUMBER_OF_DESKTOPS _NET_DESKTOP_NAMES _NET_WORKAREA _NET_CLIENT_LIST_STACKING _NET_SUPPORTED >"$RUNTIME/ewmh.txt"
 grep -q '_NET_NUMBER_OF_DESKTOPS' "$RUNTIME/ewmh.txt"
 grep -q '_NET_DESKTOP_NAMES' "$RUNTIME/ewmh.txt"

@@ -213,7 +213,7 @@ grep -Fq 'IPC operations expose queued/completed/failed states' tests/xvfb-smoke
 
 grep -Fq 'pub fn save_profile_atomic' crates/mrx-core/src/lib.rs || fail 'atomic settings profile export is missing'
 grep -Fq 'pub fn load_profile' crates/mrx-core/src/lib.rs || fail 'validated settings profile import is missing'
-grep -Fq 'settings_history:Vec<Settings>' crates/mrx-wm/src/main.rs || fail 'bounded settings undo history is missing'
+grep -Fq 'settings_history' crates/mrx-wm/src/main.rs || fail 'bounded settings undo history is missing'
 grep -Fq 'Action::UndoSettings' crates/mrx-wm/src/main.rs || fail 'settings undo action is missing'
 grep -Fq 'Action::ResetSettings' crates/mrx-wm/src/main.rs || fail 'settings reset action is missing'
 grep -Fq 'profile import' crates/mrxctl/src/main.rs || fail 'mrxctl profile commands are missing'

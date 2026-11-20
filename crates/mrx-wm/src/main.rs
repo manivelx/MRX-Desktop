@@ -928,7 +928,9 @@ Action::Focus(id)=>{
    // or monitor identity actually changes.
    if last_monitor_refresh.elapsed() >= Duration::from_millis(250) {
        let mut s = state.lock().unwrap();
-       refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
+       let width = s.root_width.min(u16::MAX as u32) as u16;
+       let height = s.root_height.min(u16::MAX as u32) as u16;
+       refresh_monitor_state(&conn, root, &mut s, width, height);
        last_monitor_refresh = std::time::Instant::now();
    }
    conn.flush()?; }

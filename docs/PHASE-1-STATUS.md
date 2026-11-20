@@ -22,16 +22,15 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-GitHub Actions [run #201](https://github.com/manivelx/MRX-Desktop/actions/runs/44750922323) passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer regression tests, Xvfb server checks and the compiled WM smoke test. It validates the RandR topology reconciliation and the then-current ICCCM urgency integration.
+The current development branch is being revalidated after adding independent monitor-local workspaces, synthetic RandR root-monitor filtering, dock strut handling, and live ICCCM urgency coverage. See the [GitHub Actions history](https://github.com/manivelx/MRX-Desktop/actions) for the latest commit-specific result; do not treat cancelled or superseded runs as passing evidence.
 
-The Xvfb monitor-object test now verifies that two virtual RandR monitors appear in the WM IPC snapshot with the expected geometry. The WM uses version-aware RandR 1.5 discovery, an active-CRTC fallback, event-driven refresh and a low-frequency reconciliation pass for servers that miss monitor-object notifications. A subsequent smoke-test increment is validating live `WM_HINTS` urgency changes; its newest CI run must pass before that new test is treated as green.
+The compiled Xvfb smoke test covers two virtual RandR monitor objects, monitor-local workspace switching, EWMH desktop metadata and dock workareas, client mapping, urgency changes and ICCCM close. This remains virtual-server validation, not a physical multi-output or NVIDIA hardware test.
 
 ## Remaining work before Phase 1 can be considered complete
 
 - Extend `WM_NORMAL_HINTS` validation for remaining ICCCM edge cases, especially aspect-ratio/increment combinations under very small work areas; add physical-client tests for focus, withdrawal and urgency transitions.
 - Finish EWMH state semantics beyond the current subset: initial client state adoption, maximize/restore, above/below and complete minimized/hidden behavior.
 - Validate EWMH dock/panel strut parsing and per-monitor usable workareas on mixed-resolution physical outputs; partial and legacy struts are parsed and applied to tiling and the focused-monitor EWMH workarea.
-- Physical multi-output hotplug, disconnect/reconnect, independent workspace behavior and dock workarea geometry still require physical monitor validation; Xvfb covers virtual monitor objects and independent workspace switching.
 - Physical multi-output hotplug, disconnect/reconnect and floating-window migration need an integration test on a multi-output X server or real hardware. Xvfb validates only its virtual single-screen configuration.
 - Validate transient dialogs, startup adoption, unmap/destroy races, focus policy, fullscreen restore and EWMH client stacking in more comprehensive Xephyr/Xorg scenarios.
 - IPC event subscriptions and orderly shutdown remain open; the shell currently uses periodic snapshot refresh.

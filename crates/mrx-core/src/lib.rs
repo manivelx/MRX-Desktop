@@ -307,6 +307,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn old_window_snapshots_default_missing_monitor_fields() {
+        let window: WindowInfo = serde_json::from_str(r#"{"id":42,"workspace":1}"#).unwrap();
+        assert_eq!(window.id, 42);
+        assert_eq!(window.monitor, "");
+    }
+
+    #[test]
     fn defaults_are_safe_for_kepler_baseline() {
         let settings = Settings::default();
         assert_eq!(settings.workspace.count, 9);

@@ -65,6 +65,17 @@ done
 "$CTL" ping >/dev/null || { cat "$RUNTIME/wm.log" >&2; exit 1; }
 echo "PASS: MRX WM IPC responds"
 
+HEALTH_JSON="$("$CTL" health)"
+python3 - "$HEALTH_JSON" <<'PY'
+import json,sys
+health=json.loads(sys.argv[1])['health']
+assert health['pid']>0 and health['uptime_ms']>=0, health
+assert health['monitor_count']>=1 and health['active_ipc_clients']>=1, health
+assert health['managed_windows']>=1, health
+assert all(health[key]>=0 for key in ('operations_queued','operations_succeeded','operations_failed')), health
+print('PASS: IPC health reports process, uptime, X11 clients, monitors and operation metrics')
+PY
+
 queue_operation() {
   local response
   response="$("$CTL" "$@")"
@@ -586,6 +597,28 @@ with open(sys.argv[1], encoding='utf-8') as f: data=json.load(f)
 assert all(str(w['id']) != sys.argv[2] for w in data.get('windows', [])), data
 print('PASS: ICCCM close request removed the managed client')
 PY
+
+SHUTDOWN_RESPONSE="$("$CTL" shutdown)"
+python3 - "$SHUTDOWN_RESPONSE" <<'PY'
+import json,sys
+response=json.loads(sys.argv[1])
+assert response['operation']['kind']=='shutdown', response
+assert response['operation']['status'] in ('queued','succeeded'), response
+PY
+SHUTDOWN_EXITED=0
+for _ in $(seq 1 50); do
+  if [[ ! -S "$XDG_RUNTIME_DIR/mrx.sock" ]]; then SHUTDOWN_EXITED=1; break; fi
+  sleep 0.1
+done
+[[ "$SHUTDOWN_EXITED" == 1 ]] || { echo "FAIL: orderly shutdown did not remove the IPC socket" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+wait "$WM_PID"
+WM_PID=""
+ROOT_SUPPORTED="$(xprop -root _NET_SUPPORTED 2>&1 || true)"
+ROOT_CHECK="$(xprop -root _NET_SUPPORTING_WM_CHECK 2>&1 || true)"
+echo "Shutdown root-property probe: $ROOT_SUPPORTED | $ROOT_CHECK"
+grep -q '_NET_SUPPORTED(ATOM)' <<<"$ROOT_SUPPORTED" && { echo "FAIL: _NET_SUPPORTED survived shutdown" >&2; exit 1; }
+grep -q 'window id' <<<"$ROOT_CHECK" && { echo "FAIL: _NET_SUPPORTING_WM_CHECK survived shutdown" >&2; exit 1; }
+echo "PASS: IPC shutdown exits cleanly, removes socket and clears WM-owned root properties"
 
 echo "PASS: isolated Xvfb smoke test complete"
 echo "NOTE: this does not validate Quickshell rendering, GLX acceleration or NVIDIA hardware."

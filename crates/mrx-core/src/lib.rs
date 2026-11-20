@@ -372,6 +372,8 @@ pub enum Request {
     ResetSettings,
     ExportSettingsProfile { name: String },
     ImportSettingsProfile { name: String },
+    Health,
+    Shutdown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -391,6 +393,20 @@ pub struct Response {
     pub operation: Option<OperationResult>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<OperationError>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health: Option<HealthReport>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HealthReport {
+    pub pid: u32,
+    pub uptime_ms: u64,
+    pub managed_windows: usize,
+    pub monitor_count: usize,
+    pub active_ipc_clients: usize,
+    pub operations_queued: usize,
+    pub operations_succeeded: usize,
+    pub operations_failed: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -420,11 +436,11 @@ pub struct OperationResult {
 
 impl Response {
     pub fn ok(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None }
     }
 
     pub fn err(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None }
     }
 
     pub fn err_code(code: impl Into<String>, message: impl Into<String>, retryable: bool) -> Self {
@@ -437,6 +453,12 @@ impl Response {
     pub fn with_operation(operation: OperationResult) -> Self {
         let mut response=Self::ok(operation.message.clone());
         response.operation=Some(operation);
+        response
+    }
+
+    pub fn with_health(health:HealthReport) -> Self {
+        let mut response=Self::ok("healthy");
+        response.health=Some(health);
         response
     }
 }
@@ -499,6 +521,23 @@ mod tests {
         assert_eq!(response.operation,Some(operation));
         let error=Response::err_code("invalid_workspace","workspace out of range",false);
         assert_eq!(error.error.unwrap().code,"invalid_workspace");
+    }
+
+    #[test]
+    fn health_and_shutdown_requests_round_trip() {
+        for request in [Request::Health,Request::Shutdown] {
+            let encoded=serde_json::to_string(&request).unwrap();
+            let decoded:Request=serde_json::from_str(&encoded).unwrap();
+            assert_eq!(decoded,request);
+        }
+    }
+
+    #[test]
+    fn health_report_serializes_process_and_service_metrics() {
+        let health=HealthReport{pid:42,uptime_ms:1234,managed_windows:3,monitor_count:2,active_ipc_clients:1,operations_queued:1,operations_succeeded:4,operations_failed:2};
+        let response=Response::with_health(health.clone());
+        assert!(response.ok);
+        assert_eq!(response.health,Some(health));
     }
 
     #[test]

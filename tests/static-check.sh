@@ -218,3 +218,11 @@ grep -Fq 'Action::UndoSettings' crates/mrx-wm/src/main.rs || fail 'settings undo
 grep -Fq 'Action::ResetSettings' crates/mrx-wm/src/main.rs || fail 'settings reset action is missing'
 grep -Fq 'profile import' crates/mrxctl/src/main.rs || fail 'mrxctl profile commands are missing'
 grep -Fq 'settings undo/reset, profile import/export and profile path validation' tests/xvfb-smoke.sh || fail 'Xvfb settings profile acceptance test is missing'
+
+grep -Fq 'pub struct HealthReport' crates/mrx-core/src/lib.rs || fail 'IPC health report type is missing'
+grep -Fq 'Request::Health' crates/mrx-wm/src/main.rs || fail 'IPC health request handler is missing'
+grep -Fq 'Action::Shutdown' crates/mrx-wm/src/main.rs || fail 'orderly WM shutdown action is missing'
+grep -Fq '"health" => Request::Health' crates/mrxctl/src/main.rs || fail 'mrxctl health command is missing'
+grep -Fq '"shutdown" => Request::Shutdown' crates/mrxctl/src/main.rs || fail 'mrxctl shutdown command is missing'
+grep -Fq 'IPC health reports process, uptime' tests/xvfb-smoke.sh || fail 'Xvfb health acceptance test is missing'
+grep -Fq 'IPC shutdown exits cleanly' tests/xvfb-smoke.sh || fail 'Xvfb orderly shutdown acceptance test is missing'

@@ -12,7 +12,7 @@
 - The server bounds request framing, socket read/write timeouts and concurrent client workers. It refuses to replace a non-socket at the IPC path.
 - `Request::Subscribe` streams an initial snapshot and change-only snapshots. `mrxctl subscribe` validates the event envelope and emits newline-delimited snapshots for Quickshell's `SplitParser`.
 - The WM currently checks for snapshot changes every 100 ms rather than publishing from an internal state-change bus. Disconnected clients are detected and release their worker slot; Quickshell reconnects and uses a slow one-shot snapshot fallback while the stream is unavailable.
-- Mutating requests return stable operation IDs and can be polled through `Request::GetOperation`; results expose queued/succeeded/failed states, bounded retention and structured error codes. Subscriber backpressure metrics and high-rate event-ordering tests remain outstanding.
+- Mutating requests return stable operation IDs and can be polled through `Request::GetOperation`; results expose queued/succeeded/failed states, bounded retention and structured error codes. `Request::Health` reports PID, uptime, managed clients, monitors, active IPC clients and operation counts. `Request::Shutdown` exits the event loop cleanly, removes the socket and clears WM-owned root properties. Supervised restart, subscriber backpressure metrics and high-rate event-ordering tests remain outstanding.
 
 ## Settings
 

@@ -1,8 +1,8 @@
 # Validation record
 
-## Latest successful pre-merge full CI baseline
+## Latest successful `main` validation
 
-PASS — GitHub Actions [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) passed on commit `160a38916088503cf5ccf00b63217928c23669ba` on 2026-11-20. The merged default-branch commit is undergoing its own CI run.
+PASS — GitHub Actions [run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) passed on the merged default-branch commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6` on 2026-11-20.
 
 | Check | Result |
 |---|---|

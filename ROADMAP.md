@@ -20,12 +20,14 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
 - [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.
 - [ ] Validate independent workspaces on physical multi-output hardware.
-- [x] Add deterministic Xvfb integration tests for the compiled WM.\n- [ ] Add Xephyr nested-server coverage.
+- [x] Add deterministic Xvfb integration tests for the compiled WM.
+- [ ] Add Xephyr nested-server coverage.
 
 ## Phase 2 — Desktop core and live settings
 
 - [x] Version the IPC protocol, add request IDs, correlate responses and reject incompatible clients.
-- [x] Add persistent push-based snapshot subscriptions with change-only events.\n- [ ] Add structured asynchronous operation results for queued mutations.
+- [x] Add persistent push-based snapshot subscriptions with change-only events.
+- [ ] Add structured asynchronous operation results for queued mutations.
 - [x] Replace normal Quickshell snapshot polling with the IPC event stream; retain a slow reconnect/fallback snapshot path.
 - [x] Make settings typed, validated and transactionally applied (candidate copy, validation and atomic persistence before runtime replacement).
 - [ ] Add undo/reset/profile import-export where appropriate.

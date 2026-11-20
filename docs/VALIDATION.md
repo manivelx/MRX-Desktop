@@ -1,59 +1,56 @@
 # Validation record
 
-## Environment used for this engineering pass
+## Latest CI result
 
-- Container OS: Debian GNU/Linux 13 (trixie)
-- Container kernel: `6.18.57 #1 SMP Tue Oct 20 2026`
-- Virtual display: Xvfb 1920x1080x24
-- Available X11 utilities: Xvfb, xdpyinfo, xprop, xwininfo, xterm
-- Python-Xlib available for a basic X11 client round trip
-- No Rust compiler/Cargo found in the container
-- No Quickshell executable found in the container
-- No `/dev/dri` device nodes or NVIDIA device nodes exposed to the container
-- Package network access unavailable; `apt-get update` timed out
+PASS — GitHub Actions CI run [#105](https://github.com/manivelx/MRX-Desktop/actions/runs/44737503616) validated commit `5190f3bacd66b51e9aa4c88daa66b8ae8d1ccdc6` on 2026-11-20.
 
-The container kernel version is not the user's CachyOS kernel. It must not be
-used as evidence of compatibility with the user's installed NVIDIA driver.
+| Check | Result |
+|---|---|
+| `cargo fmt --all` | PASS |
+| `cargo test --workspace` | PASS |
+| `cargo clippy --workspace --all-targets -- -D warnings` | PASS |
+| `cargo build --workspace` | PASS |
+| `bash ./tests/static-check.sh` | PASS |
+| `bash ./tests/xvfb-server-check.sh` | PASS |
+| `bash ./tests/xvfb-smoke.sh` | PASS |
 
-## Tests actually run
+The Xvfb WM smoke test launched the compiled MRX WM and exercised:
+- IPC startup and ping.
+- EWMH desktop and client-stacking metadata.
+- Initial snapshot, workspace switching and `_NET_CURRENT_DESKTOP` synchronization.
+- Runtime setting update and persistence.
+- RandR monitor snapshot geometry and primary-monitor selection.
+- Mapping a real X11 client, assigning it to a monitor, and closing it through the ICCCM close path.
 
-| Test | Result | Notes |
-|---|---|---|
-| `bash -n` on repository scripts | PASS | Shell syntax only |
-| TOML parse of workspace and default settings | PASS | Python `tomllib` |
-| `tests/static-check.sh` | PASS | Repository invariants and static checks |
-| Xvfb 1920x1080 startup | PASS | Virtual framebuffer only |
-| Python-Xlib create/map/query/destroy | PASS | Basic X11 round trip |
-| X11 Composite extension advertisement | PASS | Xvfb server extension only |
-| X11 GLX extension advertisement | PASS | Xvfb advertises GLX; this is not NVIDIA hardware acceleration |
-| Picom XRender backend startup | PASS | Started in Xvfb; no GPU acceleration implied |
-| Picom GLX backend startup | PASS | Started in Xvfb; GLX vsync unavailable in this virtual server |
-| Rust formatting/tests/build | NOT RUN | Rust/Cargo unavailable and package network blocked |
-| MRX WM Xvfb integration test | NOT RUN | Requires compiled Rust binaries |
-| Quickshell/QML runtime | NOT RUN | Quickshell unavailable |
-| NVIDIA 470 / GT 740 | NOT TESTED | No GPU devices or driver exposed |
-| Real GLX/Picom frame pacing | NOT TESTED | Requires target GPU and real Xorg |
+## Validation environment and limits
+
+- CI runner: GitHub-hosted Ubuntu 26.04.
+- Virtual display: Xvfb 1920x1080x24.
+- Test client: `xmessage`.
+- The separate Xvfb server probe verifies X server startup and extension advertisement only. WM integration coverage is provided by `tests/xvfb-smoke.sh`.
+- The local authoring container does not have Rust/Cargo, Quickshell, or GPU device nodes; compilation and WM integration were therefore validated in GitHub Actions, not locally.
+- No physical multi-monitor hotplug/disconnect test has been run.
+- Quickshell/QML runtime and full desktop-session behavior have not been tested.
+- NVIDIA 470 / GeForce GT 740, real GLX acceleration, animation performance, and the user's CachyOS hardware have not been tested.
 
 ## Interpretation
 
-The Xvfb test demonstrates that this container can host a basic X11 server and
-client. It does not compile MRX, launch the Rust WM, validate Qt/QML, emulate
-the NVIDIA proprietary driver, or measure GPU animation performance.
+The current Rust workspace compiles, passes its unit tests and Clippy, and passes the isolated Xvfb WM smoke test on the CI runner. This is meaningful baseline validation, not a claim that the desktop environment is production-ready.
 
-The Rust source remains unverified until CI or an Arch/CachyOS machine runs:
+The Xvfb run does not validate Quickshell rendering, physical multi-monitor hotplug, the proprietary NVIDIA driver, GPU acceleration, or animation frame pacing. Do not advertise the project as crash-free or GT 740/NVIDIA-tested.
+
+## Reproduction
+
+On an Arch/CachyOS development machine with Rust and the X11 test dependencies installed:
 
 ```bash
-cargo fmt --all -- --check
+cargo fmt --all
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 cargo build --workspace
-./tests/xvfb-smoke.sh
+bash ./tests/static-check.sh
+bash ./tests/xvfb-server-check.sh
+bash ./tests/xvfb-smoke.sh
 ```
 
-Do not advertise this snapshot as crash-free or NVIDIA-tested before those
-checks pass and the results are attached to a release.
-
-
-## Alpha.8 validation boundary
-
-The alpha.8 source pass runs `tests/static-check.sh` and `tests/xvfb-server-check.sh` in the authoring container. Both pass. The static checks now also guard desktop metadata, per-window desktop requests and initial unmap handling. The Xvfb check validates the X server and extensions only; it does not launch the Rust WM. This container has no `cargo`, `rustc`, `rustfmt`, `qmllint`, or NVIDIA device, so Rust compilation, unit tests, Clippy, QML validation, Xephyr WM integration, and proprietary NVIDIA 470 validation remain unverified. CI is configured to run formatting, Rust tests, Clippy, build, static checks, Xvfb server probe, and the built-WM Xvfb smoke test.
+Use a disposable VM or nested X server for manual session tests. Keep the existing desktop session and recovery path untouched.

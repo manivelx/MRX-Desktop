@@ -112,7 +112,7 @@ echo "PASS: live setting update and persistence"
 
 # Start a client on the currently active workspace after the WM has completed
 # workspace and settings operations. Keep it alive so ICCCM close can be tested.
-xterm -title 'MRX Xvfb test client' -e sh -c 'sleep 30' >"$RUNTIME/xterm.log" 2>&1 &
+xterm -title 'MRX Xvfb test client' -geometry 80x24+10+10 -fn fixed -e sleep 30 >"$RUNTIME/xterm.log" 2>&1 &
 XTERM_PID=$!
 sleep 0.5
 

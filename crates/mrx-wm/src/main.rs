@@ -1138,9 +1138,9 @@ mod monitor_tests {
         assert!(initial_snapshot.workspaces.iter().any(|w| w.monitor == "DP-1" && w.id == 2 && w.active && w.windows == 1));
         assert!(initial_snapshot.workspaces.iter().any(|w| w.monitor == "HDMI-1" && w.id == 3 && w.active && w.windows == 1));
         state.clients.insert(12, WindowInfo { id: 12, workspace: 2, monitor: "DP-1".into(), dock: true, ..Default::default() });
-        let with_dock = snapshot(&state);
-        assert!(with_dock.windows.iter().any(|window| window.id == 12 && window.dock));
-        assert!(with_dock.workspaces.iter().any(|workspace| workspace.monitor == "DP-1" && workspace.id == 2 && workspace.windows == 1));
+        let dock_snapshot = snapshot(&state);
+        assert!(dock_snapshot.windows.iter().any(|window| window.id == 12 && window.dock));
+        assert!(dock_snapshot.workspaces.iter().any(|workspace| workspace.monitor == "DP-1" && workspace.id == 2 && workspace.windows == 1));
         assert_eq!(initial_snapshot.active_workspace, 2);
     }
 

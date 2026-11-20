@@ -387,7 +387,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
             .and_then(|cookie|cookie.reply().ok()).map(|reply|String::from_utf8_lossy(&reply.value).to_string()).unwrap_or_default();
         for client in s.clients.values_mut(){client.focused=false;}
         if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); }
-        let assigned_monitor=monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32);s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});
+        let assigned_monitor=conn.query_pointer(root).ok().and_then(|cookie|cookie.reply().ok()).map(|pointer|monitor_for_geometry(&s.monitors,pointer.root_x as i32,pointer.root_y as i32,1,1)).unwrap_or_else(||monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32));s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});
         let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
         if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}
         let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);

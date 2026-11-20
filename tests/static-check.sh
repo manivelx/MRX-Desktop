@@ -19,7 +19,7 @@ for gate in 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy 
   grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
 done
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
-grep -Fq 'Xvfb xdpyinfo xprop xmessage python3' check-deps.sh || fail 'dependency checker does not verify all required Xvfb smoke tools'
+grep -Fq 'Xvfb xdpyinfo xprop xmessage xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required Xvfb smoke tools'
 grep -Fq 'xrandr --setmonitor MRX-LEFT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not create a virtual RandR monitor'
 grep -Fq 'xrandr --setmonitor MRX-RIGHT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not exercise a second monitor'
 grep -Fq 'xrandr' check-deps.sh || fail 'dependency checker omits xrandr'

@@ -6,7 +6,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 ## Implemented
 
 - Rust X11 WM ownership and event loop with a shared state snapshot and typed local IPC.
-- Bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
+- Versioned IPC request envelopes (protocol v2) with request IDs, correlated responses and explicit mismatch rejection; bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
 - `mrxctl` uses bounded response reads and socket timeouts.
 - Workspace switching and EWMH desktop metadata, including `_NET_CLIENT_LIST`, `_NET_CLIENT_LIST_STACKING`, desktop names, viewport, workarea and geometry.
 - ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, `WM_NORMAL_HINTS` min/max/base/increment/aspect constraints, fixed-size floating policy, and focus restoration after client unmap/destruction.

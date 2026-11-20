@@ -261,7 +261,7 @@ PY
 
 # Set the ICCCM urgency flag on the live client and verify PropertyNotify
 # refreshes the shared snapshot rather than leaving a stale initial value.
-xprop -id "$WINDOW_ID" -f WM_HINTS 32c -set WM_HINTS '0x100, 0, 0, 0, 0, 0, 0, 0, 0'
+xprop -id "$WINDOW_ID" -f WM_HINTS 32c WM_HINTS -set WM_HINTS '0x100, 0, 0, 0, 0, 0, 0, 0, 0'
 URGENCY_APPLIED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

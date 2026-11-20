@@ -62,4 +62,4 @@ Use a disposable VM or nested X server for manual session tests. Keep the curren
 
 ## Interpretation
 
-The exact commit named above passed the automated CI suite. Later documentation and shell integration changes are not covered by that result. This is a useful software baseline, not a production-readiness claim. It does not establish Quickshell runtime compatibility, physical monitor behavior, NVIDIA proprietary driver support or animation performance.
+The exact `main` commit named above passed the full automated workflow. This still does not establish physical hardware compatibility or full-session runtime behavior. This is a useful software baseline, not a production-readiness claim. It does not establish Quickshell runtime compatibility, physical monitor behavior, NVIDIA proprietary driver support or animation performance.

@@ -25,7 +25,8 @@ MSG
   *) echo "Unknown option: $1 (use --help)" >&2; exit 2 ;;
 esac
 
-BIN="$ROOT/target/release"
+# MRX_BIN_DIR is primarily useful for isolated installer tests and packagers.
+BIN="${MRX_BIN_DIR:-$ROOT/target/release}"
 USER_BIN="${HOME}/.local/bin"
 USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/mrx"
 QS_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/mrx"
@@ -35,7 +36,7 @@ missing=()
 for command_name in qs; do
   command -v "$command_name" >/dev/null 2>&1 || missing+=("$command_name")
 done
-if ((${#missing[@]})); then
+if (("${#missing[@]}")); then
   printf 'Missing recommended/build commands: %s\n' "${missing[*]}" >&2
   echo "On Arch/CachyOS, run: ./install.sh --install-deps" >&2
   exit 1

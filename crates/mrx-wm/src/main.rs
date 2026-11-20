@@ -1170,7 +1170,7 @@ mod monitor_tests {
         let monitor=MonitorInfo{name:"HDMI-1".into(),x:1920,y:0,width:1280,height:720,focused:false,active_workspace:1};
         let strut=DockStrut{top:50,top_start_x:0,top_end_x:1000,..Default::default()};
         let docks=BTreeMap::from([(100,strut)]);
-        let area=monitor_workarea(&monitor,&docks,1920,1080);
+        let area=monitor_workarea(&monitor,&docks,3200,1080);
         assert_eq!((area.x,area.y,area.width,area.height),(1920,0,1280,720));
     }
 

@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use mrx_core::{Request, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo};
+use mrx_core::{Request, RequestEnvelope, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo, IPC_PROTOCOL_VERSION};
 use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::Duration};
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
@@ -34,43 +34,55 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
         anyhow::bail!("IPC request exceeds 64 KiB or is not newline-terminated");
     }
 
-    let request: Result<Request, _> = serde_json::from_str(&line);
+    let request: Result<RequestEnvelope, _> = serde_json::from_str(&line);
     let response = match request {
-        Err(error) => Response::err(format!("invalid request: {error}")),
-        Ok(Request::Ping) => Response::ok("pong"),
-        Ok(Request::Snapshot) => {
-            let mut response = Response::ok("snapshot");
-            response.snapshot = Some(snapshot(&state.lock().unwrap()));
+        Err(error) => Response::err(format!("invalid request envelope: {error}")),
+        Ok(envelope) => {
+            let request_id = envelope.request_id;
+            let mut response = if let Err(error) = envelope.validate() {
+                Response::err(error.to_string())
+            } else {
+                match envelope.request {
+                    Request::Ping => Response::ok("pong"),
+                    Request::Snapshot => {
+                        let mut response = Response::ok("snapshot");
+                        response.snapshot = Some(snapshot(&state.lock().unwrap()));
+                        response
+                    }
+                    Request::ReloadSettings => {
+                        tx.send(Action::Reload).context("WM event loop is unavailable")?;
+                        Response::ok("settings reload queued")
+                    }
+                    Request::SetSetting { key, value } => {
+                        tx.send(Action::Set(key, value)).context("WM event loop is unavailable")?;
+                        Response::ok("setting update queued")
+                    }
+                    Request::SwitchWorkspace { id } => {
+                        tx.send(Action::Switch(id)).context("WM event loop is unavailable")?;
+                        Response::ok("workspace switch queued")
+                    }
+                    Request::SwitchRelative { direction } => {
+                        let delta = if direction == "next" { 1 } else { -1 };
+                        tx.send(Action::Relative(delta)).context("WM event loop is unavailable")?;
+                        Response::ok("workspace switch queued")
+                    }
+                    Request::FocusWindow { id } => {
+                        tx.send(Action::Focus(id)).context("WM event loop is unavailable")?;
+                        Response::ok("focus queued")
+                    }
+                    Request::CloseWindow { id } => {
+                        tx.send(Action::Close(id)).context("WM event loop is unavailable")?;
+                        Response::ok("close queued")
+                    }
+                    Request::MoveWindow { id, workspace } => {
+                        tx.send(Action::Move(id, workspace)).context("WM event loop is unavailable")?;
+                        Response::ok("move queued")
+                    }
+                }
+            };
+            response.protocol_version = IPC_PROTOCOL_VERSION;
+            response.request_id = Some(request_id);
             response
-        }
-        Ok(Request::ReloadSettings) => {
-            tx.send(Action::Reload).context("WM event loop is unavailable")?;
-            Response::ok("settings reload queued")
-        }
-        Ok(Request::SetSetting { key, value }) => {
-            tx.send(Action::Set(key, value)).context("WM event loop is unavailable")?;
-            Response::ok("setting update queued")
-        }
-        Ok(Request::SwitchWorkspace { id }) => {
-            tx.send(Action::Switch(id)).context("WM event loop is unavailable")?;
-            Response::ok("workspace switch queued")
-        }
-        Ok(Request::SwitchRelative { direction }) => {
-            let delta = if direction == "next" { 1 } else { -1 };
-            tx.send(Action::Relative(delta)).context("WM event loop is unavailable")?;
-            Response::ok("workspace switch queued")
-        }
-        Ok(Request::FocusWindow { id }) => {
-            tx.send(Action::Focus(id)).context("WM event loop is unavailable")?;
-            Response::ok("focus queued")
-        }
-        Ok(Request::CloseWindow { id }) => {
-            tx.send(Action::Close(id)).context("WM event loop is unavailable")?;
-            Response::ok("close queued")
-        }
-        Ok(Request::MoveWindow { id, workspace }) => {
-            tx.send(Action::Move(id, workspace)).context("WM event loop is unavailable")?;
-            Response::ok("move queued")
         }
     };
 

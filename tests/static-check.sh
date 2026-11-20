@@ -110,6 +110,11 @@ grep -q 'MAX_IPC_CLIENTS: usize = 32' crates/mrx-wm/src/main.rs || fail 'bounded
 grep -q 'is_socket()' crates/mrx-wm/src/main.rs || fail 'IPC socket path safety check missing'
 grep -q 'take(65_537)' crates/mrxctl/src/main.rs || fail 'mrxctl response size limit missing'
 grep -q 'set_read_timeout' crates/mrxctl/src/main.rs || fail 'mrxctl socket timeout missing'
+grep -Fq 'pub struct RequestEnvelope' crates/mrx-core/src/lib.rs || fail 'versioned IPC request envelope missing'
+grep -Fq 'pub const IPC_PROTOCOL_VERSION: u32 = 2' crates/mrx-core/src/lib.rs || fail 'IPC protocol version is not explicit'
+grep -Fq 'envelope.validate()' crates/mrx-wm/src/main.rs || fail 'WM does not reject unsupported IPC protocol versions'
+grep -Fq 'response.request_id = Some(request_id)' crates/mrx-wm/src/main.rs || fail 'WM does not echo IPC request IDs'
+grep -Fq 'response.request_id == Some(request_id)' crates/mrxctl/src/main.rs || fail 'mrxctl does not verify IPC response correlation'
 pass 'ICCCM WM_STATE/polite close, transient classification, EWMH workspace/close/active/fullscreen/client-stacking handling, startup adoption and bounded IPC are present'
 
 old_identity="aure""lia"

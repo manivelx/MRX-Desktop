@@ -73,8 +73,8 @@ The repository contains shell screenshots showing the imported/adapted visual di
 ### Developer experience
 
 - `mrxctl` command-line client.
-- Versioned local IPC (v3) with request IDs and bounded socket reads/writes.
-- Settings persistence and developer build helpers.
+- Versioned local IPC (v3) with request IDs, bounded socket I/O and persistent snapshot subscriptions (`mrxctl subscribe`).
+- Typed settings with candidate validation and atomic persistence, plus developer build helpers.
 - Automated formatting, tests, Clippy, build, installer sandbox and Xvfb integration.
 
 ## Project status
@@ -89,7 +89,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
-| IPC | Protocol v3 request/reply, request IDs and bounded I/O; push events and health reporting remain |
+| IPC | Protocol v3 request/reply plus persistent change-only snapshot subscriptions; async operation results and health reporting remain |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
 | Graphics/animations | Renderer and workspace animations are future phases |
 | Installer | Experimental; isolated temporary-home regression tests only |

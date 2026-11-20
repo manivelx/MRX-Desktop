@@ -70,6 +70,47 @@ fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, he
         .unwrap_or_default()
 }
 
+fn stream_ipc_snapshots(
+    mut stream: UnixStream,
+    state: &Arc<Mutex<State>>,
+    request_id: u64,
+) -> Result<()> {
+    // Long-lived subscriptions are bounded by the same IPC client cap as
+    // request/response connections. A slow or disconnected reader is dropped
+    // by the write timeout instead of blocking the X11 event loop.
+    stream.set_write_timeout(Some(Duration::from_secs(2)))?;
+    let mut probe = stream.try_clone()?;
+    probe.set_read_timeout(Some(Duration::from_millis(100)))?;
+    let mut previous = String::new();
+    loop {
+        let current = snapshot(&state.lock().unwrap());
+        let encoded = serde_json::to_string(&current)?;
+        if encoded != previous {
+            let mut event = Response::ok("snapshot event");
+            event.request_id = Some(request_id);
+            event.snapshot = Some(current);
+            writeln!(stream, "{}", serde_json::to_string(&event)?)?;
+            stream.flush()?;
+            previous = encoded;
+        }
+
+        // Detect client disconnects even when no state changes occur. Without
+        // this read probe, abandoned subscriptions would occupy the bounded
+        // IPC worker slots forever.
+        let mut incoming = [0u8; 1];
+        match probe.read(&mut incoming) {
+            Ok(0) => return Ok(()),
+            Ok(_) => anyhow::bail!("unexpected client data on snapshot subscription"),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+}
+
 fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: &mpsc::Sender<Action>) -> Result<()> {
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
@@ -85,6 +126,11 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
     }
 
     let request: Result<RequestEnvelope, _> = serde_json::from_str(&line);
+    if let Ok(envelope) = request.as_ref() {
+        if envelope.validate().is_ok() && matches!(&envelope.request, Request::Subscribe) {
+            return stream_ipc_snapshots(stream, state, envelope.request_id);
+        }
+    }
     let response = match request {
         Err(error) => Response::err(format!("invalid request envelope: {error}")),
         Ok(envelope) => {
@@ -99,6 +145,7 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                         response.snapshot = Some(snapshot(&state.lock().unwrap()));
                         response
                     }
+                    Request::Subscribe => Response::ok("subscription started"),
                     Request::ReloadSettings => {
                         tx.send(Action::Reload).context("WM event loop is unavailable")?;
                         Response::ok("settings reload queued")

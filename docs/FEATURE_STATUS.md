@@ -13,8 +13,8 @@ This table distinguishes implemented code from complete, validated desktop behav
 | Floating and dialogs | Partial | Transient and fixed-size clients float; modality, stacking and complex dialog rules need more validation. |
 | Multi-monitor | Partial | RandR discovery/reconciliation, per-monitor tiling/workspaces, monitor-aware IPC and QML routing, hotplug state refresh and initial dock workareas are implemented. Physical multi-output, EDID and mixed-resolution behavior remain untested. |
 | Dock panels | Partial | Partial and legacy struts influence workareas; overlapping, vertical and multi-panel geometry needs physical/Xephyr coverage. |
-| IPC | Partial | Versioned request/reply protocol v3, request IDs, bounded framing/timeouts and client-worker cleanup are implemented. Push subscriptions are not present in the request schema; QML snapshot polling remains. |
-| Settings | Partial | TOML persistence and initial live-apply actions exist; full typed validation, transactional rollback and profiles remain. |
+| IPC | Partial | Protocol v3 includes a persistent Unix-socket subscription that emits change-only snapshots and releases subscriber workers on disconnect; Quickshell consumes the stream via SplitParser with reconnect and slow snapshot fallback. The WM checks state deltas every 100 ms; structured async mutation results and backpressure metrics remain. |
+| Settings | Partial | Typed settings are validated on a candidate copy and atomically persisted before replacing live state. Undo/reset/profile import-export remain. |
 | Shell integration | Partial | MRX adapter maps supported window/workspace APIs; not every imported QML service or action has a verified MRX implementation. |
 | Graphics/animations | Not implemented | XComposite/Damage capture, renderer, transitions and frame pacing are future work. |
 | Installer | Experimental | Isolated temporary-home install/reinstall/backup/uninstall tests pass in CI; VM/session coexistence, upgrade policy and signed release artifacts remain. |

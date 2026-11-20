@@ -14,6 +14,7 @@ Scope {
     property var windowByAddress: ({})
     property var addresses: []
     property var settings: ({})
+    property bool streamHealthy: false
 
     function refresh() { if (!snapshot.running) snapshot.running = true }
     function apply(raw) {
@@ -61,8 +62,50 @@ Scope {
     function biggestWindowForWorkspace(id, monitorName) { const a=root.windowList.filter(w=>w.workspaceId===Number(id) && (!monitorName || w.monitorName===monitorName));return a.sort((x,y)=>y.width*y.height-x.width*x.height)[0]??null }
     function fullscreenOnMonitor(name) { const active=root.activeWorkspaceForMonitor(name);return root.windowList.some(w=>w.fullscreen&&w.monitorName===name&&w.workspaceId===active?.id) }
     function monitorGeometry(screen) { const m=monitorFor(screen);return m?{x:m.x,y:m.y,scale:1}:{x:0,y:0,scale:1} }
-    Process { id:snapshot; command:["mrxctl","snapshot"]; stdout:StdioCollector { onStreamFinished:{ try { root.apply(JSON.parse(text)) } catch(e){ console.warn("[MRX] snapshot failed",e) } } } }
-    Process { id:action; onExited:root.refresh() }
-    Timer { interval:500; running:true; repeat:true; onTriggered:root.refresh() }
-    Component.onCompleted:root.refresh()
+    Process {
+        id: snapshot
+        command: ["mrxctl", "snapshot"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { root.apply(JSON.parse(text)) }
+                catch (e) { console.warn("[MRX] snapshot failed", e) }
+            }
+        }
+    }
+    Process {
+        id: subscription
+        command: ["mrxctl", "subscribe"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    root.apply(JSON.parse(data))
+                    root.streamHealthy = true
+                } catch (e) {
+                    console.warn("[MRX] subscription event failed", e)
+                }
+            }
+        }
+        onRunningChanged: {
+            if (!running) {
+                root.streamHealthy = false
+                reconnect.running = true
+            }
+        }
+    }
+    Timer {
+        id: reconnect
+        interval: 1500
+        repeat: false
+        onTriggered: subscription.running = true
+    }
+    Process { id: action; onExited: root.refresh() }
+    // Keep a slow one-shot fallback while the event stream is unavailable.
+    Timer {
+        interval: 1500
+        running: !root.streamHealthy
+        repeat: true
+        onTriggered: root.refresh()
+    }
+    Component.onCompleted: root.refresh()
 }

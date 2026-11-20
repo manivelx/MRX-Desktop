@@ -15,7 +15,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.
 - RandR 1.5 monitor discovery with atom-derived monitor names, geometry and primary-monitor selection, plus active-CRTC fallback for older or limited RandR servers.
 - RandR screen/CRTC/output/resource notifications refresh monitor state. A 250 ms low-frequency reconciliation pass also catches servers that expose monitor-object changes without delivering the expected notification; unchanged topologies do not trigger re-layout.
-- Independent monitor-local active workspaces, visibility, workspace snapshots, IPC switching, and Quickshell workspace-bar targeting are implemented; dock struts and physical multi-output validation remain open.
+- Independent monitor-local active workspaces, visibility, workspace snapshots, IPC switching, and Quickshell workspace-bar targeting are implemented; initial dock strut/workarea handling is implemented; physical multi-output validation remains open.
 - Windows retain monitor identity in the shared snapshot; tiled clients are arranged per monitor. On monitor removal, affected clients migrate to the remaining focused/primary monitor; floating windows are clamped into its bounds.
 - Quickshell MRX adapter consumes the reported monitor list and window monitor identity instead of hardcoding `screen-0`.
 - GitHub Actions validates formatting, workspace tests, Clippy, build, static checks, Xvfb server startup and the compiled WM smoke test.

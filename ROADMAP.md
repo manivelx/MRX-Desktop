@@ -14,7 +14,8 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [ ] Complete ICCCM/EWMH essentials and startup client discovery.
 - [ ] Correctly handle dialogs, transients, docks, override-redirect windows and urgency.
 - [ ] Implement floating, fullscreen, focus policies and size hints.
-- [x] Add RandR monitor discovery/change handling and per-monitor tiling foundation.\n- [ ] Add dock-aware multi-monitor work areas and independent per-monitor workspaces.
+- [x] Add RandR monitor discovery/change handling and per-monitor tiling foundation.
+- [ ] Add dock-aware multi-monitor work areas and independent per-monitor workspaces.
 - [ ] Add deterministic Xvfb/Xephyr integration tests.
 
 ## Phase 2 — Desktop core and live settings

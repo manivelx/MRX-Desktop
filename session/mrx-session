@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PATH="$HOME/.local/bin:$PATH"
+export XDG_CURRENT_DESKTOP=MRX
+export XDG_SESSION_DESKTOP=mrx
+export XDG_SESSION_TYPE=x11
+export QT_QPA_PLATFORM=xcb
+export QT_AUTO_SCREEN_SCALE_FACTOR=0
+export MRX_SESSION=1
+export MRX_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/mrx"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+mkdir -p "$MRX_CONFIG_HOME" "$XDG_CACHE_HOME/mrx"
+
+# Do not terminate or reconfigure any process belonging to another session.
+if ! command -v mrx-wm >/dev/null 2>&1; then
+  notify-send "MRX" "mrx-wm is missing. Run the installer again." 2>/dev/null || true
+  exit 1
+fi
+
+# Start our own window manager and wait until its IPC socket answers.
+mrx-wm &
+WM_PID=$!
+cleanup() { kill "$WM_PID" 2>/dev/null || true; wait "$WM_PID" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+for _ in $(seq 1 60); do
+  if mrxctl ping >/dev/null 2>&1; then break; fi
+  sleep 0.1
+done
+mrxctl ping >/dev/null 2>&1 || { echo "MRX WM failed to start" >&2; exit 1; }
+
+# Picom is optional. Never kill an existing compositor; the session is responsible
+# for ensuring only one compositor is active before selecting this session.
+if command -v picom >/dev/null 2>&1 && ! pgrep -u "$USER" -x picom >/dev/null 2>&1; then
+  picom --config "$MRX_CONFIG_HOME/picom.conf" --daemon || true
+fi
+
+# Reuse the user's existing lock screen without editing its files.
+LOCK_LAUNCHER="$HOME/.local/share/quickshell-lockscreen/lock.sh"
+if command -v xss-lock >/dev/null 2>&1 && [[ -x "$LOCK_LAUNCHER" ]] && ! pgrep -u "$USER" -x xss-lock >/dev/null 2>&1; then
+  xss-lock --transfer-sleep-lock -- "$LOCK_LAUNCHER" &
+fi
+
+# Quickshell frontend: same end4-pC QML, MRX Rust backend.
+qs -c mrx

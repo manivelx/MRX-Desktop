@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible problem in MRX Desktop.
+title: "[Bug]: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include passwords, access tokens, private keys or unredacted personal data."
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: commit hash / archive version
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and kernel
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest reliable sequence.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and logs
+      description: Remove private data before pasting logs.
+    validations:
+      required: true

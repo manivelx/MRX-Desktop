@@ -1,0 +1,25 @@
+[animation]
+enabled = true
+workspace_duration_ms = 280
+window_open = true
+window_close = true
+easing = "ease-out-cubic"
+
+[appearance]
+theme = "amber-gold"
+accent = "#D6A84B"
+corner_radius = 14
+panel_opacity = 0.94
+gaps = 8
+border_width = 2
+
+[workspace]
+count = 9
+wrap = true
+names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+[window]
+layout = "master-stack"
+focus_follows_pointer = false
+master_ratio = 0.58
+floating_modifier = "super"

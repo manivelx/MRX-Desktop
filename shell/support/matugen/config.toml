@@ -1,0 +1,10 @@
+[config]
+version_check = false
+
+[templates.m3colors]
+input_path = '~/.config/matugen/end4-pC-bspwm/templates/colors.json'
+output_path = '~/.local/state/end4-pC-bspwm/user/generated/colors.json'
+
+[templates.wallpaper]
+input_path = '~/.config/matugen/end4-pC-bspwm/templates/wallpaper.txt'
+output_path = '~/.local/state/end4-pC-bspwm/user/generated/wallpaper/path.txt'

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=MRX Rust Desktop (X11)
+Comment=Rust X11 desktop with end4-pC shell
+Exec=mrx-session
+TryExec=mrx-session
+Type=Application
+DesktopNames=MRX
+X-GNOME-UsesNotifications=true

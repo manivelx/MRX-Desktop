@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname -- "$0")"
 
+cargo fmt --all
 cargo fmt --all -- --check
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings

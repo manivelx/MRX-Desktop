@@ -68,7 +68,10 @@ with open(sys.argv[1], encoding='utf-8') as f:
 assert data['protocol_version'] == 1, data
 assert data['active_workspace'] == 1, data
 assert len(data['workspaces']) >= 1, data
-print('PASS: snapshot protocol and initial workspace')
+assert data.get('monitors'), data
+assert all(m['width'] > 0 and m['height'] > 0 for m in data['monitors']), data
+assert any(m['focused'] for m in data['monitors']), data
+print('PASS: snapshot protocol, initial workspace and RandR monitor geometry')
 PY
 
 "$CTL" workspace 2 >/dev/null

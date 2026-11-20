@@ -290,7 +290,7 @@ impl RequestEnvelope {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum Request {
     Snapshot,

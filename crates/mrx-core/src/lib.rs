@@ -10,7 +10,7 @@ use std::{
     collections::BTreeMap,
     fs::{self, OpenOptions},
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 pub const IPC_PROTOCOL_VERSION: u32 = 3;
@@ -130,6 +130,49 @@ impl Settings {
         Self::config_dir().join("settings.toml")
     }
 
+    pub fn validate_profile_name(name:&str) -> anyhow::Result<()> {
+        anyhow::ensure!(!name.is_empty() && name.len()<=48,"profile name must contain 1-48 characters");
+        anyhow::ensure!(name.bytes().all(|byte|byte.is_ascii_alphanumeric() || byte==b'-' || byte==b'_'),
+            "profile name may contain only ASCII letters, digits, '-' and '_'");
+        Ok(())
+    }
+
+    fn profiles_dir() -> anyhow::Result<PathBuf> {
+        let dir=Self::config_dir().join("profiles");
+        match fs::symlink_metadata(&dir) {
+            Ok(metadata) if metadata.file_type().is_symlink()=>anyhow::bail!("refusing to use a symlink as the profiles directory"),
+            Ok(metadata) if !metadata.is_dir()=>anyhow::bail!("profiles path exists but is not a directory"),
+            Ok(_)=>{},
+            Err(error) if error.kind()==std::io::ErrorKind::NotFound=>fs::create_dir_all(&dir)?,
+            Err(error)=>return Err(error.into()),
+        }
+        Ok(dir)
+    }
+
+    pub fn profile_path(name:&str) -> anyhow::Result<PathBuf> {
+        Self::validate_profile_name(name)?;
+        Ok(Self::config_dir().join("profiles").join(format!("{name}.toml")))
+    }
+
+    pub fn load_profile(name:&str) -> anyhow::Result<Self> {
+        let dir=Self::profiles_dir()?;
+        let path=Self::profile_path(name)?;
+        let metadata=fs::symlink_metadata(&path)?;
+        anyhow::ensure!(!metadata.file_type().is_symlink() && metadata.is_file(),"profile is not a regular file");
+        let contents=fs::read_to_string(path)?;
+        let settings:Self=toml::from_str(&contents)?;
+        settings.validate()?;
+        let _=dir;
+        Ok(settings)
+    }
+
+    pub fn save_profile_atomic(&self,name:&str) -> anyhow::Result<()> {
+        self.validate()?;
+        let _=Self::profiles_dir()?;
+        let path=Self::profile_path(name)?;
+        self.save_to_path_atomic(&path)
+    }
+
     pub fn load() -> anyhow::Result<Self> {
         let path = Self::path();
         if !path.exists() {
@@ -180,41 +223,31 @@ impl Settings {
     /// Persist using a same-directory temporary file, fsync and atomic rename.
     pub fn save_atomic(&self) -> anyhow::Result<()> {
         self.validate()?;
-        let path = Self::path();
-        let parent = path
-            .parent()
-            .ok_or_else(|| anyhow::anyhow!("settings path has no parent directory"))?;
-        fs::create_dir_all(parent)?;
+        self.save_to_path_atomic(&Self::path())
+    }
 
-        let temp = parent.join(format!(".settings.toml.{}.tmp", std::process::id()));
-        let serialized = toml::to_string_pretty(self)?;
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)
-            .or_else(|error| {
-                if error.kind() == std::io::ErrorKind::AlreadyExists {
-                    fs::remove_file(&temp)?;
-                    OpenOptions::new().write(true).create_new(true).open(&temp)
-                } else {
-                    Err(error)
-                }
-            })?;
-        let result = (|| -> anyhow::Result<()> {
+    fn save_to_path_atomic(&self,path:&Path) -> anyhow::Result<()> {
+        self.validate()?;
+        let parent=path.parent().ok_or_else(||anyhow::anyhow!("settings path has no parent directory"))?;
+        fs::create_dir_all(parent)?;
+        let filename=path.file_name().and_then(|value|value.to_str()).ok_or_else(||anyhow::anyhow!("settings filename is invalid"))?;
+        let temp=parent.join(format!(".{filename}.{}.tmp",std::process::id()));
+        let serialized=toml::to_string_pretty(self)?;
+        let mut file=OpenOptions::new().write(true).create_new(true).open(&temp).or_else(|error| {
+            if error.kind()==std::io::ErrorKind::AlreadyExists {
+                fs::remove_file(&temp)?;
+                OpenOptions::new().write(true).create_new(true).open(&temp)
+            } else { Err(error) }
+        })?;
+        let result=(||->anyhow::Result<()> {
             file.write_all(serialized.as_bytes())?;
             file.sync_all()?;
             drop(file);
-            fs::rename(&temp, &path)?;
-            // Best-effort directory sync makes the rename durable on filesystems
-            // that support syncing directory handles.
-            if let Ok(directory) = OpenOptions::new().read(true).open(parent) {
-                let _ = directory.sync_all();
-            }
+            fs::rename(&temp,path)?;
+            if let Ok(directory)=OpenOptions::new().read(true).open(parent){let _=directory.sync_all();}
             Ok(())
         })();
-        if result.is_err() {
-            let _ = fs::remove_file(&temp);
-        }
+        if result.is_err(){let _=fs::remove_file(&temp);}
         result
     }
 }
@@ -335,6 +368,10 @@ pub enum Request {
     ReloadSettings,
     Ping,
     GetOperation { id: u64 },
+    UndoSettings,
+    ResetSettings,
+    ExportSettingsProfile { name: String },
+    ImportSettingsProfile { name: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -462,6 +499,30 @@ mod tests {
         assert_eq!(response.operation,Some(operation));
         let error=Response::err_code("invalid_workspace","workspace out of range",false);
         assert_eq!(error.error.unwrap().code,"invalid_workspace");
+    }
+
+    #[test]
+    fn settings_profile_names_reject_path_traversal_and_unsafe_characters() {
+        assert!(Settings::validate_profile_name("amber-gold").is_ok());
+        assert!(Settings::validate_profile_name("work_2026").is_ok());
+        assert!(Settings::validate_profile_name("../settings").is_err());
+        assert!(Settings::validate_profile_name("name/child").is_err());
+        assert!(Settings::validate_profile_name("").is_err());
+        assert!(Settings::validate_profile_name(&"x".repeat(49)).is_err());
+    }
+
+    #[test]
+    fn settings_profile_requests_round_trip() {
+        for request in [
+            Request::UndoSettings,
+            Request::ResetSettings,
+            Request::ExportSettingsProfile{name:"amber-gold".into()},
+            Request::ImportSettingsProfile{name:"work_2026".into()},
+        ] {
+            let encoded=serde_json::to_string(&request).unwrap();
+            let decoded:Request=serde_json::from_str(&encoded).unwrap();
+            assert_eq!(decoded,request);
+        }
     }
 
     #[test]

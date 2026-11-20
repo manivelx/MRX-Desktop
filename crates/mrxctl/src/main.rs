@@ -144,9 +144,20 @@ fn main() -> Result<()> {
             value: serde_json::from_str(&args.next().context("JSON value required")?)?,
         },
         "reload" => Request::ReloadSettings,
+        "undo" => Request::UndoSettings,
+        "reset" => Request::ResetSettings,
+        "profile" => {
+            let action=args.next().context("profile action required: import or export")?;
+            let name=args.next().context("profile name required")?;
+            match action.as_str() {
+                "export" => Request::ExportSettingsProfile{name},
+                "import" => Request::ImportSettingsProfile{name},
+                _ => anyhow::bail!("profile action must be 'import' or 'export'"),
+            }
+        },
         _ => {
             println!(
-                "mrxctl snapshot|subscribe|ping|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload"
+                "mrxctl snapshot|subscribe|ping|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload|undo|reset|profile import|export <name>"
             );
             return Ok(());
         }

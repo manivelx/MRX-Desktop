@@ -16,7 +16,7 @@
 
 ## Settings
 
-Runtime settings are owned by the Rust window manager. The `set` request parses a typed JSON value for a supported key, applies it to a candidate settings copy, validates the candidate, atomically writes TOML and only then swaps it into runtime state. Invalid types, unknown keys or out-of-range values are rejected without replacing the current configuration. Full multi-setting transactions, rollback UI and profile import/export are not implemented.
+Runtime settings are owned by the Rust window manager. The `set` request parses a typed JSON value for a supported key, applies it to a candidate settings copy, validates the candidate, atomically writes TOML and only then swaps it into runtime state. Invalid types, unknown keys or out-of-range values are rejected without replacing the current configuration. A bounded in-memory undo stack supports rollback; reset-to-defaults and validated named profile import/export use atomic TOML writes under `profiles/`. History persistence across restarts, multi-setting transactions and rollback UI remain outstanding.
 
 ## X11 policy
 

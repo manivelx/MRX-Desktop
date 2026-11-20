@@ -106,6 +106,45 @@ assert op['status']=='failed' and op['error']['code']=='window_not_found', op
 PY
 echo "PASS: IPC operations expose queued/completed/failed states and structured error categories"
 
+run_operation() {
+  local id result
+  id="$(queue_operation "$@")"
+  result="$(await_operation "$id" succeeded)"
+  printf '%s' "$result"
+}
+assert_gaps() {
+  local expected="$1"
+  python3 - "$MRX_CONFIG_HOME/settings.toml" "$expected" <<'PY'
+import sys,tomllib
+with open(sys.argv[1],'rb') as stream: settings=tomllib.load(stream)
+assert settings['appearance']['gaps']==int(sys.argv[2]), settings
+PY
+}
+run_operation set appearance.gaps 13 >/dev/null
+assert_gaps 13
+run_operation undo >/dev/null
+assert_gaps 8
+run_operation set appearance.gaps 14 >/dev/null
+run_operation profile export baseline >/dev/null
+[[ -f "$MRX_CONFIG_HOME/profiles/baseline.toml" ]] || { echo "FAIL: settings profile was not exported" >&2; exit 1; }
+run_operation set appearance.gaps 16 >/dev/null
+run_operation profile import baseline >/dev/null
+assert_gaps 14
+run_operation undo >/dev/null
+assert_gaps 16
+run_operation reset >/dev/null
+assert_gaps 8
+run_operation undo >/dev/null
+assert_gaps 16
+BAD_PROFILE_ID="$(queue_operation profile export ../escape)"
+BAD_PROFILE_RESULT="$(await_operation "$BAD_PROFILE_ID" failed)"
+python3 - "$BAD_PROFILE_RESULT" <<'PY'
+import json,sys
+op=json.loads(sys.argv[1])['operation']
+assert op['error']['code']=='profile_export_failed', op
+PY
+echo "PASS: settings undo/reset, profile import/export and profile path validation"
+
 STARTUP_ADOPTED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

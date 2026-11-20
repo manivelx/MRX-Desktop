@@ -5,40 +5,39 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Implemented
 
-- Rust X11 WM ownership and event loop with a shared state snapshot and typed local IPC.
-- Versioned IPC request envelopes (protocol v2) with request IDs, correlated responses and explicit mismatch rejection; bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
-- `mrxctl` uses bounded response reads and socket timeouts.
-- Workspace switching and EWMH desktop metadata, including `_NET_CLIENT_LIST`, `_NET_CLIENT_LIST_STACKING`, desktop names, viewport, workarea and geometry.
-- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, `WM_NORMAL_HINTS` min/max/base/increment/aspect constraints, fixed-size floating policy, and focus restoration after client unmap/destruction.
-- Startup adoption of already-viewable non-override-redirect clients.
-- EWMH handling for close, active-window, current-desktop, per-window desktop and fullscreen state requests.
-- Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.
-- RandR 1.5 monitor discovery with atom-derived monitor names, geometry and primary-monitor selection, plus active-CRTC fallback for older or limited RandR servers.
-- RandR screen/CRTC/output/resource notifications refresh monitor state. A 250 ms low-frequency reconciliation pass also catches servers that expose monitor-object changes without delivering the expected notification; unchanged topologies do not trigger re-layout.
-- Independent monitor-local active workspaces, visibility, workspace snapshots, IPC switching, and Quickshell workspace-bar targeting are implemented; initial dock strut/workarea handling is implemented; physical multi-output validation remains open.
-- Windows retain monitor identity in the shared snapshot; tiled clients are arranged per monitor. On monitor removal, affected clients migrate to the remaining focused/primary monitor; floating windows are clamped into its bounds.
-- Quickshell MRX adapter consumes the reported monitor list and window monitor identity instead of hardcoding `screen-0`.
-- GitHub Actions validates formatting, workspace tests, Clippy, build, static checks, Xvfb server startup and the compiled WM smoke test.
+- Rust X11 WM ownership/event loop, shared state snapshot and typed local IPC.
+- ICCCM polite close, WM_STATE updates, WM_TAKE_FOCUS negotiation, transient detection, live WM_HINTS urgency, WM_NORMAL_HINTS min/max/base/increment/aspect constraints, fixed-size floating policy and focus restoration after unmap/destruction.
+- Startup adoption of viewable non-override-redirect clients; floating and tiled ConfigureRequest policy.
+- EWMH desktop metadata, client list/stacking, close/active/current desktop/window desktop/fullscreen requests and initial dock strut/workarea handling.
+- Master/stack, columns and monocle layout geometry; per-monitor workareas for tiled layout.
+- RandR 1.5 monitor discovery, atom names, primary-monitor selection, active-CRTC fallback, notification refresh and 250ms reconciliation. Synthetic root-screen rectangles are discarded when actual output monitors are available.
+- Independent monitor-local workspaces, visibility, per-monitor snapshots and monitor-targeted IPC. Quickshell workspace bars route to the matching monitor.
+- Window monitor identity, per-monitor tiling, client migration after monitor removal and floating-window clamping.
+- IPC protocol v3 with request IDs/correlated responses, event subscription path, bounded socket framing/timeouts and connection cleanup; settings persistence and atomic writes.
+- Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox and Xvfb server/WM smoke tests.
 
 ## Latest CI validation
 
-GitHub Actions [run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790) passed on commit `25179f24cd3ff76a7f49d83c81256a896ca68eab`.
+GitHub Actions [run #327](https://github.com/manivelx/MRX-Desktop/actions/runs/44761884015) passed on commit `422615cab39c298505d49e996ce80d927e165551`. It covered formatting, the full Rust workspace test suite, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and compiled-WM smoke test.
 
-The run passed Rust formatting, all workspace tests, Clippy with warnings denied, build, static checks, isolated installer regression tests, Xvfb server checks and the compiled WM Xvfb smoke test. The smoke test verifies two virtual RandR monitors, independent per-monitor workspace switching, EWMH dock workarea reservation, sticky dock behavior without focus theft, live ICCCM urgency updates through a correctly typed `WM_HINTS` property, and client lifecycle handling.
+That CI run covers two virtual RandR monitors, synthetic-screen filtering, independent workspace switching, dock workarea reservation and sticky dock behavior, urgency updates and client lifecycle.
 
-This validates the software paths exercised by the Ubuntu/Xvfb runner. It does not validate Quickshell runtime rendering, physical multi-monitor hotplug, NVIDIA 470 / GT 740, GPU acceleration or animation frame pacing.
+## Remaining Phase 1 acceptance work
 
-## Remaining work before Phase 1 can be considered complete
+- Complete EWMH state semantics: initial state adoption, maximize/restore, above/below and full minimized/hidden behavior.
+- Improve ICCCM corner-case coverage: very small workareas, aspect/increment interactions, focus/withdrawal and transient/dialog behavior.
+- Validate overlapping/multiple/vertical struts, mixed-DPI/mixed-resolution geometry and physical hotplug/disconnect/reconnect on actual multi-output hardware.
+- Validate Xephyr/nested Xorg session behavior and complete QML runtime interactions.
 
-- Extend `WM_NORMAL_HINTS` validation for remaining ICCCM edge cases, especially aspect-ratio/increment combinations under very small work areas; add physical-client tests for focus, withdrawal and urgency transitions.
-- Finish EWMH state semantics beyond the current subset: initial client state adoption, maximize/restore, above/below and complete minimized/hidden behavior.
-- Validate EWMH dock/panel strut parsing and per-monitor usable workareas on mixed-resolution physical outputs; partial and legacy struts are parsed and applied to tiling and the focused-monitor EWMH workarea.
-- Physical multi-output hotplug, disconnect/reconnect and floating-window migration need an integration test on a multi-output X server or real hardware. Xvfb validates only its virtual single-screen configuration.
-- Validate transient dialogs, startup adoption, unmap/destroy races, focus policy, fullscreen restore and EWMH client stacking in more comprehensive Xephyr/Xorg scenarios.
-- IPC event subscriptions and orderly shutdown remain open; the shell currently uses periodic snapshot refresh.
+## Phase 1 exit boundary
 
-## Validation boundary
+Phase 1 is **not complete** while those protocol and runtime criteria remain. A successful CI/Xvfb run does not prove real monitor hardware behavior, Quickshell session stability or NVIDIA proprietary driver support.
 
-Rust formatting, tests, Clippy, build, static checks and the Xvfb WM smoke test pass in GitHub Actions. This does not validate Quickshell/QML runtime behavior, a complete MRX session, physical multi-monitor hotplug, the proprietary NVIDIA 470 driver, GT 740 compatibility, GLX acceleration or animation performance.
+## Hardware and runtime validation not performed
 
-Do not mark Phase 1 complete or recommend daily use until the remaining protocol work and runtime/hardware validation have been completed.
+- Physical multi-monitor hotplug/EDID behavior.
+- NVIDIA 470 / GeForce GT 740 proprietary driver, GLX acceleration and animation frame pacing.
+- Full Quickshell/QML desktop session on CachyOS/Arch.
+- Power-management, suspend/resume and long-session stability.
+
+Do not mark Phase 1 complete or recommend daily use until these acceptance tests have been performed.

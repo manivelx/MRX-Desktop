@@ -15,6 +15,8 @@ Status: **IN PROGRESS — not a daily-driver release**
 - IPC rejects oversized/non-newline-terminated requests, refuses to unlink non-socket paths, and uses mode 0600 for the socket. A private fallback runtime directory is mode 0700; an existing XDG_RUNTIME_DIR is not chmodded.
 
 - Shared, deterministic master/stack, columns and monocle geometry calculations.
+- RandR 1.5 monitor discovery with stable atom-derived names, geometry and primary-monitor selection; falls back to the X screen geometry when RandR monitor objects are unavailable.
+- RandR screen/CRTC/output/resource change notifications refresh the monitor snapshot; the Quickshell adapter now maps windows to reported monitor rectangles instead of hardcoding `screen-0`.
 - ICCCM `WM_DELETE_WINDOW` is now requested through `WM_PROTOCOLS`; `KillClient` is reserved for clients that do not advertise polite close support.
 - ICCCM focus negotiation now reads `WM_HINTS` InputHint and sends `WM_TAKE_FOCUS` only when the client advertises that protocol.
 - Transient windows are identified through `WM_TRANSIENT_FOR` and excluded from tiling as floating windows.
@@ -38,9 +40,9 @@ Status: **IN PROGRESS — not a daily-driver release**
 - Startup adoption can only approximate original map order from current stacking; full historical `_NET_CLIENT_LIST` ordering needs persistent tracking during a running WM. Client-list stacking is now published from the X server tree, but must be integration-tested. Workarea still assumes the full screen and does not yet subtract dock/panel struts.
 - Full ICCCM focus policy (`WM_HINTS` input model and `WM_TAKE_FOCUS`), focus restoration, urgency, stacking requests and keyboard grab error handling.
 - Dock/panel struts and work-area calculation.
-- RandR output/CRTC discovery, per-monitor workspace ownership, hotplug and monitor removal migration.
+- Per-monitor workspace ownership, independent per-monitor workspace switching and monitor-removal window migration remain unimplemented. RandR discovery and change notifications are now present, but hotplug behavior still needs a multi-output integration test.
 - IPC now has a 64 KiB line cap, read/write timeouts, bounded concurrent clients and safer socket-path handling; multiple requests per connection, event subscriptions and orderly shutdown remain open.
-- Compilation, formatting, Clippy and runtime integration must pass on CI; CI now includes the full Xvfb WM smoke test but has not yet run.
+- Compilation, formatting, Clippy and runtime integration must pass on CI; the Xvfb smoke test is being used to validate window mapping and ICCCM close before Phase 1 can be considered complete.
 - Xephyr integration scenarios for normal map/unmap/destroy, transient dialog, focus, polite close, fullscreen restore, EWMH and RandR hotplug.
 
 ## Current validation boundary

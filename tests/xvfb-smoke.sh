@@ -60,9 +60,6 @@ grep -q '_NET_WORKAREA' "$RUNTIME/ewmh.txt"
 grep -q '_NET_CLIENT_LIST_STACKING' "$RUNTIME/ewmh.txt"
 echo "PASS: EWMH desktop and client-stacking metadata is published"
 
-xterm -title 'MRX Xvfb test client' >"$RUNTIME/xterm.log" 2>&1 &
-XTERM_PID=$!
-sleep 0.5
 "$CTL" snapshot >"$RUNTIME/snapshot.json"
 python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
@@ -103,6 +100,12 @@ assert data['settings']['appearance']['gaps'] == 12, data
 print('PASS: live setting update and persistence')
 PY
 
+# Start a client on the currently active workspace after the WM has completed
+# workspace and settings operations. Keep it alive so ICCCM close can be tested.
+xterm -title 'MRX Xvfb test client' -e sh -c 'sleep 30' >"$RUNTIME/xterm.log" 2>&1 &
+XTERM_PID=$!
+sleep 0.5
+
 # Verify a real mapped client is tracked and can be asked to close through ICCCM.
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
@@ -120,7 +123,7 @@ with open(sys.argv[1], encoding='utf-8') as f: data=json.load(f)
 print(data['windows'][0]['id'] if data.get('windows') else '')
 PY
 )"
-[[ -n "$WINDOW_ID" ]] || { echo "FAIL: xterm was not managed" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+[[ -n "$WINDOW_ID" ]] || { echo "FAIL: xterm was not managed" >&2; echo '--- xterm log ---' >&2; cat "$RUNTIME/xterm.log" >&2; echo '--- root tree ---' >&2; xwininfo -root -tree >&2 || true; echo '--- WM log ---' >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 "$CTL" close "$WINDOW_ID" >/dev/null
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

@@ -116,7 +116,7 @@ grep -Fq 'pub const IPC_PROTOCOL_VERSION: u32 = 3' crates/mrx-core/src/lib.rs ||
 grep -Fq "data['protocol_version'] == 3" tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not assert the current IPC protocol version'
 grep -Fq 'envelope.validate()' crates/mrx-wm/src/main.rs || fail 'WM does not reject unsupported IPC protocol versions'
 grep -Fq 'response.request_id = Some(request_id)' crates/mrx-wm/src/main.rs || fail 'WM does not echo IPC request IDs'
-grep -Fq 'response.request_id == Some(request_id)' crates/mrxctl/src/main.rs || fail 'mrxctl does not verify IPC response correlation'
+grep -Fq 'response.request_id == Some(envelope.request_id)' crates/mrxctl/src/main.rs || fail 'mrxctl does not verify IPC response correlation'
 pass 'ICCCM WM_STATE/polite close, transient classification, EWMH workspace/close/active/fullscreen/client-stacking handling, startup adoption and bounded IPC are present'
 
 old_identity="aure""lia"

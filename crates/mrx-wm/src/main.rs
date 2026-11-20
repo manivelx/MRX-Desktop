@@ -454,7 +454,7 @@ fn focus_most_recent(
             xproto::PropMode::REPLACE, root, net_active_window, AtomEnum::WINDOW, &[id],
         );
     } else {
-        let _ = conn.delete_property(root, atoms.net_active_window);
+        let _ = conn.delete_property(root, net_active_window);
     }
 }
 
@@ -755,7 +755,7 @@ Action::Focus(id)=>{
          let mut s=state.lock().unwrap();
          if id>=1 && id<=s.settings.workspace.count as u32 {
              for w in s.clients.values_mut(){w.focused=false;}
-             switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+             switch_focused_workspace(&conn,root,&mut s,id,None,workspace_atoms);
          }
        }
      }, Some(_) =>{}, None=>thread::sleep(Duration::from_millis(8)) }

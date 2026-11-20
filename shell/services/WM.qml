@@ -76,6 +76,14 @@ Singleton {
     }
 
     // Compatibility dispatcher for the original end4-pC QML actions.
+    // Parse the small subset MRX implements; never pass upstream expressions
+    // through to a different window manager or execute arbitrary shell text.
+    function relativeWorkspaceDirection(expression) {
+        if (/workspace\\s*=\\s*["']?r?\\+1/.test(expression)) return "next"
+        if (/workspace\\s*=\\s*["']?r?-1/.test(expression)) return "previous"
+        return ""
+    }
+
     function dispatch(command) {
         if (root.compositor === "hyprland") { Hyprland.dispatch(command); return }
         const s = String(command)

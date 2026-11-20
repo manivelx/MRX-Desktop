@@ -203,3 +203,10 @@ grep -Fq 'pub modal: bool' crates/mrx-core/src/lib.rs || fail 'EWMH modal state 
 grep -Fq 'fn modal_focus_target' crates/mrx-wm/src/main.rs || fail 'modal focus redirection is missing'
 grep -Fq 'net_wm_state_modal' crates/mrx-wm/src/main.rs || fail 'EWMH modal state support is missing'
 grep -Fq 'startup adopts ICCCM transient/modal dialogs and redirects parent focus' tests/xvfb-smoke.sh || fail 'Xvfb modal/transient acceptance test is missing'
+
+grep -Fq 'pub struct OperationResult' crates/mrx-core/src/lib.rs || fail 'structured IPC operation results are missing'
+grep -Fq 'GetOperation' crates/mrx-core/src/lib.rs || fail 'IPC operation polling request is missing'
+grep -Fq 'fn enqueue_operation' crates/mrx-wm/src/main.rs || fail 'asynchronous operation queue is missing'
+grep -Fq 'fn finish_operation' crates/mrx-wm/src/main.rs || fail 'operation completion tracking is missing'
+grep -Fq 'operation <id>' crates/mrxctl/src/main.rs || fail 'mrxctl operation polling command is missing'
+grep -Fq 'IPC operations expose queued/completed/failed states' tests/xvfb-smoke.sh || fail 'Xvfb asynchronous operation acceptance test is missing'

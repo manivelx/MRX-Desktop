@@ -65,6 +65,47 @@ done
 "$CTL" ping >/dev/null || { cat "$RUNTIME/wm.log" >&2; exit 1; }
 echo "PASS: MRX WM IPC responds"
 
+queue_operation() {
+  local response
+  response="$("$CTL" "$@")"
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["operation"]["id"])' <<<"$response"
+}
+await_operation() {
+  local id="$1" expected="$2" response status
+  for _ in $(seq 1 40); do
+    response="$("$CTL" operation "$id")"
+    status="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["operation"]["status"])' <<<"$response")"
+    if [[ "$status" == "$expected" ]]; then printf '%s' "$response"; return 0; fi
+    sleep 0.05
+  done
+  echo "FAIL: operation $id did not reach $expected" >&2
+  "$CTL" operation "$id" >&2 || true
+  return 1
+}
+
+OP_OK_ID="$(queue_operation workspace 1)"
+OP_OK_RESULT="$(await_operation "$OP_OK_ID" succeeded)"
+python3 - "$OP_OK_RESULT" <<'PY'
+import json,sys
+op=json.loads(sys.argv[1])['operation']
+assert op['kind']=='switch_workspace' and op['status']=='succeeded', op
+PY
+OP_BAD_ID="$(queue_operation workspace 999)"
+OP_BAD_RESULT="$(await_operation "$OP_BAD_ID" failed)"
+python3 - "$OP_BAD_RESULT" <<'PY'
+import json,sys
+op=json.loads(sys.argv[1])['operation']
+assert op['status']=='failed' and op['error']['code']=='invalid_workspace', op
+PY
+OP_MISSING_ID="$(queue_operation focus 4294967295)"
+OP_MISSING_RESULT="$(await_operation "$OP_MISSING_ID" failed)"
+python3 - "$OP_MISSING_RESULT" <<'PY'
+import json,sys
+op=json.loads(sys.argv[1])['operation']
+assert op['status']=='failed' and op['error']['code']=='window_not_found', op
+PY
+echo "PASS: IPC operations expose queued/completed/failed states and structured error categories"
+
 STARTUP_ADOPTED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

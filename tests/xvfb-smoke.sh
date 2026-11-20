@@ -255,9 +255,6 @@ assert window['monitor'] in {m['name'] for m in data['monitors']}, data
 print('PASS: managed window has a live monitor assignment')
 PY
 
-print('PASS: managed window has a live monitor assignment')
-PY
-
 # Exercise EWMH horizontal+vertical maximize and restoration through real
 # ClientMessage requests. The snapshot must reflect both state atoms and
 # restore the pre-maximize geometry when both axes are removed.

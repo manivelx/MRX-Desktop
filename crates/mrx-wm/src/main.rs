@@ -109,7 +109,7 @@ fn snapshot(s:&State)->Snapshot {
         monitor.active_workspace = active_workspace_for(s, &monitor.name);
         monitor.focused = monitor.name == focused;
     }
-    Snapshot{protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors}
+    Snapshot{sequence:None,protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors}
 }
 fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, height: u32) -> String {
     let center_x = x + (width / 2) as i32;

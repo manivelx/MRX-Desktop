@@ -306,6 +306,8 @@ pub struct WorkspaceInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Snapshot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<u64>,
     pub protocol_version: u32,
     pub compositor: String,
     pub active_workspace: u32,
@@ -539,6 +541,14 @@ mod tests {
             let decoded:Request=serde_json::from_str(&encoded).unwrap();
             assert_eq!(decoded,request);
         }
+    }
+
+    #[test]
+    fn snapshot_carries_optional_subscription_sequence() {
+        let snapshot=Snapshot{sequence:Some(4),protocol_version:IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:1,workspaces:vec![],windows:vec![],settings:Settings::default(),monitors:vec![]};
+        let encoded=serde_json::to_string(&snapshot).unwrap();
+        let decoded:Snapshot=serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded.sequence,Some(4));
     }
 
     #[test]

@@ -2,9 +2,27 @@
 
 ## Latest CI result
 
-The development branch has changed substantially since the historical baseline below. Commit-specific validation is being rerun after the latest RandR, per-monitor workspace, dock and urgency changes. Check the [GitHub Actions history](https://github.com/manivelx/MRX-Desktop/actions) for the exact latest head and result. Do not treat a cancelled, superseded or failed run as a passing validation.
+PASS — GitHub Actions [run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790) validated commit `25179f24cd3ff76a7f49d83c81256a896ca68eab` on 2026-11-20.
 
-The workflow covers Rust formatting, workspace tests, Clippy with warnings denied, build, static checks, isolated installer regression tests, Xvfb server startup and the compiled WM smoke test.
+| Check | Result |
+|---|---|
+| `cargo fmt --all -- --check` | PASS |
+| `cargo test --workspace` | PASS |
+| `cargo clippy --workspace --all-targets -- -D warnings` | PASS |
+| `cargo build --workspace` | PASS |
+| `bash ./tests/static-check.sh` | PASS |
+| `bash ./tests/installer-sandbox.sh` | PASS |
+| `bash ./tests/xvfb-server-check.sh` | PASS |
+| `bash ./tests/xvfb-smoke.sh` | PASS |
+
+The compiled WM smoke test exercised:
+- IPC startup, snapshot and workspace switching.
+- Two virtual RandR monitors, synthetic root-screen filtering and independent per-monitor workspaces.
+- EWMH desktop metadata and dock strut workarea reservation.
+- Sticky dock behavior without keyboard-focus theft.
+- Live settings persistence.
+- ICCCM `WM_HINTS` urgency updates using `XSetWMHints`.
+- Client mapping, workspace state and close lifecycle.
 
 ## Validation environment and limits
 

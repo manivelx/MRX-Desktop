@@ -16,8 +16,10 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [x] Implement common ICCCM size hints, fixed-size floating detection, fullscreen and focus policies.
 - [ ] Validate edge-case size-hint/aspect combinations and complete remaining ICCCM lifecycle semantics.
 - [x] Add RandR monitor discovery/change handling and per-monitor tiling foundation.
-- [x] Add initial EWMH dock strut parsing and per-monitor usable workareas.\n- [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
-- [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.\n- [ ] Validate independent workspaces on physical multi-output hardware.
+- [x] Add initial EWMH dock strut parsing and per-monitor usable workareas.
+- [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
+- [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.
+- [ ] Validate independent workspaces on physical multi-output hardware.
 - [ ] Add deterministic Xvfb/Xephyr integration tests.
 
 ## Phase 2 — Desktop core and live settings

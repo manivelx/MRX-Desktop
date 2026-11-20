@@ -251,6 +251,13 @@ fn request_close(conn: &RustConnection, window: Window, wm_protocols: u32, wm_de
 }
 
 /// Read WM_PROTOCOLS once and test whether a client implements a protocol.
+fn read_urgent_hint(conn: &RustConnection, window: Window) -> bool {
+    WmHints::get(conn, window).ok()
+        .and_then(|cookie| cookie.reply().ok())
+        .flatten()
+        .is_some_and(|hints| hints.urgent)
+}
+
 fn supports_protocol(conn: &RustConnection, window: Window, wm_protocols: u32, protocol: u32) -> Result<bool> {
     let reply = conn.get_property(false, window, wm_protocols, AtomEnum::ATOM, 0, 64)?.reply()?;
     Ok(reply.value32().map(|atoms| atoms.into_iter().any(|atom| atom == protocol)).unwrap_or(false))
@@ -353,7 +360,7 @@ fn is_transient(conn: &RustConnection, window: Window) -> Result<bool> {
     Ok(reply.value32().and_then(|mut values| values.next()).is_some())
 }
 fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init(); let (conn,screen_num)=x11rb::connect(None).context("cannot connect to X11 display")?; let screen=&conn.setup().roots[screen_num]; let root=screen.root; conn.change_window_attributes(root,&ChangeWindowAttributesAux::new().event_mask(EventMask::SUBSTRUCTURE_REDIRECT|EventMask::SUBSTRUCTURE_NOTIFY|EventMask::PROPERTY_CHANGE|EventMask::BUTTON_PRESS)).context("another window manager may already own SubstructureRedirect")?.check()?;
- let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?;
+ let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?;
  let atoms=[net_active,net_close,desktop,current,count,clientlist,clientlist_stacking,net_wm_state,net_wm_state_fullscreen,net_wm_state_hidden,net_desktop_names,net_workarea,net_viewport,net_geometry]; conn.change_property32(xproto::PropMode::REPLACE,root,supported,AtomEnum::ATOM,&atoms)?; conn.change_property8(xproto::PropMode::REPLACE,root,name,utf8,b"MRX Rust Desktop")?; let check=conn.generate_id()?; conn.create_window(x11rb::COPY_DEPTH_FROM_PARENT,check,root,0,0,1,1,0,xproto::WindowClass::INPUT_OUTPUT,0,&xproto::CreateWindowAux::new())?; conn.change_property32(xproto::PropMode::REPLACE,root,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property32(xproto::PropMode::REPLACE,check,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property8(xproto::PropMode::REPLACE,check,name,utf8,b"MRX Rust Desktop")?;
  let monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
  let state=Arc::new(Mutex::new(State{active:1,settings:Settings::load().unwrap_or_default(),monitors,..Default::default()})); let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
@@ -388,7 +395,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let title=String::from_utf8_lossy(&title).into_owned();
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
      s.client_order.push(window);
-     let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,..Default::default()});
+     let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,urgent:read_urgent_hint(&conn,window),..Default::default()});
      let _=set_wm_state(&conn,window,wm_state,1);
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
    }
@@ -413,7 +420,15 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
    match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => {
         let mut s = state.lock().unwrap();
         refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
-    }, Some(Event::MapRequest(e))=>{
+    }, Some(Event::PropertyNotify(e))=>{
+        if e.atom == wm_hints {
+            let urgent = read_urgent_hint(&conn, e.window);
+            let mut s = state.lock().unwrap();
+            if let Some(window) = s.clients.get_mut(&e.window) {
+                window.urgent = urgent;
+            }
+        }
+     }, Some(Event::MapRequest(e))=>{
         info!(window=e.window,"received X11 MapRequest");
         let mut s=state.lock().unwrap();
         let ws=s.active;
@@ -425,7 +440,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
             .and_then(|cookie|cookie.reply().ok()).map(|reply|String::from_utf8_lossy(&reply.value).to_string()).unwrap_or_default();
         for client in s.clients.values_mut(){client.focused=false;}
         if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); }
-        let assigned_monitor=conn.query_pointer(root).ok().and_then(|cookie|cookie.reply().ok()).map(|pointer|monitor_for_geometry(&s.monitors,pointer.root_x as i32,pointer.root_y as i32,1,1)).unwrap_or_else(||monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32));s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});
+        let assigned_monitor=conn.query_pointer(root).ok().and_then(|cookie|cookie.reply().ok()).map(|pointer|monitor_for_geometry(&s.monitors,pointer.root_x as i32,pointer.root_y as i32,1,1)).unwrap_or_else(||monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32));s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,urgent:read_urgent_hint(&conn,e.window),..Default::default()});
         let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
         if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}
         let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);

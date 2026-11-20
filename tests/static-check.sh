@@ -138,3 +138,11 @@ grep -Fq 'normal_size_hints_apply_minimum_and_maximum_constraints' crates/mrx-wm
 grep -Fq 'normal_size_hints_apply_resize_increments' crates/mrx-wm/src/main.rs || fail 'WM_NORMAL_HINTS resize-increment regression test missing'
 grep -Fq 'normal_size_hints_apply_aspect_ratio_bounds' crates/mrx-wm/src/main.rs || fail 'WM_NORMAL_HINTS aspect-ratio regression test missing'
 grep -Fq 's.size_hints.remove(&e.window)' crates/mrx-wm/src/main.rs || fail 'window size-hint cache is not cleared on client removal'
+
+grep -Fq 'function switchWorkspaceOnMonitor' shell/services/WM.qml || fail 'monitor-specific workspace action missing'
+grep -Fq 'SwitchWorkspaceOnMonitor' crates/mrx-core/src/lib.rs || fail 'monitor-scoped workspace IPC request missing'
+grep -Fq 'Action::SwitchMonitor' crates/mrx-wm/src/main.rs || fail 'WM does not handle monitor-scoped workspace switches'
+grep -Fq 'active_by_monitor' crates/mrx-wm/src/main.rs || fail 'WM has no independent active workspace state per monitor'
+grep -Fq 'monitor: monitor.name.clone()' crates/mrx-wm/src/main.rs || fail 'workspace snapshots are not associated with their monitor'
+grep -Fq 'switchWorkspaceOnMonitor(id, monitorName)' shell/services/MRXBackend.qml || fail 'MRX backend does not pass monitor identity to workspace switches'
+grep -Fq 'WM.switchWorkspaceOnMonitor(wsModel.getWorkspaceIdAt(hoverIndex), wsModel.monitorName)' shell/modules/ii/bar/Workspaces.qml || fail 'workspace bar does not target its own monitor'

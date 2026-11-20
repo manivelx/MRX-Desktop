@@ -113,3 +113,8 @@ if grep -RniF "$old_identity" --exclude-dir=.git .; then
   fail 'former project identity remains in source tree'
 fi
 pass 'former project identity is absent from project source'
+
+grep -Fq 'pub urgent: bool' crates/mrx-core/src/lib.rs || fail 'shared window snapshot omits ICCCM urgency'
+grep -Fq 'read_urgent_hint' crates/mrx-wm/src/main.rs || fail 'WM does not read ICCCM urgency hints'
+grep -Fq 'Some(Event::PropertyNotify(e))' crates/mrx-wm/src/main.rs || fail 'WM does not refresh urgency when WM_HINTS changes'
+grep -Fq 'urgent:w.urgent ?? false' shell/services/MRXBackend.qml || fail 'Quickshell adapter discards window urgency'

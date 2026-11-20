@@ -220,6 +220,7 @@ impl Settings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(default)]
 pub struct WindowInfo {
     pub id: u32,
     pub title: String,

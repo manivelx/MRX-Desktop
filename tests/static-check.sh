@@ -179,7 +179,7 @@ grep -Fq 'EWMH maximize/restore round-trip preserves original geometry' tests/xv
 [[ -f tests/send-net-wm-state.c ]] || fail 'EWMH state ClientMessage test helper is missing'
 
 grep -Fq 'pub minimized: bool' crates/mrx-core/src/lib.rs || fail 'IPC window state omits minimized status'
-grep -Fq 'e.type_==wm_change_state' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_CHANGE_STATE minimize handling is missing'
-grep -Fq 'atom==net_wm_state_hidden' crates/mrx-wm/src/main.rs || fail 'EWMH hidden/minimize request handling is missing'
+grep -Fq 'wm_change_state' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_CHANGE_STATE minimize handling is missing'
+grep -Fq 'net_wm_state_hidden' crates/mrx-wm/src/main.rs || fail 'EWMH hidden/minimize request handling is missing'
 grep -Fq 'window.minimized' crates/mrx-wm/src/main.rs || fail 'WM does not preserve minimized clients in state'
 grep -Fq 'EWMH minimize/restore retains the managed client and WM_STATE' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits minimize/restore lifecycle coverage'

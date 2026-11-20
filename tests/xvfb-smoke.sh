@@ -216,7 +216,7 @@ for _ in $(seq 1 30); do
 import re, sys
 text = open(sys.argv[1], encoding='utf-8').read()
 payload = text.split("=", 1)[-1]
-values = [int(v) for v in re.findall(r"\\d+", payload)]
+values = [int(v) for v in re.findall(r"\d+", payload)]
 raise SystemExit(0 if len(values) >= 4 and values[:4] == [0, 48, 1920, 1032] else 1)
 PY
   then WORKAREA_APPLIED=1; break; fi

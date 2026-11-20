@@ -62,6 +62,8 @@ grep -q 'Event::UnmapNotify' crates/mrx-wm/src/main.rs || fail 'ICCCM unmap life
 grep -q 'randr_get_monitors' crates/mrx-wm/src/main.rs || fail 'RandR monitor discovery missing'
 grep -q 'randr_select_input' crates/mrx-wm/src/main.rs || fail 'RandR hotplug notifications missing'
 grep -q 'Event::RandrNotify' crates/mrx-wm/src/main.rs || fail 'RandR notification event handling missing'
+grep -q 'monitor_for_geometry' crates/mrx-wm/src/main.rs || fail 'window-to-monitor assignment missing'
+grep -q 'window.monitor = fallback.name' crates/mrx-wm/src/main.rs || fail 'monitor-removal window migration missing'
 if grep -Fq 'output:"screen-0"' shell/services/MRXBackend.qml || grep -Fq 'monitorName:"screen-0"' shell/services/MRXBackend.qml; then fail 'MRX QML adapter still hardcodes a synthetic monitor'; fi
 grep -q '_NET_WM_STATE_FULLSCREEN' crates/mrx-wm/src/main.rs || fail 'EWMH fullscreen state missing'
 grep -q 'set_wm_state' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_STATE lifecycle helper missing'

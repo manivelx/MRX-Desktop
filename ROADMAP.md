@@ -17,7 +17,8 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Per-monitor tiling, independent workspaces and monitor-aware shell workspace routing.
 - [x] Initial EWMH dock strut/workarea handling.
 - [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
-- [ ] Complete EWMH maximize/restore, above/below and minimized/hidden state lifecycle.
+- [x] Implement horizontal/vertical EWMH maximize and restore with original-geometry preservation and Xvfb coverage.
+- [ ] Complete initial-state adoption, above/below and minimized/hidden state lifecycle.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
 - [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.

@@ -170,3 +170,10 @@ grep -Fq 'mrxctl", "subscribe' shell/services/MRXBackend.qml || fail 'Quickshell
 grep -Fq 'SplitParser' shell/services/MRXBackend.qml || fail 'Quickshell cannot parse newline-delimited subscription events'
 grep -Fq 'persistent IPC subscription emits initial and changed snapshots' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits subscription event validation'
 grep -Fq 'probe.read(&mut incoming)' crates/mrx-wm/src/main.rs || fail 'IPC subscriptions do not detect disconnected clients'
+
+grep -Fq 'fn maximized_rect' crates/mrx-wm/src/main.rs || fail 'EWMH maximize geometry helper is missing'
+grep -Fq 'net_wm_state_maximized_horz' crates/mrx-wm/src/main.rs || fail 'horizontal EWMH maximize state is missing'
+grep -Fq 'net_wm_state_maximized_vert' crates/mrx-wm/src/main.rs || fail 'vertical EWMH maximize state is missing'
+grep -Fq 'ewmh_maximize_axes_preserve_unrequested_geometry' crates/mrx-wm/src/main.rs || fail 'maximize axis geometry regression test is missing'
+grep -Fq 'EWMH maximize/restore round-trip preserves original geometry' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits maximize/restore round-trip'
+[[ -f tests/send-net-wm-state.c ]] || fail 'EWMH state ClientMessage test helper is missing'

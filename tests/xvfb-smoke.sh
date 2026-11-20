@@ -16,8 +16,9 @@ export XDG_RUNTIME_DIR="$RUNTIME/runtime"
 export MRX_CONFIG_HOME="$RUNTIME/config"
 mkdir -p "$XDG_RUNTIME_DIR" "$MRX_CONFIG_HOME"
 chmod 700 "$XDG_RUNTIME_DIR"
-XVFB_PID=""; WM_PID=""; XTERM_PID=""
+XVFB_PID=""; WM_PID=""; XTERM_PID=""; SUB_PID=""
 cleanup() {
+  [[ -n "$SUB_PID" ]] && kill "$SUB_PID" 2>/dev/null || true
   [[ -n "$XTERM_PID" ]] && kill "$XTERM_PID" 2>/dev/null || true
   [[ -n "$WM_PID" ]] && kill "$WM_PID" 2>/dev/null || true
   [[ -n "$XVFB_PID" ]] && kill "$XVFB_PID" 2>/dev/null || true
@@ -148,7 +149,7 @@ python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
-assert data['protocol_version'] == 2, data
+assert data['protocol_version'] == 3, data
 assert data['active_workspace'] == 1, data
 assert len(data['workspaces']) >= 1, data
 assert data.get('monitors'), data
@@ -157,8 +158,37 @@ assert any(m['focused'] for m in data['monitors']), data
 print('PASS: snapshot protocol, initial workspace and RandR monitor geometry')
 PY
 
+# Open a persistent subscription before switching workspaces. The client
+# must receive an initial snapshot and then a change event without polling.
+"$CTL" subscribe >"$RUNTIME/events.jsonl" 2>"$RUNTIME/subscribe.log" &
+SUB_PID=$!
+EVENTS_READY=0
+for _ in $(seq 1 30); do
+  if [[ -s "$RUNTIME/events.jsonl" ]]; then EVENTS_READY=1; break; fi
+  sleep 0.1
+done
+[[ "$EVENTS_READY" == 1 ]] || { echo "FAIL: IPC subscription did not emit its initial snapshot" >&2; cat "$RUNTIME/subscribe.log" >&2; exit 1; }
+
 "$CTL" workspace 2 >/dev/null
-sleep 0.2
+EVENT_UPDATE=0
+for _ in $(seq 1 30); do
+  if [[ "$(wc -l <"$RUNTIME/events.jsonl")" -ge 2 ]]; then
+    if python3 - "$RUNTIME/events.jsonl" <<'PY'
+import json, sys
+lines = [line for line in open(sys.argv[1], encoding='utf-8') if line.strip()]
+snapshot = json.loads(lines[-1])
+raise SystemExit(0 if snapshot['active_workspace'] == 2 else 1)
+PY
+    then EVENT_UPDATE=1; break; fi
+  fi
+  sleep 0.1
+done
+[[ "$EVENT_UPDATE" == 1 ]] || { echo "FAIL: IPC subscription did not emit workspace change" >&2; cat "$RUNTIME/events.jsonl" >&2; cat "$RUNTIME/subscribe.log" >&2; exit 1; }
+kill "$SUB_PID" 2>/dev/null || true
+wait "$SUB_PID" 2>/dev/null || true
+SUB_PID=""
+echo "PASS: persistent IPC subscription emits initial and changed snapshots"
+
 "$CTL" snapshot >"$RUNTIME/snapshot.json"
 python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys

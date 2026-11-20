@@ -616,7 +616,6 @@ Action::Focus(id)=>{
      }, Some(Event::MapRequest(e))=>{
         info!(window=e.window,"received X11 MapRequest");
         let mut s=state.lock().unwrap();
-        let ws=s.active;
         if let Err(error)=conn.map_window(e.window) { warn!(window=e.window,%error,"failed to map requested client"); continue; }
         let _=conn.configure_window(e.window,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));
         let g=match conn.get_geometry(e.window) { Ok(cookie)=>match cookie.reply(){Ok(geometry)=>geometry,Err(error)=>{warn!(window=e.window,%error,"failed to query requested client geometry");continue;}},Err(error)=>{warn!(window=e.window,%error,"failed to request client geometry");continue;} };
@@ -649,10 +648,40 @@ Action::Focus(id)=>{
          let aux=ConfigureWindowAux::new().x(e.x as i32).y(e.y as i32).width(e.width as u32).height(e.height as u32).border_width(e.border_width as u32).sibling(e.sibling).stack_mode(e.stack_mode);
          let _=conn.configure_window(e.window,&aux);
        }
-     }, Some(Event::KeyPress(e))=>{let key=e.detail; if (10..=18).contains(&key){let id=(key-9) as u32;let mut s=state.lock().unwrap();s.active=id;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s);}else if key==113||key==114{let mut s=state.lock().unwrap();let max=s.settings.workspace.count as i32;let delta=if key==114{1}else{-1};let id=if s.settings.workspace.wrap{((s.active as i32-1+delta).rem_euclid(max)+1) as u32}else{(s.active as i32+delta).clamp(1,max) as u32};s.active=id;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s);}else if key==24{let s=state.lock().unwrap();if let Some(w)=s.clients.values().find(|w|w.focused){if let Err(e)=request_close(&conn,w.id,wm_protocols,wm_delete){warn!(error=%e,"polite close failed")}}}}, Some(Event::ClientMessage(e))=>{
+     }, Some(Event::KeyPress(e))=>{
+        let key=e.detail;
+        if (10..=18).contains(&key) {
+            let mut s=state.lock().unwrap();
+            for w in s.clients.values_mut(){w.focused=false;}
+            switch_focused_workspace(&conn,root,&mut s,(key-9) as u32,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+        } else if key==113 || key==114 {
+            let mut s=state.lock().unwrap();
+            let delta=if key==114 {1} else {-1};
+            for w in s.clients.values_mut(){w.focused=false;}
+            switch_focused_workspace(&conn,root,&mut s,0,Some(delta),current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+        } else if key==24 {
+            let s=state.lock().unwrap();
+            if let Some(w)=s.clients.values().find(|w|w.focused) {
+                if let Err(e)=request_close(&conn,w.id,wm_protocols,wm_delete){warn!(error=%e,"polite close failed")}
+            }
+        }
+    }, Some(Event::ClientMessage(e))=>{
        let data=e.data.as_data32();
        if e.type_==net_close { let target=e.window; if target!=0 && target!=root { if let Err(err)=request_close(&conn,target,wm_protocols,wm_delete){warn!(window=target,error=%err,"EWMH close request failed");} } }
-       else if e.type_==net_active { let target=e.window; let mut s=state.lock().unwrap(); if s.clients.get(&target).is_some_and(|w|w.workspace==s.active){for w in s.clients.values_mut(){w.focused=w.id==target;}let _=conn.map_window(target);if let Err(error)=focus_client(&conn,target,wm_protocols,wm_take_focus){warn!(window=target,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[target]);} }
+       else if e.type_==net_active {
+         let target=e.window;
+         let mut s=state.lock().unwrap();
+         let target_monitor=s.clients.get(&target).map(|w|w.monitor.clone());
+         if let Some(monitor)=target_monitor {
+             if s.clients.get(&target).is_some_and(|w|w.workspace==active_workspace_for(&s,&monitor)) {
+                 set_focused_monitor(&mut s,&monitor);
+                 for w in s.clients.values_mut(){w.focused=w.id==target;}
+                 let _=conn.map_window(target);
+                 if let Err(error)=focus_client(&conn,target,wm_protocols,wm_take_focus){warn!(window=target,%error,"ICCCM focus negotiation failed");}
+                 let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[target]);
+             }
+         }
+       }
        else if e.type_==net_wm_state {
          // EWMH action: 0=remove, 1=add, 2=toggle. Only fullscreen is
          // advertised until maximize/above/below have complete semantics.
@@ -684,8 +713,30 @@ Action::Focus(id)=>{
            }
          }
        }
-       else if e.type_==desktop { let target=e.window; let requested=data[0]; let mut s=state.lock().unwrap(); if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {let ws=requested+1;if let Some(w)=s.clients.get_mut(&target){w.workspace=ws;let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);if ws==s.active{let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}arrange(&conn,root,&s);}} }
-       else if e.type_==current { let id=data[0].saturating_add(1); if id>=1 && id<=state.lock().unwrap().settings.workspace.count as u32 { let mut s=state.lock().unwrap();s.active=id;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s); } }
+       else if e.type_==desktop {
+         let target=e.window;
+         let requested=data[0];
+         let mut s=state.lock().unwrap();
+         if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {
+             let ws=requested+1;
+             let visible=s.clients.get(&target).is_some_and(|w|ws==active_workspace_for(&s,&w.monitor));
+             if let Some(w)=s.clients.get_mut(&target){
+                 w.workspace=ws;
+                 let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);
+                 if visible {let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}
+                 else {let _=conn.unmap_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}
+             }
+             arrange(&conn,root,&s);
+         }
+       }
+       else if e.type_==current {
+         let id=data[0].saturating_add(1);
+         let mut s=state.lock().unwrap();
+         if id>=1 && id<=s.settings.workspace.count as u32 {
+             for w in s.clients.values_mut(){w.focused=false;}
+             switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+         }
+       }
      }, Some(_) =>{}, None=>thread::sleep(Duration::from_millis(8)) }
    // Some X servers (including Xvfb) expose RandR 1.5 monitor-object changes
    // without delivering the expected notification to an already-running WM.

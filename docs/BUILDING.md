@@ -28,7 +28,7 @@ Run:
 
 This runs the same gates as CI, in order:
 
-1. Rust formatting check.
+1. Format Rust sources, then verify formatting is clean.
 2. Workspace unit and integration tests.
 3. Clippy with warnings denied.
 4. Debug workspace build.

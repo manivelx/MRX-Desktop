@@ -152,9 +152,21 @@ fn intern(conn:&RustConnection,name:&str)->Result<u32>{Ok(conn.intern_atom(false
 /// RandR is unavailable or the server does not expose monitor objects.
 fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u16) -> Vec<MonitorInfo> {
     let mut monitors = Vec::new();
-    if conn.extension_information(randr::X11_EXTENSION_NAME).ok().flatten().is_some() {
-        if let Ok(cookie) = conn.randr_get_monitors(root, true) {
-            if let Ok(reply) = cookie.reply() {
+    // RandR 1.5 exposes monitor objects independently from physical outputs.
+    // Probe the server version first: some X servers advertise the extension
+    // but do not implement GetMonitors (notably minimal/virtual servers).
+    let randr_available = conn.extension_information(randr::X11_EXTENSION_NAME)
+        .ok().flatten().is_some();
+    let randr_version = if randr_available {
+        conn.randr_query_version(1, 5).ok().and_then(|cookie| cookie.reply().ok())
+    } else {
+        None
+    };
+    let supports_monitor_objects = randr_version.as_ref()
+        .is_some_and(|version| (version.major_version, version.minor_version) >= (1, 5));
+    if supports_monitor_objects {
+        match conn.randr_get_monitors(root, true).and_then(|cookie| cookie.reply()) {
+            Ok(reply) => {
                 for monitor in reply.monitors {
                     if monitor.width == 0 || monitor.height == 0 { continue; }
                     let name = conn.get_atom_name(monitor.name).ok()
@@ -168,6 +180,41 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
                     });
                 }
             }
+            Err(error) => warn!(%error, "RandR GetMonitors failed; using active CRTC outputs"),
+        }
+    }
+
+    // Compatibility fallback: construct monitor rectangles from active CRTCs.
+    // This still supports legacy RandR 1.2 servers and Xvfb configurations
+    // where a root-screen has several attached output regions.
+    if monitors.is_empty() && randr_available {
+        if let Ok(resources) = conn.randr_get_screen_resources_current(root).and_then(|cookie| cookie.reply()) {
+            let mut crtcs = Vec::new();
+            for crtc_id in resources.crtcs {
+                let Ok(info) = conn.randr_get_crtc_info(crtc_id, resources.config_timestamp)
+                    .and_then(|cookie| cookie.reply()) else { continue; };
+                if info.mode == 0 || info.width == 0 || info.height == 0 { continue; }
+                let names = info.outputs.iter().filter_map(|output_id| {
+                    conn.randr_get_output_info(*output_id, resources.config_timestamp).ok()
+                        .and_then(|cookie| cookie.reply().ok())
+                        .map(|output| String::from_utf8_lossy(&output.name).into_owned())
+                }).filter(|name| !name.is_empty()).collect::<Vec<_>>();
+                let name = if names.is_empty() {
+                    format!("CRTC-{crtc_id}")
+                } else {
+                    names.join("+")
+                };
+                crtcs.push(MonitorInfo {
+                    name,
+                    x: info.x as i32,
+                    y: info.y as i32,
+                    width: info.width as u32,
+                    height: info.height as u32,
+                    focused: false,
+                });
+            }
+            crtcs.sort_by(|a, b| (a.x, a.y, &a.name).cmp(&(b.x, b.y, &b.name)));
+            monitors = crtcs;
         }
     }
     if monitors.is_empty() {

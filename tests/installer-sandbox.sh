@@ -22,7 +22,7 @@ export XDG_DATA_HOME="$HOME/.local/share"
 export MRX_BIN_DIR="$TMP/bin"
 export PATH="$TMP/mock:$PATH"
 
-"$ROOT/install.sh"
+bash "$ROOT/install.sh"
 [[ "$(cat "$HOME/.config/mrx/picom.conf")" == user-picom-config ]]
 [[ "$(cat "$HOME/.config/mrx/settings.toml")" == user-settings ]]
 [[ "$(cat "$HOME/.local/share/xsessions/mrx.desktop")" == "$(cat "$ROOT/session/mrx.desktop")" ]]
@@ -31,12 +31,12 @@ export PATH="$TMP/mock:$PATH"
 compgen -G "$HOME/.local/share/xsessions/mrx.desktop.backup.*" >/dev/null
 
 # Reinstall must keep user settings and Picom config and retain a shell backup.
-"$ROOT/install.sh"
+bash "$ROOT/install.sh"
 [[ "$(cat "$HOME/.config/mrx/picom.conf")" == user-picom-config ]]
 [[ "$(cat "$HOME/.config/mrx/settings.toml")" == user-settings ]]
 compgen -G "$HOME/.config/quickshell/mrx.backup.*" >/dev/null
 
-"$ROOT/uninstall.sh"
+bash "$ROOT/uninstall.sh"
 [[ ! -e "$HOME/.local/bin/mrx-wm" && ! -e "$HOME/.local/bin/mrxctl" ]]
 [[ ! -e "$HOME/.local/share/xsessions/mrx.desktop" ]]
 compgen -G "$HOME/.config/mrx.removed.*" >/dev/null

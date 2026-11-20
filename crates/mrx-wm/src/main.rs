@@ -441,7 +441,7 @@ fn focus_most_recent(
     let focused = focused_monitor_name(state);
     let active = active_workspace_for(state, &focused);
     let candidate = state.client_order.iter().rev().find(|id| {
-        state.clients.get(*id).is_some_and(|window| window.workspace == active && window.monitor == focused)
+        state.clients.get(*id).is_some_and(|window| window.workspace == active && window.monitor == focused && !window.dock)
     }).copied();
     for window in state.clients.values_mut() {
         window.focused = Some(window.id) == candidate;
@@ -673,10 +673,12 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
    }
    if let Some(topmost)=s.client_order.iter().rev().find(|id|s.clients.get(id).is_some_and(|w|!w.dock)).copied() {
-     if let Some(client)=s.clients.get_mut(&topmost) { client.focused=true; set_focused_monitor(&mut s,&client.monitor.clone()); }
+     if let Some(monitor)=s.clients.get(&topmost).map(|client|client.monitor.clone()) { set_focused_monitor(&mut s,&monitor); }
+     if let Some(client)=s.clients.get_mut(&topmost) { client.focused=true; }
      let _=focus_client(&conn,topmost,wm_protocols,wm_take_focus);
      let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[topmost]);
    }
+   publish_workarea(&conn,root,net_workarea,&s)?;
    publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s)?;
    arrange(&conn,root,&s);
  }
@@ -707,6 +709,7 @@ Action::Focus(id)=>{
     }
 }, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{
     if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; }
+    if s.clients.get(&id).is_some_and(|window|window.dock) { warn!(window=id,"move rejected: dock clients are sticky"); continue; }
     let visible=s.clients.get(&id).is_some_and(|w|ws==active_workspace_for(&s,&w.monitor));
     if let Some(w)=s.clients.get_mut(&id){
         w.workspace=ws;
@@ -743,7 +746,15 @@ Action::Focus(id)=>{
                     s.docks.remove(&e.window);
                 }
                 let fixed = s.size_hints.get(&e.window).is_some_and(|h|has_fixed_size(Some(h)));
-                if let Some(window)=s.clients.get_mut(&e.window) { window.floating=dock || transient || fixed; }
+                let was_focused=s.clients.get(&e.window).is_some_and(|window|window.focused);
+                if let Some(window)=s.clients.get_mut(&e.window) {
+                    window.dock=dock;
+                    window.floating=dock || transient || fixed;
+                    if dock { window.focused=false; }
+                }
+                if dock && was_focused {
+                    focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);
+                }
                 if let Err(error)=publish_workarea(&conn,root,net_workarea,&s) { warn!(%error,"failed to update EWMH workarea after dock change"); }
             }
             arrange(&conn, root, &s);
@@ -875,7 +886,9 @@ Action::Focus(id)=>{
          let mut s=state.lock().unwrap();
          if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {
              let ws=requested+1;
+             let is_dock=s.clients.get(&target).is_some_and(|w|w.dock);
              let visible=s.clients.get(&target).is_some_and(|w|!w.dock && ws==active_workspace_for(&s,&w.monitor));
+             if is_dock { continue; }
              if let Some(w)=s.clients.get_mut(&target){
                  w.workspace=ws;
                  let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);

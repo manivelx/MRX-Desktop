@@ -1155,10 +1155,10 @@ mod monitor_tests {
 
     #[test]
     fn right_and_bottom_struts_use_root_edge_distances() {
-        let monitor=MonitorInfo{name:"DP-2".into(),x:1280,y:0,width:640,height:720,focused:false,active_workspace:1};
-        let strut=DockStrut{right:100,bottom:80,right_start_y:0,right_end_y:719,bottom_start_x:0,bottom_end_x:1919,..Default::default()};
+        let monitor=MonitorInfo{name:"DP-2".into(),x:1280,y:0,width:640,height:1080,focused:false,active_workspace:1};
+        let strut=DockStrut{right:100,bottom:80,right_start_y:0,right_end_y:1079,bottom_start_x:0,bottom_end_x:1919,..Default::default()};
         let area=monitor_workarea(&monitor,&BTreeMap::from([(2,strut)]),1920,1080);
-        assert_eq!((area.x,area.y,area.width,area.height),(1280,0,540,640));
+        assert_eq!((area.x,area.y,area.width,area.height),(1280,0,540,1000));
     }
 
     #[test]

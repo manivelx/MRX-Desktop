@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
 };
 
-pub const IPC_PROTOCOL_VERSION: u32 = 1;
+pub const IPC_PROTOCOL_VERSION: u32 = 2;
 pub const SOCKET_NAME: &str = "mrx.sock";
 pub const DEFAULT_WORKSPACES: usize = 9;
 pub const MAX_WORKSPACES: usize = 32;
@@ -269,6 +269,27 @@ pub struct MonitorInfo {
     pub focused: bool,
 }
 
+/// Versioned IPC request envelope. IDs correlate each response with its
+/// originating request, even when clients pipeline or retry operations.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RequestEnvelope {
+    pub protocol_version: u32,
+    pub request_id: u64,
+    pub request: Request,
+}
+
+impl RequestEnvelope {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.protocol_version == IPC_PROTOCOL_VERSION,
+            "unsupported IPC protocol version {}; expected {}",
+            self.protocol_version,
+            IPC_PROTOCOL_VERSION
+        );
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum Request {
@@ -285,6 +306,9 @@ pub enum Request {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
+    pub protocol_version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<u64>,
     pub ok: bool,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -297,17 +321,40 @@ pub struct Response {
 
 impl Response {
     pub fn ok(message: impl Into<String>) -> Self {
-        Self { ok: true, message: message.into(), snapshot: None, settings: None, data: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None }
     }
 
     pub fn err(message: impl Into<String>) -> Self {
-        Self { ok: false, message: message.into(), snapshot: None, settings: None, data: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ipc_request_envelope_round_trips_and_validates_version() {
+        let envelope = RequestEnvelope {
+            protocol_version: IPC_PROTOCOL_VERSION,
+            request_id: 42,
+            request: Request::Ping,
+        };
+        envelope.validate().unwrap();
+        let encoded = serde_json::to_string(&envelope).unwrap();
+        let decoded: RequestEnvelope = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded, envelope);
+    }
+
+    #[test]
+    fn ipc_request_envelope_rejects_unknown_protocol_versions() {
+        let envelope = RequestEnvelope {
+            protocol_version: IPC_PROTOCOL_VERSION + 1,
+            request_id: 99,
+            request: Request::Ping,
+        };
+        assert!(envelope.validate().is_err());
+    }
 
     #[test]
     fn old_window_snapshots_default_missing_monitor_fields() {

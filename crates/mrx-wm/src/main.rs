@@ -29,12 +29,19 @@ fn set_focused_monitor(s: &mut State, name: &str) {
 fn snapshot(s:&State)->Snapshot {
     let focused = focused_monitor_name(s);
     let active = active_workspace_for(s, &focused);
-    let workspaces=(1..=s.settings.workspace.count as u32).map(|id| WorkspaceInfo{
-        id,
-        name:s.settings.workspace.names.get((id-1) as usize).cloned().unwrap_or_else(||id.to_string()),
-        active:id==active,
-        windows:s.clients.values().filter(|w|w.workspace==id && w.monitor==focused).count()
-    }).collect();
+    let mut workspaces = Vec::new();
+    for monitor in &s.monitors {
+        let monitor_active = active_workspace_for(s, &monitor.name);
+        for id in 1..=s.settings.workspace.count as u32 {
+            workspaces.push(WorkspaceInfo {
+                id,
+                monitor: monitor.name.clone(),
+                name: s.settings.workspace.names.get((id-1) as usize).cloned().unwrap_or_else(||id.to_string()),
+                active: id == monitor_active,
+                windows: s.clients.values().filter(|w|w.workspace==id && w.monitor==monitor.name).count(),
+            });
+        }
+    }
     let mut monitors = s.monitors.clone();
     for monitor in &mut monitors {
         monitor.active_workspace = active_workspace_for(s, &monitor.name);
@@ -531,7 +538,9 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
      s.client_order.push(window);
      if let Some(hints) = size_hints { s.size_hints.insert(window, hints); }
-     let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,urgent:read_urgent_hint(&conn,window),..Default::default()});
+     let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);
+     let workspace=active_workspace_for(&s,&assigned_monitor);
+     s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,urgent:read_urgent_hint(&conn,window),..Default::default()});
      let _=set_wm_state(&conn,window,wm_state,1);
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
    }
@@ -552,7 +561,38 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
  let mut last_monitor_refresh = std::time::Instant::now();
- loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::Switch(id)=>{let id=id.clamp(1,s.settings.workspace.count as u32); s.active=id; for w in s.clients.values_mut(){w.focused=false;} let _=conn.delete_property(root,net_active_window); for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}} let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s);}, Action::Relative(d)=>{let max=s.settings.workspace.count as i32;let mut id=s.active as i32+d;if s.settings.workspace.wrap{id=((id-1).rem_euclid(max))+1}else{id=id.clamp(1,max)};s.active=id as u32;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==s.active{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[s.active-1]);arrange(&conn,root,&s);}, Action::Focus(id)=>{if s.clients.get(&id).is_some_and(|w|w.workspace==s.active){for w in s.clients.values_mut(){w.focused=w.id==id;}if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus){warn!(window=id,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);}}, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; } if let Some(w)=s.clients.get_mut(&id){w.workspace=ws;let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);if ws==s.active{let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}}arrange(&conn,root,&s);}, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
+ loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::Switch(id)=>{
+    switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+},
+Action::SwitchMonitor(monitor,id)=>{
+    let count=s.settings.workspace.count as u32;
+    let wrap=s.settings.workspace.wrap;
+    switch_monitor_workspace(&conn,root,&mut s,&monitor,id,count,wrap,current,net_desktop_names,net_active_window,wm_state,net_wm_state,net_wm_state_hidden);
+},
+Action::Relative(d)=>{
+    switch_focused_workspace(&conn,root,&mut s,0,Some(d),current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
+},
+Action::Focus(id)=>{
+    let target_monitor=s.clients.get(&id).map(|w|w.monitor.clone());
+    if let Some(monitor)=target_monitor {
+        if s.clients.get(&id).is_some_and(|w|w.workspace==active_workspace_for(&s,&monitor)) {
+            set_focused_monitor(&mut s,&monitor);
+            for w in s.clients.values_mut(){w.focused=w.id==id;}
+            if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus){warn!(window=id,%error,"ICCCM focus negotiation failed");}
+            let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);
+        }
+    }
+}, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{
+    if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; }
+    let visible=s.clients.get(&id).is_some_and(|w|ws==active_workspace_for(&s,&w.monitor));
+    if let Some(w)=s.clients.get_mut(&id){
+        w.workspace=ws;
+        let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);
+        if visible {let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}
+        else {let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}
+    }
+    arrange(&conn,root,&s);
+}, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
    match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => {
         let mut s = state.lock().unwrap();
         refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
@@ -587,7 +627,10 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
         for client in s.clients.values_mut(){client.focused=false;}
         if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); }
          if let Some(hints) = size_hints { s.size_hints.insert(e.window, hints); }
-        let assigned_monitor=conn.query_pointer(root).ok().and_then(|cookie|cookie.reply().ok()).map(|pointer|monitor_for_geometry(&s.monitors,pointer.root_x as i32,pointer.root_y as i32,1,1)).unwrap_or_else(||monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32));s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,urgent:read_urgent_hint(&conn,e.window),..Default::default()});
+        let assigned_monitor=conn.query_pointer(root).ok().and_then(|cookie|cookie.reply().ok()).map(|pointer|monitor_for_geometry(&s.monitors,pointer.root_x as i32,pointer.root_y as i32,1,1)).unwrap_or_else(||monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32));
+        set_focused_monitor(&mut s,&assigned_monitor);
+        let ws=active_workspace_for(&s,&assigned_monitor);
+        s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,urgent:read_urgent_hint(&conn,e.window),..Default::default()});
         let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
         if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}
         let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);
@@ -664,8 +707,17 @@ fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State,
         });
     if !changed { return; }
     state.monitors = discovered;
-    let fallback = state.monitors.iter().find(|m| m.focused)
+    let current_names = state.monitors.iter().map(|m| m.name.clone()).collect::<std::collections::BTreeSet<_>>();
+    for monitor in &state.monitors {
+        state.active_by_monitor.entry(monitor.name.clone()).or_insert(1);
+    }
+    state.active_by_monitor.retain(|name, _| current_names.contains(name));
+    let fallback = state.monitors.iter().find(|m| m.name == state.focused_monitor)
+        .or_else(|| state.monitors.iter().find(|m| m.focused))
         .or_else(|| state.monitors.first()).cloned().unwrap_or_default();
+    if !current_names.contains(&state.focused_monitor) && !fallback.name.is_empty() {
+        set_focused_monitor(state, &fallback.name);
+    }
     let current_monitors = state.monitors.clone();
     for window in state.clients.values_mut() {
         if !current_monitors.iter().any(|m| m.name == window.monitor) {

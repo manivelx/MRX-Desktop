@@ -94,7 +94,8 @@ fn subscribe() -> Result<()> {
             response.request_id
         );
         anyhow::ensure!(response.ok, "MRX WM subscription failed: {}", response.message);
-        if let Some(snapshot) = response.snapshot {
+        if let Some(mut snapshot) = response.snapshot {
+            snapshot.sequence=response.sequence;
             println!("{}", serde_json::to_string(&snapshot)?);
             std::io::stdout().flush()?;
         }

@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
-#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64, settings_history:Vec<Settings>, started_at:Option<Instant> }
+#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64, settings_history:Vec<Settings>, started_at:Option<Instant>, active_subscriptions:usize, subscription_events_sent:u64, subscription_bytes_sent:u64, subscription_disconnects:u64, subscription_slow_clients_dropped:u64, subscription_write_timeouts:u64, subscription_max_write_latency_ms:u64, snapshot_sequence:u64 }
 #[derive(Clone, Copy)]
 struct WorkspaceAtoms {
     current: u32,
@@ -109,7 +109,7 @@ fn snapshot(s:&State)->Snapshot {
         monitor.active_workspace = active_workspace_for(s, &monitor.name);
         monitor.focused = monitor.name == focused;
     }
-    Snapshot{protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors}
+    Snapshot{sequence:None,protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors}
 }
 fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, height: u32) -> String {
     let center_x = x + (width / 2) as i32;
@@ -123,43 +123,82 @@ fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, he
         .unwrap_or_default()
 }
 
+struct SubscriptionGuard { state:Arc<Mutex<State>> }
+impl Drop for SubscriptionGuard {
+    fn drop(&mut self) {
+        let mut state=self.state.lock().unwrap();
+        state.active_subscriptions=state.active_subscriptions.saturating_sub(1);
+        state.subscription_disconnects=state.subscription_disconnects.saturating_add(1);
+    }
+}
+
+fn record_subscription_write(state:&mut State,bytes:usize,elapsed:Duration,error:Option<std::io::ErrorKind>) {
+    let latency=elapsed.as_millis().min(u64::MAX as u128) as u64;
+    state.subscription_max_write_latency_ms=state.subscription_max_write_latency_ms.max(latency);
+    match error {
+        None=>{
+            state.subscription_events_sent=state.subscription_events_sent.saturating_add(1);
+            state.subscription_bytes_sent=state.subscription_bytes_sent.saturating_add(bytes as u64);
+        }
+        Some(kind)=>{
+            if matches!(kind,std::io::ErrorKind::TimedOut|std::io::ErrorKind::WouldBlock) {
+                state.subscription_write_timeouts=state.subscription_write_timeouts.saturating_add(1);
+                state.subscription_slow_clients_dropped=state.subscription_slow_clients_dropped.saturating_add(1);
+            }
+        }
+    }
+}
+
 fn stream_ipc_snapshots(
     mut stream: UnixStream,
     state: &Arc<Mutex<State>>,
     request_id: u64,
 ) -> Result<()> {
-    // Long-lived subscriptions are bounded by the same IPC client cap as
-    // request/response connections. A slow or disconnected reader is dropped
-    // by the write timeout instead of blocking the X11 event loop.
+    // A subscription owns one bounded IPC worker. Slow readers are disconnected
+    // on write timeout; event sequence numbers make coalescing/gaps observable.
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
-    let mut probe = stream.try_clone()?;
+    let _subscription={
+        let mut state_guard=state.lock().unwrap();
+        state_guard.active_subscriptions=state_guard.active_subscriptions.saturating_add(1);
+        SubscriptionGuard{state:Arc::clone(state)}
+    };
+    let mut probe=stream.try_clone()?;
     probe.set_read_timeout(Some(Duration::from_millis(100)))?;
-    let mut previous = String::new();
+    let mut previous=String::new();
     loop {
-        let current = snapshot(&state.lock().unwrap());
-        let encoded = serde_json::to_string(&current)?;
-        if encoded != previous {
-            let mut event = Response::ok("snapshot event");
-            event.request_id = Some(request_id);
-            event.snapshot = Some(current);
-            writeln!(stream, "{}", serde_json::to_string(&event)?)?;
-            stream.flush()?;
-            previous = encoded;
+        let (current,encoded,sequence)={
+            let mut state=state.lock().unwrap();
+            let current=snapshot(&state);
+            let encoded=serde_json::to_string(&current)?;
+            if encoded==previous { (None,encoded,None) }
+            else {
+                state.snapshot_sequence=state.snapshot_sequence.saturating_add(1);
+                (Some(current),encoded,Some(state.snapshot_sequence))
+            }
+        };
+        if let (Some(current),Some(sequence))=(current,sequence) {
+            let mut event=Response::ok("snapshot event");
+            event.request_id=Some(request_id);
+            event.snapshot=Some(current);
+            event.sequence=Some(sequence);
+            let mut frame=serde_json::to_vec(&event)?;
+            frame.push(b'\n');
+            let started=Instant::now();
+            let result=stream.write_all(&frame).and_then(|_|stream.flush());
+            let elapsed=started.elapsed();
+            let error=result.as_ref().err().map(|error|error.kind());
+            record_subscription_write(&mut state.lock().unwrap(),frame.len(),elapsed,error);
+            if let Err(error)=result { return Err(error.into()); }
+            previous=encoded;
         }
 
-        // Detect client disconnects even when no state changes occur. Without
-        // this read probe, abandoned subscriptions would occupy the bounded
-        // IPC worker slots forever.
-        let mut incoming = [0u8; 1];
+        // Probe for disconnects even when no state changes occur.
+        let mut incoming=[0u8;1];
         match probe.read(&mut incoming) {
-            Ok(0) => return Ok(()),
-            Ok(_) => anyhow::bail!("unexpected client data on snapshot subscription"),
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
-                ) => {}
-            Err(error) => return Err(error.into()),
+            Ok(0)=>return Ok(()),
+            Ok(_)=>anyhow::bail!("unexpected client data on snapshot subscription"),
+            Err(error) if matches!(error.kind(),std::io::ErrorKind::WouldBlock|std::io::ErrorKind::TimedOut)=>{},
+            Err(error)=>return Err(error.into()),
         }
     }
 }
@@ -214,6 +253,13 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                             managed_windows:state.clients.len(),
                             monitor_count:state.monitors.len(),
                             active_ipc_clients:active_clients.load(Ordering::Relaxed),
+                            active_subscriptions:state.active_subscriptions,
+                            subscription_events_sent:state.subscription_events_sent,
+                            subscription_bytes_sent:state.subscription_bytes_sent,
+                            subscription_disconnects:state.subscription_disconnects,
+                            subscription_slow_clients_dropped:state.subscription_slow_clients_dropped,
+                            subscription_write_timeouts:state.subscription_write_timeouts,
+                            subscription_max_write_latency_ms:state.subscription_max_write_latency_ms,
                             operations_queued,operations_succeeded,operations_failed,
                         })
                     },
@@ -1686,6 +1732,23 @@ mod monitor_tests {
         assert_eq!((narrow.width, narrow.height), (400, 300));
         let wide = constrain_rect(mrx_core::layout::Rect { x: 0, y: 0, width: 1000, height: 400 }, Some(&hints));
         assert_eq!((wide.width, wide.height), (711, 400));
+    }
+
+    #[test]
+    fn slow_subscription_socket_write_records_backpressure_and_latency() {
+        let (mut writer,_reader)=UnixStream::pair().unwrap();
+        writer.set_write_timeout(Some(Duration::from_millis(10))).unwrap();
+        let payload=vec![0u8;4*1024*1024];
+        let started=Instant::now();
+        let result=writer.write_all(&payload);
+        assert!(result.as_ref().is_err_and(|error|matches!(error.kind(),std::io::ErrorKind::TimedOut|std::io::ErrorKind::WouldBlock)));
+        let elapsed=started.elapsed();
+        let error=result.err().map(|error|error.kind());
+        let mut state=State::default();
+        record_subscription_write(&mut state,0,elapsed,error);
+        assert_eq!(state.subscription_write_timeouts,1);
+        assert_eq!(state.subscription_slow_clients_dropped,1);
+        assert!(state.subscription_max_write_latency_ms>0);
     }
 
     #[test]

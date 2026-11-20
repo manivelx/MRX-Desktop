@@ -446,3 +446,34 @@ fn apply_setting(s: &mut State, key: &str, value: serde_json::Value) -> Result<(
     s.settings = candidate;
     Ok(())
 }
+
+
+#[cfg(test)]
+mod monitor_tests {
+    use super::*;
+
+    fn monitors() -> Vec<MonitorInfo> {
+        vec![
+            MonitorInfo { name: "DP-1".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true },
+            MonitorInfo { name: "HDMI-1".into(), x: 1920, y: 0, width: 2560, height: 1440, focused: false },
+            MonitorInfo { name: "DP-2".into(), x: -1280, y: 0, width: 1280, height: 1024, focused: false },
+        ]
+    }
+
+    #[test]
+    fn window_center_selects_the_monitor_it_occupies() {
+        let monitors = monitors();
+        assert_eq!(monitor_for_geometry(&monitors, 2100, 100, 800, 600), "HDMI-1");
+        assert_eq!(monitor_for_geometry(&monitors, -1200, 100, 800, 600), "DP-2");
+    }
+
+    #[test]
+    fn offscreen_windows_fall_back_to_the_focused_monitor() {
+        assert_eq!(monitor_for_geometry(&monitors(), 6000, 4000, 800, 600), "DP-1");
+    }
+
+    #[test]
+    fn empty_monitor_registry_is_safe() {
+        assert_eq!(monitor_for_geometry(&[], 0, 0, 800, 600), "");
+    }
+}

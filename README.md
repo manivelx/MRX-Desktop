@@ -5,7 +5,7 @@
 MRX combines a purpose-built Rust window manager and desktop services with a Quickshell/QML interface derived from the supplied end4-pC X11 port. The design goal is a cohesive, keyboard-driven desktop with configurable workspaces, a polished control center, media controls, notifications, and responsive live settings.
 
 > [!WARNING]
-> **Experimental development snapshot — not ready for daily use.** This repository is not a finished Hyprland replacement. Recent development has added RandR monitor discovery, independent per-monitor workspaces, a versioned IPC protocol, ICCCM urgency handling and initial EWMH dock workarea support. The latest code is still undergoing full CI validation. It has not passed a complete Quickshell session or physical hardware test. Workspace-slide animations are not implemented. Do not install it over your primary desktop or assume NVIDIA 470 compatibility.
+> **Experimental development snapshot — not ready for daily use.** This repository is not a finished Hyprland replacement. Recent development has added RandR monitor discovery, independent per-monitor workspaces, a versioned IPC protocol, ICCCM urgency handling and initial EWMH dock workarea support. The latest development commit passed the full Rust, static, installer-sandbox and Xvfb CI pipeline in [GitHub Actions run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790). This does not establish physical hardware or full Quickshell-session compatibility. It has not passed a complete Quickshell session or physical hardware test. Workspace-slide animations are not implemented. Do not install it over your primary desktop or assume NVIDIA 470 compatibility.
 
 ## Project goals
 

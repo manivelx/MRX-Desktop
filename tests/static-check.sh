@@ -210,3 +210,11 @@ grep -Fq 'fn enqueue_operation' crates/mrx-wm/src/main.rs || fail 'asynchronous 
 grep -Fq 'fn finish_operation' crates/mrx-wm/src/main.rs || fail 'operation completion tracking is missing'
 grep -Fq 'operation <id>' crates/mrxctl/src/main.rs || fail 'mrxctl operation polling command is missing'
 grep -Fq 'IPC operations expose queued/completed/failed states' tests/xvfb-smoke.sh || fail 'Xvfb asynchronous operation acceptance test is missing'
+
+grep -Fq 'pub fn save_profile_atomic' crates/mrx-core/src/lib.rs || fail 'atomic settings profile export is missing'
+grep -Fq 'pub fn load_profile' crates/mrx-core/src/lib.rs || fail 'validated settings profile import is missing'
+grep -Fq 'settings_history:Vec<Settings>' crates/mrx-wm/src/main.rs || fail 'bounded settings undo history is missing'
+grep -Fq 'Action::UndoSettings' crates/mrx-wm/src/main.rs || fail 'settings undo action is missing'
+grep -Fq 'Action::ResetSettings' crates/mrx-wm/src/main.rs || fail 'settings reset action is missing'
+grep -Fq 'profile import' crates/mrxctl/src/main.rs || fail 'mrxctl profile commands are missing'
+grep -Fq 'settings undo/reset, profile import/export and profile path validation' tests/xvfb-smoke.sh || fail 'Xvfb settings profile acceptance test is missing'

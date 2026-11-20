@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
-#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64 }
+#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64, settings_history:Vec<Settings> }
 #[derive(Clone, Copy)]
 struct WorkspaceAtoms {
     current: u32,
@@ -14,7 +14,7 @@ struct WorkspaceAtoms {
     net_active_window: u32,
 }
 
-#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, Operation(u64,Box<Action>) }
+#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, UndoSettings, ResetSettings, ExportProfile(String), ImportProfile(String), Operation(u64,Box<Action>) }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
 
 /// Queue an asynchronous WM operation and return its stable operation ID.
@@ -42,6 +42,17 @@ fn enqueue_operation(state:&Arc<Mutex<State>>,tx:&mpsc::Sender<Action>,kind:&str
     }
     let result=state.lock().unwrap().operations.get(&queued.id).cloned().unwrap_or(queued);
     Response::with_operation(result)
+}
+
+
+/// Keep a bounded in-memory undo history; never grow with every setting edit.
+fn push_settings_history(state:&mut State,settings:Settings) {
+    const MAX_SETTINGS_HISTORY:usize=20;
+    state.settings_history.push(settings);
+    if state.settings_history.len()>MAX_SETTINGS_HISTORY {
+        let excess=state.settings_history.len()-MAX_SETTINGS_HISTORY;
+        state.settings_history.drain(0..excess);
+    }
 }
 
 fn finish_operation(state:&mut State,id:u64,error:Option<OperationError>) {
@@ -188,6 +199,10 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                             None => Response::err_code("operation_not_found",format!("operation {id} was not found or has expired"),false),
                         }
                     },
+                    Request::UndoSettings => enqueue_operation(state,tx,"undo_settings",Action::UndoSettings),
+                    Request::ResetSettings => enqueue_operation(state,tx,"reset_settings",Action::ResetSettings),
+                    Request::ExportSettingsProfile{name} => enqueue_operation(state,tx,"export_settings_profile",Action::ExportProfile(name)),
+                    Request::ImportSettingsProfile{name} => enqueue_operation(state,tx,"import_settings_profile",Action::ImportProfile(name)),
                     Request::Snapshot => {
                         let mut response = Response::ok("snapshot");
                         response.snapshot = Some(snapshot(&state.lock().unwrap()));
@@ -975,11 +990,47 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
          }
        },
        Action::Set(key,value)=>{
+         let previous=s.settings.clone();
          if let Err(error)=apply_setting(&mut s,&key,value) {
            failure=Some(OperationError{code:"invalid_setting".into(),message:error.to_string(),retryable:false});
          } else {
+           push_settings_history(&mut s,previous);
            for window in s.clients.values(){let _=conn.configure_window(window.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}
            arrange(&conn,root,&s);
+         }
+       },
+       Action::UndoSettings=>{
+         if let Some(previous)=s.settings_history.last().cloned() {
+           match previous.save_atomic() {
+             Ok(())=>{s.settings_history.pop();s.settings=previous;arrange(&conn,root,&s);}
+             Err(error)=>failure=Some(OperationError{code:"settings_persist_failed".into(),message:error.to_string(),retryable:true}),
+           }
+         } else {
+           failure=Some(OperationError{code:"no_undo_available".into(),message:"there are no previous settings to restore".into(),retryable:false});
+         }
+       },
+       Action::ResetSettings=>{
+         let defaults=Settings::default();
+         let previous=s.settings.clone();
+         match defaults.save_atomic() {
+           Ok(())=>{if defaults!=previous{push_settings_history(&mut s,previous);}s.settings=defaults;arrange(&conn,root,&s);}
+           Err(error)=>failure=Some(OperationError{code:"settings_persist_failed".into(),message:error.to_string(),retryable:true}),
+         }
+       },
+       Action::ExportProfile(name)=>{
+         if let Err(error)=s.settings.save_profile_atomic(&name) {
+           failure=Some(OperationError{code:"profile_export_failed".into(),message:error.to_string(),retryable:false});
+         }
+       },
+       Action::ImportProfile(name)=>{
+         match Settings::load_profile(&name) {
+           Ok(imported)=>{
+             match imported.save_atomic() {
+               Ok(())=>{let previous=s.settings.clone();push_settings_history(&mut s,previous);s.settings=imported;arrange(&conn,root,&s);}
+               Err(error)=>failure=Some(OperationError{code:"settings_persist_failed".into(),message:error.to_string(),retryable:true}),
+             }
+           },
+           Err(error)=>failure=Some(OperationError{code:"profile_import_failed".into(),message:error.to_string(),retryable:false}),
          }
        },
        Action::Reload=>{

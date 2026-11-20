@@ -54,6 +54,7 @@ pass 'session and QML adapter reference MRX services; test dependencies are decl
 grep -q 'WM_DELETE_WINDOW' crates/mrx-wm/src/main.rs || fail 'ICCCM polite close protocol missing'
 grep -q 'WmHints::get' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_HINTS input model missing'
 grep -q 'WM_TAKE_FOCUS' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_TAKE_FOCUS negotiation missing'
+grep -q 'query_pointer(root)' crates/mrx-wm/src/main.rs || fail 'new X11 clients are not assigned using the pointer monitor'
 grep -q 'focus_client' crates/mrx-wm/src/main.rs || fail 'central ICCCM focus helper missing'
 grep -q 'focus_most_recent' crates/mrx-wm/src/main.rs || fail 'focus restoration after client removal missing'
 grep -q 'WM_TRANSIENT_FOR' crates/mrx-wm/src/main.rs || fail 'transient-window classification missing'

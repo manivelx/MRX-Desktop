@@ -318,7 +318,7 @@ done
 [[ "$MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not minimize the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 WM_STATE_OUTPUT="$(xprop -id "$WINDOW_ID" WM_STATE || true)"
 echo "$WM_STATE_OUTPUT"
-grep -Eq 'Iconic State|=[[:space:]]*3([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not become Iconic" >&2; exit 1; }
+grep -Eq 'Iconic|=[[:space:]]*3([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not become Iconic" >&2; exit 1; }
 "$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 hidden
 RESTORE_MINIMIZED=0
 for _ in $(seq 1 30); do
@@ -335,7 +335,7 @@ done
 [[ "$RESTORE_MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 WM_STATE_OUTPUT="$(xprop -id "$WINDOW_ID" WM_STATE || true)"
 echo "$WM_STATE_OUTPUT"
-grep -Eq 'Normal State|=[[:space:]]*1([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not return to Normal" >&2; exit 1; }
+grep -Eq 'Normal|=[[:space:]]*1([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not return to Normal" >&2; exit 1; }
 echo "PASS: EWMH minimize/restore retains the managed client and WM_STATE"
 
 # Also exercise the ICCCM WM_CHANGE_STATE IconicState/NormalState messages.

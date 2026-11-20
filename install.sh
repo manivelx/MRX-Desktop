@@ -53,25 +53,41 @@ if [[ "${QT_QPA_PLATFORM:-xcb}" != "xcb" ]]; then
 fi
 
 mkdir -p "$USER_BIN" "$USER_CONFIG" "$QS_CONFIG" "$SESSION_DIR"
+
+# Keep pre-existing user files recoverable before replacing project-owned paths.
+backup_if_different() {
+  local source="$1" destination="$2"
+  if [[ -e "$destination" ]] && ! cmp -s "$source" "$destination"; then
+    local backup="${destination}.backup.$(date +%Y%m%d-%H%M%S)"
+    cp -a "$destination" "$backup"
+    echo "Backed up existing file: $backup"
+  fi
+}
+for pair in mrx-wm mrxctl; do
+  backup_if_different "$BIN/$pair" "$USER_BIN/$pair"
+done
+backup_if_different "$ROOT/session/mrx-session" "$USER_BIN/mrx-session"
 install -m755 "$BIN/mrx-wm" "$USER_BIN/mrx-wm"
 install -m755 "$BIN/mrxctl" "$USER_BIN/mrxctl"
 install -m755 "$ROOT/session/mrx-session" "$USER_BIN/mrx-session"
 [[ -e "$USER_CONFIG/settings.toml" ]] || install -m644 "$ROOT/config/settings.toml" "$USER_CONFIG/settings.toml"
-install -m644 "$ROOT/config/picom.conf" "$USER_CONFIG/picom.conf"
+# The Picom config is user-editable; never replace an existing one on reinstall.
+[[ -e "$USER_CONFIG/picom.conf" ]] || install -m644 "$ROOT/config/picom.conf" "$USER_CONFIG/picom.conf"
 
 # Preserve only the MRX-specific shell directory if reinstalling it.
 if [[ -d "$QS_CONFIG" ]]; then
   cp -a "$QS_CONFIG" "${QS_CONFIG}.backup.$(date +%Y%m%d-%H%M%S)"
 fi
 cp -a "$ROOT/shell/." "$QS_CONFIG/"
+if [[ -e "$SESSION_DIR/mrx.desktop" ]] && ! cmp -s "$ROOT/session/mrx.desktop" "$SESSION_DIR/mrx.desktop"; then
+  cp -a "$SESSION_DIR/mrx.desktop" "$SESSION_DIR/mrx.desktop.backup.$(date +%Y%m%d-%H%M%S)"
+fi
 install -m644 "$ROOT/session/mrx.desktop" "$SESSION_DIR/mrx.desktop"
 
+# System-wide display-manager registration is deliberately opt-in.
 if [[ -d /usr/share/xsessions ]]; then
-  if [[ -w /usr/share/xsessions ]]; then
-    install -m644 "$ROOT/session/mrx.desktop" /usr/share/xsessions/mrx.desktop
-  elif command -v sudo >/dev/null 2>&1; then
-    echo "To expose MRX in SDDM, run: sudo install -Dm644 '$ROOT/session/mrx.desktop' /usr/share/xsessions/mrx.desktop"
-  fi
+  echo "To register MRX system-wide in SDDM, run explicitly:"
+  echo "  sudo install -Dm644 '$ROOT/session/mrx.desktop' /usr/share/xsessions/mrx.desktop"
 fi
 
 cat <<MSG

@@ -571,11 +571,6 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::SwitchMonitor(name,id)=>{switch_monitor_workspace(&conn,root,&mut s,&name,id,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);}, Action::Switch(id)=>{
     switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
 },
-Action::SwitchMonitor(monitor,id)=>{
-    let count=s.settings.workspace.count as u32;
-    let wrap=s.settings.workspace.wrap;
-    switch_monitor_workspace(&conn,root,&mut s,&monitor,id,count,wrap,current,net_desktop_names,net_active_window,wm_state,net_wm_state,net_wm_state_hidden);
-},
 Action::Relative(d)=>{
     switch_focused_workspace(&conn,root,&mut s,0,Some(d),current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
 },

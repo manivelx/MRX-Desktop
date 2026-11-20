@@ -9,7 +9,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - Bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
 - `mrxctl` uses bounded response reads and socket timeouts.
 - Workspace switching and EWMH desktop metadata, including `_NET_CLIENT_LIST`, `_NET_CLIENT_LIST_STACKING`, desktop names, viewport, workarea and geometry.
-- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, and focus restoration after client unmap/destruction.
+- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, and focus restoration after client unmap/destruction.
 - Startup adoption of already-viewable non-override-redirect clients.
 - EWMH handling for close, active-window, current-desktop, per-window desktop and fullscreen state requests.
 - Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.

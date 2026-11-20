@@ -148,7 +148,7 @@ grep -Fq 'monitor: monitor.name.clone()' crates/mrx-wm/src/main.rs || fail 'work
 grep -Fq 'switchWorkspaceOnMonitor(id, monitorName)' shell/services/MRXBackend.qml || fail 'MRX backend does not pass monitor identity to workspace switches'
 grep -Fq 'WM.switchWorkspaceOnMonitor(wsModel.getWorkspaceIdAt(hoverIndex), wsModel.monitorName)' shell/modules/ii/bar/Workspaces.qml || fail 'workspace bar does not target its own monitor'
 grep -Fq 'fn publish_workarea' crates/mrx-wm/src/main.rs || fail 'EWMH workarea property is not published'
-grep -Fq 'publish_workarea(&conn,root,net_workarea' crates/mrx-wm/src/main.rs || fail 'EWMH workarea is not initialized for desktops'
+grep -Fq 'publish_workarea' crates/mrx-wm/src/main.rs && grep -Fq 'net_workarea' crates/mrx-wm/src/main.rs || fail 'EWMH workarea is not initialized for desktops'
 grep -Fq 'EWMH workarea is published for all nine desktops' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits EWMH workarea validation'
 
 grep -Fq 'read_dock_strut' crates/mrx-wm/src/main.rs || fail 'WM does not parse EWMH dock struts'

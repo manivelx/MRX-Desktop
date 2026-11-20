@@ -951,7 +951,7 @@ fn switch_focused_workspace(
 }
 
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {
-    use mrx_core::layout::{arrange as calculate, LayoutKind, Rect};
+    use mrx_core::layout::{arrange as calculate, LayoutKind};
     let layout = LayoutKind::parse(&s.settings.window.layout).unwrap_or(LayoutKind::MasterStack);
     let fallback = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()).cloned().unwrap_or_default();
     let monitors = if s.monitors.is_empty() { vec![fallback] } else { s.monitors.clone() };

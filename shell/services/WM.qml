@@ -54,13 +54,14 @@ Singleton {
     function switchWorkspace(id) { backend?.switchWorkspace(id) }
     function switchWorkspaceOnMonitor(id, monitorName) {
         if (root.compositor === "bspwm") backend?.switchWorkspace(id, monitorName)
+        else if (root.compositor === "mrx") backend?.switchWorkspaceOnMonitor(id, monitorName)
         else backend?.switchWorkspace(id)
     }
     function switchWorkspaceRelative(direction) { backend?.switchWorkspaceRelative(direction) }
     function moveWindowToWorkspace(id, wsId) { backend?.moveWindowToWorkspace(id, wsId) }
     function monitorFor(screen) { return backend?.monitorFor(screen) ?? null }
     function activeWorkspaceForMonitor(name) { return backend?.activeWorkspaceForMonitor(name) ?? null }
-    function biggestWindowForWorkspace(id) { return backend?.biggestWindowForWorkspace(id) ?? null }
+    function biggestWindowForWorkspace(id, monitorName) { return backend?.biggestWindowForWorkspace(id, monitorName) ?? null }
     function fullscreenOnMonitor(name) { return backend?.fullscreenOnMonitor(name) ?? false }
     function monitorGeometry(screen) { return backend?.monitorGeometry(screen) ?? { x: 0, y: 0, scale: 1 } }
 

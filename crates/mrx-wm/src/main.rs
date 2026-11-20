@@ -1133,15 +1133,15 @@ mod monitor_tests {
         state.clients.insert(10, WindowInfo { id: 10, workspace: 2, monitor: "DP-1".into(), ..Default::default() });
         state.clients.insert(11, WindowInfo { id: 11, workspace: 3, monitor: "HDMI-1".into(), ..Default::default() });
         set_focused_monitor(&mut state, "DP-1");
-        let snapshot = snapshot(&state);
-        assert_eq!(snapshot.workspaces.len(), state.monitors.len() * state.settings.workspace.count);
-        assert!(snapshot.workspaces.iter().any(|w| w.monitor == "DP-1" && w.id == 2 && w.active && w.windows == 1));
-        assert!(snapshot.workspaces.iter().any(|w| w.monitor == "HDMI-1" && w.id == 3 && w.active && w.windows == 1));
+        let initial_snapshot = snapshot(&state);
+        assert_eq!(initial_snapshot.workspaces.len(), state.monitors.len() * state.settings.workspace.count);
+        assert!(initial_snapshot.workspaces.iter().any(|w| w.monitor == "DP-1" && w.id == 2 && w.active && w.windows == 1));
+        assert!(initial_snapshot.workspaces.iter().any(|w| w.monitor == "HDMI-1" && w.id == 3 && w.active && w.windows == 1));
         state.clients.insert(12, WindowInfo { id: 12, workspace: 2, monitor: "DP-1".into(), dock: true, ..Default::default() });
         let with_dock = snapshot(&state);
         assert!(with_dock.windows.iter().any(|window| window.id == 12 && window.dock));
         assert!(with_dock.workspaces.iter().any(|workspace| workspace.monitor == "DP-1" && workspace.id == 2 && workspace.windows == 1));
-        assert_eq!(snapshot.active_workspace, 2);
+        assert_eq!(initial_snapshot.active_workspace, 2);
     }
 
     #[test]

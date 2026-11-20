@@ -23,7 +23,7 @@ The merged `main` baseline [run #403](https://github.com/manivelx/MRX-Desktop/ac
 
 ## Remaining Phase 1 acceptance work
 
-- Complete EWMH state semantics: exact geometry restoration after replacing another WM and advanced dialog modality. Managed-client layer ordering now reconciles state changes, map/unmap, configure and destroy transitions.
+- Complete EWMH state semantics: exact geometry restoration after replacing another WM and advanced withdrawal and nested-dialog focus edge cases. Managed-client layer ordering now reconciles state changes, map/unmap, configure and destroy transitions.
 - Improve ICCCM corner-case coverage: very small workareas, aspect/increment interactions, focus/withdrawal and transient/dialog behavior.
 - Validate overlapping/multiple/vertical struts, mixed-DPI/mixed-resolution geometry and physical hotplug/disconnect/reconnect on actual multi-output hardware.
 - Validate Xephyr/nested Xorg session behavior and complete QML runtime interactions.

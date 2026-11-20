@@ -46,7 +46,7 @@ cc "$ROOT/tests/create-preexisting-clients.c" -o "$RUNTIME/create-preexisting-cl
 FIXTURE_PID=$!
 for _ in $(seq 1 30); do [[ -s "$RUNTIME/preexisting-clients.txt" ]] && break; sleep 0.1; done
 [[ -s "$RUNTIME/preexisting-clients.txt" ]] || { echo "FAIL: startup fixture did not publish window IDs" >&2; exit 1; }
-read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN STARTUP_OFFDESKTOP <"$RUNTIME/preexisting-clients.txt"
+read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN STARTUP_OFFDESKTOP STARTUP_PARENT STARTUP_MODAL <"$RUNTIME/preexisting-clients.txt"
 
 # Extensions needed for later compositing experiments. Their presence does not
 # imply hardware acceleration; Xvfb is a software test server.
@@ -68,20 +68,26 @@ echo "PASS: MRX WM IPC responds"
 STARTUP_ADOPTED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
-  if python3 - "$RUNTIME/snapshot.json" "$STARTUP_ABOVE" "$STARTUP_BELOW" "$STARTUP_HIDDEN" "$STARTUP_OFFDESKTOP" <<'PY'
+  if python3 - "$RUNTIME/snapshot.json" "$STARTUP_ABOVE" "$STARTUP_BELOW" "$STARTUP_HIDDEN" "$STARTUP_OFFDESKTOP" "$STARTUP_PARENT" "$STARTUP_MODAL" <<'PY'
 import json, sys
 data=json.load(open(sys.argv[1],encoding='utf-8'))
 windows={str(w['id']):w for w in data['windows']}
-a,b,h,off=(windows.get(v) for v in sys.argv[2:])
+a,b,h,off,parent,modal=(windows.get(v) for v in sys.argv[2:])
 raise SystemExit(0 if a and a.get('above') and b and b.get('below') and h and h.get('minimized')
-                 and off and not off.get('minimized') and off.get('workspace')==2 else 1)
+                 and off and not off.get('minimized') and off.get('workspace')==2
+                 and parent and modal and modal.get('modal') and modal.get('transient_for')==int(sys.argv[6])
+                 and modal.get('floating') else 1)
 PY
   then STARTUP_ADOPTED=1; break; fi
   sleep 0.1
 done
 [[ "$STARTUP_ADOPTED" == 1 ]] || { echo "FAIL: startup adoption lost initial EWMH/ICCCM state" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 xprop -id "$STARTUP_HIDDEN" WM_STATE | grep -Eq 'Iconic|=[[:space:]]*3([,[:space:]]|$)'
-echo "PASS: startup adoption preserves ABOVE, BELOW and unmapped Iconic clients"
+printf -v MODAL_HEX '0x%x' "$STARTUP_MODAL"
+xprop -root _NET_ACTIVE_WINDOW | grep -qi "$MODAL_HEX" || { echo "FAIL: startup did not prioritize the modal dialog" >&2; exit 1; }
+"$CTL" focus "$STARTUP_PARENT" >/dev/null
+xprop -root _NET_ACTIVE_WINDOW | grep -qi "$MODAL_HEX" || { echo "FAIL: parent focus request escaped modal dialog" >&2; exit 1; }
+echo "PASS: startup adopts ICCCM transient/modal dialogs and redirects parent focus"
 
 # Exercise the live RandR monitor-object update path. Xvfb can represent
 # independent RandR 1.5 monitor objects over a single virtual output; the WM

@@ -283,14 +283,14 @@ for _ in $(seq 1 30); do
   xwininfo -id "$WINDOW_ID" >"$RUNTIME/after-maximize.txt"
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
   if python3 - "$RUNTIME/before-maximize.txt" "$RUNTIME/after-maximize.txt" "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
-import json, re, sys
+import json, sys
 def geometry(path):
-    text = open(path, encoding='utf-8').read()
+    lines = open(path, encoding='utf-8').read().splitlines()
     values = {}
     for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'):
-        match = re.search(r'\s*' + re.escape(key) + r':\\s*(-?\\d+)', text, re.MULTILINE)
-        assert match, (key, text)
-        values[key] = int(match.group(1))
+        line = next((line for line in lines if line.strip().startswith(key + ':')), None)
+        assert line is not None, (key, lines)
+        values[key] = int(line.split(':', 1)[1].strip())
     return tuple(values[key] for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'))
 snapshot = json.load(open(sys.argv[3], encoding='utf-8'))
 window = next(w for w in snapshot['windows'] if str(w['id']) == sys.argv[4])

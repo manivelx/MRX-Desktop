@@ -91,14 +91,21 @@ print('PASS: snapshot remains valid after EWMH assertion')
 PY
 
 "$CTL" set appearance.gaps 12 >/dev/null
-"$CTL" snapshot >"$RUNTIME/snapshot.json"
-python3 - "$RUNTIME/snapshot.json" <<'PY'
+# IPC acknowledges that the action was queued; wait for the event loop to
+# apply and persist it instead of racing the asynchronous state transition.
+SETTING_APPLIED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
-with open(sys.argv[1], encoding='utf-8') as f:
-    data = json.load(f)
-assert data['settings']['appearance']['gaps'] == 12, data
-print('PASS: live setting update and persistence')
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+raise SystemExit(0 if data['settings']['appearance']['gaps'] == 12 else 1)
 PY
+  then SETTING_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$SETTING_APPLIED" == 1 ]] || { echo "FAIL: setting update was not applied" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+echo "PASS: live setting update and persistence"
 
 # Start a client on the currently active workspace after the WM has completed
 # workspace and settings operations. Keep it alive so ICCCM close can be tested.

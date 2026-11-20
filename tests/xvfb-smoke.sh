@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 WM="$ROOT/target/debug/mrx-wm"
 CTL="$ROOT/target/debug/mrxctl"
-for f in "$WM" "$CTL"; do
+SUPERVISOR="$ROOT/session/mrx-wm-supervisor"
+for f in "$WM" "$CTL" "$SUPERVISOR"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
 for c in Xvfb xdpyinfo xprop xmessage xrandr python3; do
@@ -22,6 +23,7 @@ cleanup() {
   [[ -n "$FIXTURE_PID" ]] && kill "$FIXTURE_PID" 2>/dev/null || true
   [[ -n "$XTERM_PID" ]] && kill "$XTERM_PID" 2>/dev/null || true
   [[ -n "$WM_PID" ]] && kill "$WM_PID" 2>/dev/null || true
+  [[ -n "$WM_PID" ]] && wait "$WM_PID" 2>/dev/null || true
   [[ -n "$XVFB_PID" ]] && kill "$XVFB_PID" 2>/dev/null || true
   rm -rf "$RUNTIME"
 }
@@ -56,7 +58,7 @@ for ext in Composite DAMAGE RANDR XFIXES GLX; do
   else echo "WARN: X11 extension unavailable in Xvfb: $ext"; fi
 done
 
-"$WM" >"$RUNTIME/wm.log" 2>&1 &
+MRX_WM_BIN="$WM" MRX_CTL_BIN="$CTL" MRX_WM_LOG="$RUNTIME/wm.log" "$SUPERVISOR" >"$RUNTIME/supervisor.log" 2>&1 &
 WM_PID=$!
 for _ in $(seq 1 50); do
   if "$CTL" ping >/dev/null 2>&1; then break; fi
@@ -75,6 +77,28 @@ assert health['managed_windows']>=1, health
 assert all(health[key]>=0 for key in ('operations_queued','operations_succeeded','operations_failed')), health
 print('PASS: IPC health reports process, uptime, X11 clients, monitors and operation metrics')
 PY
+
+# Kill the managed child unexpectedly; the supervisor must restart it and
+# restore a healthy IPC endpoint without terminating the session supervisor.
+OLD_CHILD="$(cat "$XDG_RUNTIME_DIR/mrx-wm.pid")"
+kill -KILL "$OLD_CHILD"
+RESTARTED=0
+for _ in $(seq 1 100); do
+  NEW_CHILD="$(cat "$XDG_RUNTIME_DIR/mrx-wm.pid" 2>/dev/null || true)"
+  if [[ -n "$NEW_CHILD" && "$NEW_CHILD" != "$OLD_CHILD" ]] && "$CTL" ping >/dev/null 2>&1; then
+    RESTARTED=1
+    break
+  fi
+  sleep 0.1
+done
+[[ "$RESTARTED" == 1 ]] || { echo "FAIL: WM supervisor did not recover after child crash" >&2; cat "$RUNTIME/supervisor.log" "$RUNTIME/wm.log" >&2; exit 1; }
+HEALTH_AFTER_RESTART="$("$CTL" health)"
+python3 - "$HEALTH_AFTER_RESTART" "$NEW_CHILD" <<'PY'
+import json,sys
+health=json.loads(sys.argv[1])['health']
+assert health['pid']==int(sys.argv[2]), health
+PY
+echo "PASS: supervisor restarts crashed WM child and restores IPC health"
 
 queue_operation() {
   local response

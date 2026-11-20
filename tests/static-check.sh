@@ -226,3 +226,10 @@ grep -Fq '"health" => Request::Health' crates/mrxctl/src/main.rs || fail 'mrxctl
 grep -Fq '"shutdown" => Request::Shutdown' crates/mrxctl/src/main.rs || fail 'mrxctl shutdown command is missing'
 grep -Fq 'IPC health reports process, uptime' tests/xvfb-smoke.sh || fail 'Xvfb health acceptance test is missing'
 grep -Fq 'IPC shutdown exits cleanly' tests/xvfb-smoke.sh || fail 'Xvfb orderly shutdown acceptance test is missing'
+
+bash -n session/mrx-wm-supervisor || fail 'WM supervisor shell syntax is invalid'
+grep -Fq 'DELAY >= 30' session/mrx-wm-supervisor || fail 'WM supervisor restart backoff is not capped'
+grep -Fq 'mrx-wm-supervisor &' session/mrx-session || fail 'session launcher does not use the WM supervisor'
+grep -Fq 'mrx-wm-supervisor' install.sh || fail 'installer does not install the WM supervisor'
+grep -Fq 'mrx-wm-supervisor' uninstall.sh || fail 'uninstaller does not remove the WM supervisor'
+grep -Fq 'supervisor restarts crashed WM child' tests/xvfb-smoke.sh || fail 'Xvfb supervisor crash-recovery test is missing'

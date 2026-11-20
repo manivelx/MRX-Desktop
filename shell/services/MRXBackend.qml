@@ -19,15 +19,21 @@ Scope {
     function apply(raw) {
         if (!raw || !Array.isArray(raw.workspaces)) return
         root.settings = raw.settings ?? ({})
-        root.workspaces = raw.workspaces.map(w => ({id:w.id, idx:w.id, name:w.name, output:"screen-0", is_active:w.active, focused:w.active, windows:w.windows, monitorFocused:true}))
+        const monitorData = (raw.monitors ?? []).map(m => ({id:m.name,name:m.name,x:m.x,y:m.y,width:m.width,height:m.height,scale:1,focused:m.focused}))
+        const primaryMonitor = monitorData.find(m => m.focused) ?? monitorData[0] ?? null
+        root.monitors = monitorData
+        root.workspaces = raw.workspaces.map(w => ({id:w.id, idx:w.id, name:w.name, output:primaryMonitor?.name ?? "", is_active:w.active, focused:w.active, windows:w.windows, monitorFocused:true}))
         const byWs = {}; for (const w of root.workspaces) byWs[w.id] = w
         root.workspaceById = byWs
         root.activeWorkspace = root.workspaces.find(w => w.is_active) ?? root.workspaces[0] ?? null
-        root.windowList = (raw.windows ?? []).map(w => ({id:String(w.id), address:String(w.id), xid:w.id, title:w.title, appId:w.class, class:w.class, instance:w.class, workspaceId:w.workspace, workspaceName:(root.workspaceById[w.workspace]?.name ?? String(w.workspace)), workspace:{id:w.workspace,name:(root.workspaceById[w.workspace]?.name ?? String(w.workspace))}, monitorName:"screen-0", focused:w.focused, activated:w.focused, width:w.width, height:w.height, x:w.x, y:w.y, size:[w.width,w.height], at:[w.x,w.y], state:w.fullscreen?"fullscreen":(w.floating?"floating":"tiled"), fullscreen:w.fullscreen, floating:w.floating, urgent:false, hidden:Number(w.workspace)!==Number(raw.active_workspace)}))
+        root.windowList = (raw.windows ?? []).map(w => {
+            const cx = w.x + w.width / 2, cy = w.y + w.height / 2
+            const monitor = monitorData.find(m => cx >= m.x && cx < m.x + m.width && cy >= m.y && cy < m.y + m.height) ?? primaryMonitor
+            return ({id:String(w.id), address:String(w.id), xid:w.id, title:w.title, appId:w.class, class:w.class, instance:w.class, workspaceId:w.workspace, workspaceName:(root.workspaceById[w.workspace]?.name ?? String(w.workspace)), workspace:{id:w.workspace,name:(root.workspaceById[w.workspace]?.name ?? String(w.workspace))}, monitorName:monitor?.name ?? "", focused:w.focused, activated:w.focused, width:w.width, height:w.height, x:w.x, y:w.y, size:[w.width,w.height], at:[w.x,w.y], state:w.fullscreen?"fullscreen":(w.floating?"floating":"tiled"), fullscreen:w.fullscreen, floating:w.floating, urgent:false, hidden:Number(w.workspace)!==Number(raw.active_workspace)})
+        })
         const byAddr={}; for (const w of root.windowList) byAddr[w.address]=w
         root.windowByAddress=byAddr; root.addresses=root.windowList.map(w=>w.address)
-        root.monitors=(raw.monitors??[]).map(m=>({id:m.name,name:m.name,x:m.x,y:m.y,width:m.width,height:m.height,scale:1,focused:m.focused,activeWorkspace:root.activeWorkspace}))
-        root.focusedMonitor=root.monitors[0]??null
+        root.focusedMonitor=primaryMonitor ? {...primaryMonitor, activeWorkspace:root.activeWorkspace} : null
     }
     function run(args) { action.command = ["mrxctl", ...args.map(String)]; action.running = true }
     function switchWorkspace(id) { run(["workspace", id]) }

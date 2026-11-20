@@ -19,7 +19,8 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
 - [x] Implement horizontal/vertical EWMH maximize and restore with original-geometry preservation and Xvfb coverage.
 - [x] Implement EWMH hidden/minimize and ICCCM WM_CHANGE_STATE with managed-client retention and Xvfb coverage.
-- [ ] Complete initial-state adoption and ABOVE/BELOW stacking semantics.
+- [x] Implement mutually exclusive EWMH ABOVE/BELOW state requests with Xvfb snapshot coverage.
+- [ ] Complete initial-state adoption and full stacking/restack policy.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
 - [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.

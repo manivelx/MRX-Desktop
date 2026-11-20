@@ -369,6 +369,38 @@ done
 [[ "$ICCCM_RESTORED" == 1 ]] || { echo "FAIL: ICCCM WM_CHANGE_STATE did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 echo "PASS: ICCCM WM_CHANGE_STATE minimize/restore lifecycle"
 
+# ABOVE and BELOW are mutually exclusive EWMH stacking states.
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 above
+ABOVE_SET=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
+raise SystemExit(0 if window.get('above') and not window.get('below') else 1)
+PY
+  then ABOVE_SET=1; break; fi
+  sleep 0.1
+done
+[[ "$ABOVE_SET" == 1 ]] || { echo "FAIL: EWMH ABOVE state was not applied" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 below
+BELOW_SET=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
+raise SystemExit(0 if window.get('below') and not window.get('above') else 1)
+PY
+  then BELOW_SET=1; break; fi
+  sleep 0.1
+done
+[[ "$BELOW_SET" == 1 ]] || { echo "FAIL: EWMH BELOW state did not replace ABOVE" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 below
+echo "PASS: EWMH ABOVE/BELOW state requests are mutually exclusive"
+
 # Reuse the live test client as a dock and reserve 48px at the top edge.
 
 xprop -id "$WINDOW_ID" -f _NET_WM_WINDOW_TYPE 32a -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DOCK

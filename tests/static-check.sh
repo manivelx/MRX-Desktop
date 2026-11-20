@@ -183,3 +183,8 @@ grep -Fq 'wm_change_state' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_CHANGE_ST
 grep -Fq 'net_wm_state_hidden' crates/mrx-wm/src/main.rs || fail 'EWMH hidden/minimize request handling is missing'
 grep -Fq 'window.minimized' crates/mrx-wm/src/main.rs || fail 'WM does not preserve minimized clients in state'
 grep -Fq 'EWMH minimize/restore retains the managed client and WM_STATE' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits minimize/restore lifecycle coverage'
+
+grep -Fq 'net_wm_state_above' crates/mrx-wm/src/main.rs || fail 'EWMH ABOVE state is missing'
+grep -Fq 'net_wm_state_below' crates/mrx-wm/src/main.rs || fail 'EWMH BELOW state is missing'
+grep -Fq 'pub above: bool' crates/mrx-core/src/lib.rs && grep -Fq 'pub below: bool' crates/mrx-core/src/lib.rs || fail 'IPC window snapshot omits ABOVE/BELOW state'
+grep -Fq 'EWMH ABOVE/BELOW state requests are mutually exclusive' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits ABOVE/BELOW stacking coverage'

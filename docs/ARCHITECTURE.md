@@ -22,7 +22,7 @@ Runtime settings are owned by the Rust window manager. The `set` request parses 
 
 The WM uses `x11rb` and explicit protocol extension features. It handles common ICCCM/EWMH behaviors incrementally and is tested against Xvfb and simple X11 clients. Clients are not all ordinary toplevels: startup adoption skips override-redirect windows; transient/fixed-size clients float; dock clients are sticky, excluded from ordinary workspace tiling and may reserve monitor workarea through partial/legacy struts.
 
-Implemented protocol areas include polite `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS` negotiation, `WM_STATE`, `WM_HINTS` urgency, common `WM_NORMAL_HINTS`, desktop metadata, client lists/stacking, current desktop, per-window desktop, close/active requests, basic fullscreen state horizontal/vertical maximize with original-geometry restoration, and hidden/minimize handling with ICCCM `WM_CHANGE_STATE`. ABOVE/BELOW, full initial-state adoption and advanced dialog modality still need work.
+Implemented protocol areas include polite `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS` negotiation, `WM_STATE`, `WM_HINTS` urgency, common `WM_NORMAL_HINTS`, desktop metadata, client lists/stacking, current desktop, per-window desktop, close/active requests, basic fullscreen state horizontal/vertical maximize with original-geometry restoration, hidden/minimize handling with ICCCM `WM_CHANGE_STATE`, and mutually exclusive ABOVE/BELOW state requests. Full initial-state adoption, a complete restacking policy and advanced dialog modality still need work.
 
 ## Monitor model
 

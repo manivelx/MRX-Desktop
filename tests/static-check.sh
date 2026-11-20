@@ -193,3 +193,7 @@ grep -Fq 'fn read_atom_list' crates/mrx-wm/src/main.rs || fail 'startup EWMH ato
 grep -Fq 'read_atom_list' crates/mrx-wm/src/main.rs || fail 'startup EWMH state adoption is missing'
 grep -Fq 'existing_wm_state == 3' crates/mrx-wm/src/main.rs || fail 'startup ICCCM IconicState adoption is missing'
 grep -Fq 'STARTUP_ADOPTED' tests/xvfb-smoke.sh || fail 'Xvfb startup adoption test is missing'
+
+grep -Fq 'fn stacking_order' crates/mrx-wm/src/main.rs || fail 'managed EWMH stacking order is missing'
+grep -Fq 'fn restack_managed_clients' crates/mrx-wm/src/main.rs || fail 'managed X11 restack reconciliation is missing'
+grep -Fq 'managed_stacking_order_respects_protocol_layers_and_stability' crates/mrx-wm/src/main.rs || fail 'managed stacking layer unit test is missing'

@@ -21,7 +21,8 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Implement EWMH hidden/minimize and ICCCM WM_CHANGE_STATE with managed-client retention and Xvfb coverage.
 - [x] Implement mutually exclusive EWMH ABOVE/BELOW state requests with Xvfb snapshot coverage.
 - [x] Adopt initial EWMH fullscreen/maximize/hidden/ABOVE/BELOW state, ICCCM IconicState and per-window desktop assignment at WM startup; validate pre-existing clients in Xvfb.
-- [ ] Complete runtime restacking policy and full state restoration semantics.
+- [x] Reconcile managed-client stacking by BELOW/normal/ABOVE/dock/fullscreen layer, including state removal and map/unmap/destroy/configure transitions.
+- [ ] Complete full state restoration semantics and advanced transient/dialog modality.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
 - [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.

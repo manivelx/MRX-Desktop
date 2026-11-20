@@ -12,7 +12,7 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Install X11 build dependencies
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxcb1-dev libxcb-randr0-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcb-damage0-dev libxcb-present-dev libxcb-glx0-dev pkg-config xvfb x11-utils xterm
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxcb1-dev libxcb-randr0-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcb-damage0-dev libxcb-present-dev libxcb-glx0-dev pkg-config xvfb x11-utils xterm xfonts-base
       - uses: Swatinem/rust-cache@v2
       - name: Format Rust workspace (also validates Rust syntax)
         run: cargo fmt --all

@@ -66,7 +66,7 @@ for _ in $(seq 1 30); do
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
 names = {m['name'] for m in data.get('monitors', [])}
-raise SystemExit(0 if {'MRX-LEFT', 'MRX-RIGHT'} <= names else 1)
+raise SystemExit(0 if names == {'MRX-LEFT', 'MRX-RIGHT'} else 1)
 PY
   then MONITORS_READY=1; break; fi
   sleep 0.1

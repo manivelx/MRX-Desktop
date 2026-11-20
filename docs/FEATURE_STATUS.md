@@ -13,8 +13,8 @@ This document separates design intent from implemented behavior. “Partial” m
 | Floating windows | Partial | Transient/fixed-size clients float; complete dialog modality, stacking and edge-case behavior need validation. |
 | Fullscreen | Partial | Basic EWMH fullscreen state is implemented; maximize/restore, initial state adoption and complete restoration semantics remain. |
 | Multi-monitor | Partial | RandR discovery/reconciliation, per-monitor tiling and workspaces, monitor-specific IPC, Quickshell routing and initial EWMH dock struts/workareas are implemented. Physical multi-output and panel validation remain outstanding. |
-| IPC | Partial | Versioned local Unix-socket protocol, request IDs, bounded framing and timeouts; push subscriptions and asynchronous operation results remain. |
-| Settings | Partial | TOML persistence and live application for initial options; typed validation, transactions, rollback and profiles remain. |
+| IPC | Partial | Protocol v3 adds a persistent Unix-socket subscription that emits change-only snapshots; Quickshell consumes it via SplitParser with a slow reconnect/fallback snapshot path. Structured async mutation results and subscriber backpressure metrics remain. |
+| Settings | Partial | Typed settings are validated on a candidate copy and atomically persisted before replacing live state. Undo/reset/profile import-export remain. |
 | Dashboard | Partial | Imported QML source and early adapter; not all pages are MRX-backed. |
 | Media/audio/network | Upstream-dependent | Must audit each integration and remove unsupported assumptions. |
 | Workspace animations | Not implemented | Requires dedicated renderer feasibility and hardware tests. |

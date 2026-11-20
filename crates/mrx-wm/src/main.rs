@@ -30,8 +30,7 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
     if bytes == 0 {
         anyhow::bail!("empty IPC request");
     }
-    if bytes > 65_536 || !line.ends_with('
-') {
+    if bytes > 65_536 || !line.ends_with('\n') {
         anyhow::bail!("IPC request exceeds 64 KiB or is not newline-terminated");
     }
 

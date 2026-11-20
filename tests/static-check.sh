@@ -154,7 +154,7 @@ grep -Fq 'EWMH workarea is published for all nine desktops' tests/xvfb-smoke.sh 
 grep -Fq 'read_dock_strut' crates/mrx-wm/src/main.rs || fail 'WM does not parse EWMH dock struts'
 grep -Fq 'monitor_workarea' crates/mrx-wm/src/main.rs || fail 'WM does not compute usable monitor workareas'
 grep -Fq 'is_dock_window' crates/mrx-wm/src/main.rs || fail 'WM does not identify EWMH dock window types'
-grep -Fq 'dock,' crates/mrx-wm/src/main.rs && grep -Fq '..Default::default()' crates/mrx-wm/src/main.rs || fail 'dock identity is not retained in window state'
+grep -Fq 'pub dock: bool' crates/mrx-core/src/lib.rs && grep -Fq 'is_dock_window' crates/mrx-wm/src/main.rs && grep -Fq 'let dock' crates/mrx-wm/src/main.rs || fail 'dock identity is not retained in window state'
 grep -Fq 'w.monitor == monitor && !w.dock' crates/mrx-wm/src/main.rs || fail 'dock clients are hidden when switching workspaces'
 grep -Fq 'filter(w => !w.dock)' shell/services/MRXBackend.qml || fail 'Quickshell exposes dock clients as ordinary workspace windows'
 grep -Fq 'dock clients remain sticky and do not steal keyboard focus' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock focus and stickiness validation'

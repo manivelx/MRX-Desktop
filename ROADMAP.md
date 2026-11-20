@@ -22,7 +22,8 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Implement mutually exclusive EWMH ABOVE/BELOW state requests with Xvfb snapshot coverage.
 - [x] Adopt initial EWMH fullscreen/maximize/hidden/ABOVE/BELOW state, ICCCM IconicState and per-window desktop assignment at WM startup; validate pre-existing clients in Xvfb.
 - [x] Reconcile managed-client stacking by BELOW/normal/ABOVE/dock/fullscreen layer, including state removal and map/unmap/destroy/configure transitions.
-- [ ] Complete full state restoration semantics and advanced transient/dialog modality.
+- [x] Add ICCCM transient-parent tracking, EWMH modal state adoption and parent-focus redirection for nested modal dialogs; validate startup and IPC focus behavior in Xvfb.
+- [ ] Complete full state restoration semantics and broader dialog focus/withdrawal edge cases.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
 - [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.

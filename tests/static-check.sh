@@ -197,3 +197,9 @@ grep -Fq 'STARTUP_ADOPTED' tests/xvfb-smoke.sh || fail 'Xvfb startup adoption te
 grep -Fq 'fn stacking_order' crates/mrx-wm/src/main.rs || fail 'managed EWMH stacking order is missing'
 grep -Fq 'fn restack_managed_clients' crates/mrx-wm/src/main.rs || fail 'managed X11 restack reconciliation is missing'
 grep -Fq 'managed_stacking_order_respects_protocol_layers_and_stability' crates/mrx-wm/src/main.rs || fail 'managed stacking layer unit test is missing'
+
+grep -Fq 'pub transient_for: u32' crates/mrx-core/src/lib.rs || fail 'ICCCM transient parent is missing from window snapshots'
+grep -Fq 'pub modal: bool' crates/mrx-core/src/lib.rs || fail 'EWMH modal state is missing from window snapshots'
+grep -Fq 'fn modal_focus_target' crates/mrx-wm/src/main.rs || fail 'modal focus redirection is missing'
+grep -Fq 'net_wm_state_modal' crates/mrx-wm/src/main.rs || fail 'EWMH modal state support is missing'
+grep -Fq 'startup adopts ICCCM transient/modal dialogs and redirects parent focus' tests/xvfb-smoke.sh || fail 'Xvfb modal/transient acceptance test is missing'

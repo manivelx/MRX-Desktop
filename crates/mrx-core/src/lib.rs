@@ -245,6 +245,12 @@ pub struct WindowInfo {
     pub above: bool,
     #[serde(default)]
     pub below: bool,
+    /// ICCCM WM_TRANSIENT_FOR parent XID, or zero for an ordinary toplevel.
+    #[serde(default)]
+    pub transient_for: u32,
+    /// EWMH modal-dialog state; modal descendants take focus over their parent.
+    #[serde(default)]
+    pub modal: bool,
     /// ICCCM WM_HINTS urgency bit; the client owns setting and clearing it.
     #[serde(default)]
     pub urgent: bool,

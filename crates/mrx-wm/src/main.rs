@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use mrx_core::{Request, RequestEnvelope, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo, IPC_PROTOCOL_VERSION};
+use mrx_core::{OperationError, OperationResult, OperationStatus, Request, RequestEnvelope, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo, IPC_PROTOCOL_VERSION};
 use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::Duration};
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
-#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32 }
+#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64 }
 #[derive(Clone, Copy)]
 struct WorkspaceAtoms {
     current: u32,
@@ -14,8 +14,50 @@ struct WorkspaceAtoms {
     net_active_window: u32,
 }
 
-#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
+#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, Operation(u64,Box<Action>) }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
+
+/// Queue an asynchronous WM operation and return its stable operation ID.
+/// Results are retained in a bounded history for polling by IPC clients.
+fn enqueue_operation(state:&Arc<Mutex<State>>,tx:&mpsc::Sender<Action>,kind:&str,action:Action)->Response {
+    let queued={
+        let mut state=state.lock().unwrap();
+        let id=state.next_operation_id.max(1);
+        state.next_operation_id=id.wrapping_add(1).max(1);
+        let result=OperationResult{id,kind:kind.into(),status:OperationStatus::Queued,message:"operation queued".into(),error:None};
+        state.operations.insert(id,result.clone());
+        while state.operations.len()>128 {
+            if let Some(oldest)=state.operations.keys().next().copied(){state.operations.remove(&oldest);}else{break;}
+        }
+        result
+    };
+    if tx.send(Action::Operation(queued.id,Box::new(action))).is_err() {
+        let error=OperationError{code:"event_loop_unavailable".into(),message:"WM event loop is unavailable".into(),retryable:true};
+        let mut state=state.lock().unwrap();
+        if let Some(result)=state.operations.get_mut(&queued.id) {
+            result.status=OperationStatus::Failed;
+            result.message=error.message.clone();
+            result.error=Some(error);
+        }
+    }
+    let result=state.lock().unwrap().operations.get(&queued.id).cloned().unwrap_or(queued);
+    Response::with_operation(result)
+}
+
+fn finish_operation(state:&mut State,id:u64,error:Option<OperationError>) {
+    if let Some(operation)=state.operations.get_mut(&id) {
+        if let Some(error)=error {
+            operation.status=OperationStatus::Failed;
+            operation.message=error.message.clone();
+            operation.error=Some(error);
+        } else {
+            operation.status=OperationStatus::Succeeded;
+            operation.message="operation completed".into();
+            operation.error=None;
+        }
+    }
+}
+
 fn active_workspace_for(s: &State, monitor: &str) -> u32 {
     s.active_by_monitor.get(monitor).copied().unwrap_or(1).clamp(1, s.settings.workspace.count as u32)
 }
@@ -132,14 +174,20 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
         }
     }
     let response = match request {
-        Err(error) => Response::err(format!("invalid request envelope: {error}")),
+        Err(error) => Response::err_code("invalid_request",format!("invalid request envelope: {error}"),false),
         Ok(envelope) => {
             let request_id = envelope.request_id;
             let mut response = if let Err(error) = envelope.validate() {
-                Response::err(error.to_string())
+                Response::err_code("unsupported_protocol_version",error.to_string(),false)
             } else {
                 match envelope.request {
                     Request::Ping => Response::ok("pong"),
+                    Request::GetOperation { id } => {
+                        match state.lock().unwrap().operations.get(&id).cloned() {
+                            Some(operation) => Response::with_operation(operation),
+                            None => Response::err_code("operation_not_found",format!("operation {id} was not found or has expired"),false),
+                        }
+                    },
                     Request::Snapshot => {
                         let mut response = Response::ok("snapshot");
                         response.snapshot = Some(snapshot(&state.lock().unwrap()));
@@ -147,37 +195,33 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                     }
                     Request::Subscribe => Response::ok("subscription started"),
                     Request::ReloadSettings => {
-                        tx.send(Action::Reload).context("WM event loop is unavailable")?;
-                        Response::ok("settings reload queued")
+                        enqueue_operation(state,tx,"reload_settings",Action::Reload)
                     }
                     Request::SetSetting { key, value } => {
-                        tx.send(Action::Set(key, value)).context("WM event loop is unavailable")?;
-                        Response::ok("setting update queued")
+                        enqueue_operation(state,tx,"set_setting",Action::Set(key,value))
                     }
                     Request::SwitchWorkspace { id } => {
-                        tx.send(Action::Switch(id)).context("WM event loop is unavailable")?;
-                        Response::ok("workspace switch queued")
+                        enqueue_operation(state,tx,"switch_workspace",Action::Switch(id))
                     }
                     Request::SwitchWorkspaceOnMonitor { monitor, id } => {
-                        tx.send(Action::SwitchMonitor(monitor, id)).context("WM event loop is unavailable")?;
-                        Response::ok("monitor workspace switch queued")
+                        enqueue_operation(state,tx,"switch_monitor_workspace",Action::SwitchMonitor(monitor,id))
                     }
                     Request::SwitchRelative { direction } => {
-                        let delta = if direction == "next" { 1 } else { -1 };
-                        tx.send(Action::Relative(delta)).context("WM event loop is unavailable")?;
-                        Response::ok("workspace switch queued")
+                        if direction!="next" && direction!="previous" {
+                            Response::err_code("invalid_direction","direction must be 'next' or 'previous'",false)
+                        } else {
+                            let delta=if direction=="next" {1}else{-1};
+                            enqueue_operation(state,tx,"switch_relative",Action::Relative(delta))
+                        }
                     }
                     Request::FocusWindow { id } => {
-                        tx.send(Action::Focus(id)).context("WM event loop is unavailable")?;
-                        Response::ok("focus queued")
+                        enqueue_operation(state,tx,"focus_window",Action::Focus(id))
                     }
                     Request::CloseWindow { id } => {
-                        tx.send(Action::Close(id)).context("WM event loop is unavailable")?;
-                        Response::ok("close queued")
+                        enqueue_operation(state,tx,"close_window",Action::Close(id))
                     }
                     Request::MoveWindow { id, workspace } => {
-                        tx.send(Action::Move(id, workspace)).context("WM event loop is unavailable")?;
-                        Response::ok("move queued")
+                        enqueue_operation(state,tx,"move_window",Action::Move(id,workspace))
                     }
                 }
             };
@@ -850,37 +894,104 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
  let mut last_monitor_refresh = std::time::Instant::now();
- loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::SwitchMonitor(name,id)=>{switch_monitor_workspace(&conn,root,&mut s,&name,id,workspace_atoms);}, Action::Switch(id)=>{
-    switch_focused_workspace(&conn,root,&mut s,id,None,workspace_atoms);
-},
-Action::Relative(d)=>{
-    switch_focused_workspace(&conn,root,&mut s,0,Some(d),workspace_atoms);
-},
-Action::Focus(id)=>{
-    let id=modal_focus_target(&s,id);
-    let target_monitor=s.clients.get(&id).map(|w|w.monitor.clone());
-    if let Some(monitor)=target_monitor {
-        if s.clients.get(&id).is_some_and(|w|!w.dock && w.workspace==active_workspace_for(&s,&monitor)) {
-            set_focused_monitor(&mut s,&monitor);
-            for w in s.clients.values_mut(){w.focused=w.id==id;}
-            if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus){warn!(window=id,%error,"ICCCM focus negotiation failed");}
-            let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);
-        }
-    }
-}, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{
-    if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; }
-    if s.clients.get(&id).is_some_and(|window|window.dock) { warn!(window=id,"move rejected: dock clients are sticky"); continue; }
-    let minimized=s.clients.get(&id).is_some_and(|w|w.minimized);
-    let visible=s.clients.get(&id).is_some_and(|w|!w.minimized && ws==active_workspace_for(&s,&w.monitor));
-    if let Some(w)=s.clients.get_mut(&id){
-        w.workspace=ws;
-        let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);
-        if minimized { let _=set_wm_state(&conn,id,wm_state,3); let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true); }
-        else if visible {let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}
-        else {let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}
-    }
-    arrange(&conn,root,&s);
-}, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
+ loop {
+   while let Ok(received)=rx.try_recv() {
+     let (operation_id,action)=match received {
+       Action::Operation(id,action)=>(Some(id),*action),
+       action=>(None,action),
+     };
+     let mut s=state.lock().unwrap();
+     let mut failure:Option<OperationError>=None;
+     match action {
+       Action::SwitchMonitor(name,id)=>{
+         if id==0 || id>s.settings.workspace.count as u32 {
+           failure=Some(OperationError{code:"invalid_workspace".into(),message:format!("workspace {id} is outside the configured range"),retryable:false});
+         } else if !s.monitors.iter().any(|monitor|monitor.name==name) {
+           failure=Some(OperationError{code:"monitor_not_found".into(),message:format!("monitor '{name}' was not found"),retryable:false});
+         } else { switch_monitor_workspace(&conn,root,&mut s,&name,id,workspace_atoms); }
+       },
+       Action::Switch(id)=>{
+         if id==0 || id>s.settings.workspace.count as u32 {
+           failure=Some(OperationError{code:"invalid_workspace".into(),message:format!("workspace {id} is outside the configured range"),retryable:false});
+         } else { switch_focused_workspace(&conn,root,&mut s,id,None,workspace_atoms); }
+       },
+       Action::Relative(direction)=>{
+         if direction!=1 && direction!=-1 {
+           failure=Some(OperationError{code:"invalid_direction".into(),message:"relative workspace direction must be -1 or 1".into(),retryable:false});
+         } else { switch_focused_workspace(&conn,root,&mut s,0,Some(direction),workspace_atoms); }
+       },
+       Action::Focus(requested)=>{
+         let id=modal_focus_target(&s,requested);
+         let target_monitor=s.clients.get(&id).map(|window|window.monitor.clone());
+         match target_monitor {
+           None=>failure=Some(OperationError{code:"window_not_found".into(),message:format!("window {requested} is not managed"),retryable:false}),
+           Some(monitor) if s.clients.get(&id).is_some_and(|window|window.dock || window.minimized || window.workspace!=active_workspace_for(&s,&monitor))=>
+             failure=Some(OperationError{code:"window_not_visible".into(),message:format!("window {id} is not focusable on the active workspace"),retryable:false}),
+           Some(monitor)=>{
+             set_focused_monitor(&mut s,&monitor);
+             for window in s.clients.values_mut(){window.focused=window.id==id;}
+             if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus) {
+               failure=Some(OperationError{code:"focus_failed".into(),message:error.to_string(),retryable:true});
+             } else {
+               let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);
+             }
+           }
+         }
+       },
+       Action::Close(id)=>{
+         if !s.clients.contains_key(&id) {
+           failure=Some(OperationError{code:"window_not_found".into(),message:format!("window {id} is not managed"),retryable:false});
+         } else if let Err(error)=request_close(&conn,id,wm_protocols,wm_delete) {
+           failure=Some(OperationError{code:"close_failed".into(),message:error.to_string(),retryable:true});
+         }
+       },
+       Action::Move(id,workspace)=>{
+         if workspace==0 || workspace>s.settings.workspace.count as u32 {
+           failure=Some(OperationError{code:"invalid_workspace".into(),message:format!("workspace {workspace} is outside the configured range"),retryable:false});
+         } else if !s.clients.contains_key(&id) {
+           failure=Some(OperationError{code:"window_not_found".into(),message:format!("window {id} is not managed"),retryable:false});
+         } else if s.clients.get(&id).is_some_and(|window|window.dock) {
+           failure=Some(OperationError{code:"window_is_sticky".into(),message:"dock clients are sticky and cannot be moved between workspaces".into(),retryable:false});
+         } else {
+           let minimized=s.clients.get(&id).is_some_and(|window|window.minimized);
+           let visible=s.clients.get(&id).is_some_and(|window|!window.minimized && workspace==active_workspace_for(&s,&window.monitor));
+           if let Some(window)=s.clients.get_mut(&id) {
+             window.workspace=workspace;
+             let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[workspace-1]);
+             if minimized {
+               let _=set_wm_state(&conn,id,wm_state,3);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             } else if visible {
+               let _=conn.map_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);
+             } else {
+               let _=conn.unmap_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             }
+           }
+           arrange(&conn,root,&s);
+         }
+       },
+       Action::Set(key,value)=>{
+         if let Err(error)=apply_setting(&mut s,&key,value) {
+           failure=Some(OperationError{code:"invalid_setting".into(),message:error.to_string(),retryable:false});
+         } else {
+           for window in s.clients.values(){let _=conn.configure_window(window.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}
+           arrange(&conn,root,&s);
+         }
+       },
+       Action::Reload=>{
+         match Settings::load() {
+           Ok(settings)=>{s.settings=settings;arrange(&conn,root,&s);}
+           Err(error)=>failure=Some(OperationError{code:"settings_reload_failed".into(),message:error.to_string(),retryable:true}),
+         }
+       },
+       Action::Operation(_,_)=>failure=Some(OperationError{code:"invalid_operation".into(),message:"nested operation envelopes are not supported".into(),retryable:false}),
+     }
+     if let Some(id)=operation_id { finish_operation(&mut s,id,failure); }
+   }
    match conn.poll_for_event()? {
     Some(Event::RandrNotify(_)) => {
         let mut s=state.lock().unwrap();

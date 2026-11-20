@@ -33,7 +33,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Version IPC messages (v3) and correlate request/response IDs.
 - [x] Bound IPC framing, timeouts and concurrent service clients.
 - [x] Implement persistent push-based snapshot subscriptions with change-only events and bounded subscriber disconnect cleanup.
-- [ ] Standardize structured asynchronous operation results and error categories.
+- [x] Standardize structured asynchronous operation results, stable operation IDs, bounded result retention, polling and categorized failures.
 - [x] Validate typed settings on a candidate copy and persist atomically before replacing live settings.
 - [ ] Add undo/reset and profile import/export.
 - [ ] Add process health reporting, supervised restart and orderly shutdown tests.

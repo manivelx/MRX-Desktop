@@ -111,6 +111,9 @@ fn main() -> Result<()> {
     let request = match command.as_str() {
         "snapshot" => Request::Snapshot,
         "ping" => Request::Ping,
+        "operation" => Request::GetOperation {
+            id: args.next().context("operation ID required")?.parse()?,
+        },
         "workspace" => {
             let value = args.next().unwrap_or_else(|| "1".into());
             if value == "next" || value == "previous" {
@@ -143,7 +146,7 @@ fn main() -> Result<()> {
         "reload" => Request::ReloadSettings,
         _ => {
             println!(
-                "mrxctl snapshot|subscribe|ping|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload"
+                "mrxctl snapshot|subscribe|ping|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload"
             );
             return Ok(());
         }

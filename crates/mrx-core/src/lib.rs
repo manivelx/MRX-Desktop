@@ -334,6 +334,7 @@ pub enum Request {
     SetSetting { key: String, value: serde_json::Value },
     ReloadSettings,
     Ping,
+    GetOperation { id: u64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -349,15 +350,57 @@ pub struct Response {
     pub settings: Option<Settings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<BTreeMap<String, serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation: Option<OperationResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<OperationError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OperationStatus {
+    Queued,
+    Succeeded,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OperationError {
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OperationResult {
+    pub id: u64,
+    pub kind: String,
+    pub status: OperationStatus,
+    pub message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<OperationError>,
 }
 
 impl Response {
     pub fn ok(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: true, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None }
     }
 
     pub fn err(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None }
+    }
+
+    pub fn err_code(code: impl Into<String>, message: impl Into<String>, retryable: bool) -> Self {
+        let error=OperationError{code:code.into(),message:message.into(),retryable};
+        let mut response=Self::err(error.message.clone());
+        response.error=Some(error);
+        response
+    }
+
+    pub fn with_operation(operation: OperationResult) -> Self {
+        let mut response=Self::ok(operation.message.clone());
+        response.operation=Some(operation);
+        response
     }
 }
 
@@ -386,6 +429,39 @@ mod tests {
             request: Request::Ping,
         };
         assert!(envelope.validate().is_err());
+    }
+
+    #[test]
+    fn operation_result_round_trips_structured_status_and_error() {
+        let operation=OperationResult{
+            id:17,
+            kind:"move_window".into(),
+            status:OperationStatus::Failed,
+            message:"window 999 is not managed".into(),
+            error:Some(OperationError{code:"window_not_found".into(),message:"window 999 is not managed".into(),retryable:false}),
+        };
+        let encoded=serde_json::to_string(&operation).unwrap();
+        assert!(encoded.contains("\"status\":\"failed\""));
+        let decoded:OperationResult=serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded,operation);
+    }
+
+    #[test]
+    fn get_operation_request_round_trips() {
+        let request=Request::GetOperation{id:123};
+        let encoded=serde_json::to_string(&request).unwrap();
+        let decoded:Request=serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded,request);
+    }
+
+    #[test]
+    fn response_includes_optional_operation_and_error_details() {
+        let operation=OperationResult{id:1,kind:"reload_settings".into(),status:OperationStatus::Queued,message:"operation queued".into(),error:None};
+        let response=Response::with_operation(operation.clone());
+        assert!(response.ok);
+        assert_eq!(response.operation,Some(operation));
+        let error=Response::err_code("invalid_workspace","workspace out of range",false);
+        assert_eq!(error.error.unwrap().code,"invalid_workspace");
     }
 
     #[test]

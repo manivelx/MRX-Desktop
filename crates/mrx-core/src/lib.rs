@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
 };
 
-pub const IPC_PROTOCOL_VERSION: u32 = 2;
+pub const IPC_PROTOCOL_VERSION: u32 = 3;
 pub const SOCKET_NAME: &str = "mrx.sock";
 pub const DEFAULT_WORKSPACES: usize = 9;
 pub const MAX_WORKSPACES: usize = 32;
@@ -308,6 +308,7 @@ impl RequestEnvelope {
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum Request {
     Snapshot,
+    Subscribe,
     SwitchWorkspace { id: u32 },
     SwitchWorkspaceOnMonitor { monitor: String, id: u32 },
     SwitchRelative { direction: String },
@@ -391,6 +392,19 @@ mod tests {
             r#"{"name":"DP-1","x":0,"y":0,"width":1920,"height":1080,"focused":true}"#
         ).unwrap();
         assert_eq!(monitor.active_workspace, 1);
+    }
+
+    #[test]
+    fn subscribe_request_round_trips() {
+        let envelope = RequestEnvelope {
+            protocol_version: IPC_PROTOCOL_VERSION,
+            request_id: 77,
+            request: Request::Subscribe,
+        };
+        envelope.validate().unwrap();
+        let encoded = serde_json::to_string(&envelope).unwrap();
+        let decoded: RequestEnvelope = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded, envelope);
     }
 
     #[test]

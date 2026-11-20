@@ -230,7 +230,7 @@ fn focus_most_recent(
     net_active_window: u32,
 ) {
     let candidate = state.client_order.iter().rev().find(|id| {
-        state.clients.get(id).is_some_and(|window| window.workspace == state.active)
+        state.clients.get(*id).is_some_and(|window| window.workspace == state.active)
     }).copied();
     for window in state.clients.values_mut() {
         window.focused = Some(window.id) == candidate;

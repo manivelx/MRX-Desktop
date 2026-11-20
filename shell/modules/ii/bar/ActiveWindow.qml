@@ -21,7 +21,7 @@ Item {
     readonly property var activeWindow: WM.focusedWindow
     property string activeWindowAddress: activeWindow?.address ?? ""
     property bool focusingThisMonitor: WM.focusedMonitor?.name === monitor?.name
-    property var biggestWindow: WM.biggestWindowForWorkspace(WM.activeWorkspaceForMonitor(monitor?.name)?.id ?? 1)
+    property var biggestWindow: WM.biggestWindowForWorkspace(WM.activeWorkspaceForMonitor(monitor?.name)?.id ?? 1, monitor?.name ?? "")
     readonly property bool hasUrgentWindows: WM.windowList.some(window => window.urgent === true)
 
     property string activeAppClass: {

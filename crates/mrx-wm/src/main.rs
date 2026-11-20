@@ -802,18 +802,8 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let _=set_atom_state(&conn,window,net_wm_state,net_wm_state_above,above);
      let _=set_atom_state(&conn,window,net_wm_state,net_wm_state_below,below);
    }
-   // Restore requested EWMH layers after all clients have been adopted.
-   // XQueryTree order is bottom-to-top; apply BELOW first and ABOVE last.
-   for id in s.client_order.clone() {
-     if s.clients.get(&id).is_some_and(|client|client.below) {
-       let _=conn.configure_window(id,&ConfigureWindowAux::new().stack_mode(xproto::StackMode::BELOW));
-     }
-   }
-   for id in s.client_order.clone() {
-     if s.clients.get(&id).is_some_and(|client|client.above) {
-       let _=conn.configure_window(id,&ConfigureWindowAux::new().stack_mode(xproto::StackMode::ABOVE));
-     }
-   }
+   // Restore the requested EWMH layer ordering after adoption.
+   restack_managed_clients(&conn,&s);
    if let Some(topmost)=s.client_order.iter().rev().find(|id|s.clients.get(id).is_some_and(|w|!w.dock && !w.minimized && w.workspace==active_workspace_for(&s,&w.monitor))).copied() {
      if let Some(monitor)=s.clients.get(&topmost).map(|client|client.monitor.clone()) { set_focused_monitor(&mut s,&monitor); }
      if let Some(client)=s.clients.get_mut(&topmost) { client.focused=true; }
@@ -948,6 +938,7 @@ Action::Focus(id)=>{
         }
         let _=set_wm_state(&conn,e.window,wm_state,1);
         if !dock { let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]); }
+        restack_managed_clients(&conn,&s);
         if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}
         arrange(&conn,root,&s);
     }, Some(Event::UnmapNotify(e))=>{
@@ -960,14 +951,17 @@ Action::Focus(id)=>{
             if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}
             focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);
         }
+        restack_managed_clients(&conn,&s);
         if dock_removed { let _=publish_workarea(&conn,root,net_workarea,&s); }
         arrange(&conn,root,&s);
-     }, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.restore_geometry.remove(&e.window);s.docks.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=publish_workarea(&conn,root,net_workarea,&s);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}, Some(Event::ConfigureRequest(e))=>{
+     }, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.restore_geometry.remove(&e.window);s.docks.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=publish_workarea(&conn,root,net_workarea,&s);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);restack_managed_clients(&conn,&s);arrange(&conn,root,&s);}, Some(Event::ConfigureRequest(e))=>{
        let managed = state.lock().unwrap().clients.get(&e.window).cloned();
        if let Some(window) = managed {
          if window.floating && !window.fullscreen {
            let aux=ConfigureWindowAux::new().x(e.x as i32).y(e.y as i32).width(e.width as u32).height(e.height as u32).border_width(e.border_width as u32).sibling(e.sibling).stack_mode(e.stack_mode);
            let _=conn.configure_window(e.window,&aux);
+           let s=state.lock().unwrap();
+           restack_managed_clients(&conn,&s);
          } else { let s=state.lock().unwrap(); arrange(&conn,root,&s); }
        } else {
          let aux=ConfigureWindowAux::new().x(e.x as i32).y(e.y as i32).width(e.width as u32).height(e.height as u32).border_width(e.border_width as u32).sibling(e.sibling).stack_mode(e.stack_mode);
@@ -1102,6 +1096,7 @@ Action::Focus(id)=>{
              } else if next_below {
                let _=conn.configure_window(e.window,&ConfigureWindowAux::new().stack_mode(xproto::StackMode::BELOW));
              }
+             restack_managed_clients(&conn,&s);
              let _=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s);
            }
            else if atom==net_wm_state_hidden {
@@ -1152,6 +1147,7 @@ Action::Focus(id)=>{
                    let _=conn.configure_window(e.window,&aux);
                  }
                  let _=set_atom_state(&conn,e.window,net_wm_state,net_wm_state_fullscreen,enable);
+                 restack_managed_clients(&conn,&s);
                  arrange(&conn,root,&s);
                }
              }
@@ -1307,6 +1303,44 @@ fn arrange(conn: &RustConnection, _root: Window, s: &State) {
             if let Err(error) = conn.configure_window(window.id, &aux) {
                 warn!(window = window.id, %error, "failed to apply window geometry");
             }
+        }
+    }
+}
+
+
+/// Stable managed-client order with protocol layer precedence:
+/// BELOW < normal < ABOVE < dock < fullscreen. Within each layer, retain
+/// the WM's client insertion order.
+fn stacking_order(state: &State) -> Vec<u32> {
+    let layer = |id: &u32| -> u8 {
+        let Some(window) = state.clients.get(id) else { return 1; };
+        if window.fullscreen { 4 }
+        else if window.dock { 3 }
+        else if window.above { 2 }
+        else if window.below { 0 }
+        else { 1 }
+    };
+    let mut ids: Vec<u32> = state.client_order.iter()
+        .copied()
+        .filter(|id| state.clients.contains_key(id))
+        .collect();
+    ids.sort_by_key(|id| layer(id));
+    ids
+}
+
+/// Reconcile the X server's managed-client order with EWMH layer requests.
+/// Sibling-relative operations preserve the first managed client's relation
+/// to unmanaged/override-redirect windows while enforcing the managed order.
+fn restack_managed_clients(conn: &RustConnection, state: &State) {
+    let order = stacking_order(state);
+    for pair in order.windows(2) {
+        let below = pair[0];
+        let above = pair[1];
+        if let Err(error) = conn.configure_window(
+            above,
+            &ConfigureWindowAux::new().sibling(below).stack_mode(xproto::StackMode::ABOVE),
+        ) {
+            warn!(window=above,sibling=below,%error,"failed to reconcile managed window stacking");
         }
     }
 }

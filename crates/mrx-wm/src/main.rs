@@ -182,7 +182,7 @@ fn stream_ipc_snapshots(
             event.snapshot=Some(current);
             event.sequence=Some(sequence);
             let mut frame=serde_json::to_vec(&event)?;
-            frame.push(b'\\n');
+            frame.push(b'\n');
             let started=Instant::now();
             let result=stream.write_all(&frame).and_then(|_|stream.flush());
             let elapsed=started.elapsed();

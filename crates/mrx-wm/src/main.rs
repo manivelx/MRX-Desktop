@@ -336,7 +336,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let title=String::from_utf8_lossy(&title).into_owned();
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
      s.client_order.push(window);
-     s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32),x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,..Default::default()});
+     let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,..Default::default()});
      let _=set_wm_state(&conn,window,wm_state,1);
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
    }
@@ -387,7 +387,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
             .and_then(|cookie|cookie.reply().ok()).map(|reply|String::from_utf8_lossy(&reply.value).to_string()).unwrap_or_default();
         for client in s.clients.values_mut(){client.focused=false;}
         if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); }
-        s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32),x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});
+        let assigned_monitor=monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32);s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:assigned_monitor,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});
         let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
         if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}
         let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);

@@ -776,7 +776,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
          id:window,title,class:String::new(),workspace,monitor:assigned_monitor,
          x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,
          focused:false,floating,dock,minimized,fullscreen,maximized_horz,maximized_vert,above,below,
-         urgent:read_urgent_hint(&conn,window),..Default::default()
+         urgent:read_urgent_hint(&conn,window)
      });
      if fullscreen || maximized_horz || maximized_vert {
          let original=mrx_core::layout::Rect{x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32};

@@ -408,25 +408,11 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[0])?;
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
+ let mut last_monitor_refresh = std::time::Instant::now();
  loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::Switch(id)=>{let id=id.clamp(1,s.settings.workspace.count as u32); s.active=id; for w in s.clients.values_mut(){w.focused=false;} let _=conn.delete_property(root,net_active_window); for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}} let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s);}, Action::Relative(d)=>{let max=s.settings.workspace.count as i32;let mut id=s.active as i32+d;if s.settings.workspace.wrap{id=((id-1).rem_euclid(max))+1}else{id=id.clamp(1,max)};s.active=id as u32;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==s.active{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[s.active-1]);arrange(&conn,root,&s);}, Action::Focus(id)=>{if s.clients.get(&id).is_some_and(|w|w.workspace==s.active){for w in s.clients.values_mut(){w.focused=w.id==id;}if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus){warn!(window=id,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);}}, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; } if let Some(w)=s.clients.get_mut(&id){w.workspace=ws;let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);if ws==s.active{let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}}arrange(&conn,root,&s);}, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
    match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => {
         let mut s = state.lock().unwrap();
-        s.monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
-        let fallback = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()).cloned().unwrap_or_default();
-        let current_monitors = s.monitors.clone();
-        for window in s.clients.values_mut() {
-            if !current_monitors.iter().any(|m| m.name == window.monitor) {
-                window.monitor = fallback.name.clone();
-                if window.floating {
-                    let max_x = fallback.x + fallback.width.saturating_sub(window.width) as i32;
-                    let max_y = fallback.y + fallback.height.saturating_sub(window.height) as i32;
-                    window.x = window.x.clamp(fallback.x, max_x.max(fallback.x));
-                    window.y = window.y.clamp(fallback.y, max_y.max(fallback.y));
-                    let _ = conn.configure_window(window.id, &ConfigureWindowAux::new().x(window.x).y(window.y));
-                }
-            }
-        }
-        arrange(&conn, root, &s);
+        refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
     }, Some(Event::MapRequest(e))=>{
         info!(window=e.window,"received X11 MapRequest");
         let mut s=state.lock().unwrap();
@@ -495,7 +481,44 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
        }
        else if e.type_==desktop { let target=e.window; let requested=data[0]; let mut s=state.lock().unwrap(); if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {let ws=requested+1;if let Some(w)=s.clients.get_mut(&target){w.workspace=ws;let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);if ws==s.active{let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}arrange(&conn,root,&s);}} }
        else if e.type_==current { let id=data[0].saturating_add(1); if id>=1 && id<=state.lock().unwrap().settings.workspace.count as u32 { let mut s=state.lock().unwrap();s.active=id;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s); } }
-     }, Some(_) =>{}, None=>thread::sleep(Duration::from_millis(8)) } conn.flush()?; }
+     }, Some(_) =>{}, None=>thread::sleep(Duration::from_millis(8)) }
+   // Some X servers (including Xvfb) expose RandR 1.5 monitor-object changes
+   // without delivering the expected notification to an already-running WM.
+   // Reconcile at a low frequency as a safety net; only arrange when geometry
+   // or monitor identity actually changes.
+   if last_monitor_refresh.elapsed() >= Duration::from_millis(250) {
+       let mut s = state.lock().unwrap();
+       refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
+       last_monitor_refresh = std::time::Instant::now();
+   }
+   conn.flush()?; }
+}
+fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State, width: u16, height: u16) {
+    let discovered = discover_monitors(conn, root, width, height);
+    let changed = discovered.len() != state.monitors.len()
+        || discovered.iter().zip(&state.monitors).any(|(a, b)| {
+            a.name != b.name || a.x != b.x || a.y != b.y
+                || a.width != b.width || a.height != b.height || a.focused != b.focused
+        });
+    if !changed { return; }
+    state.monitors = discovered;
+    let fallback = state.monitors.iter().find(|m| m.focused)
+        .or_else(|| state.monitors.first()).cloned().unwrap_or_default();
+    let current_monitors = state.monitors.clone();
+    for window in state.clients.values_mut() {
+        if !current_monitors.iter().any(|m| m.name == window.monitor) {
+            window.monitor = fallback.name.clone();
+            if window.floating {
+                let max_x = fallback.x + fallback.width.saturating_sub(window.width) as i32;
+                let max_y = fallback.y + fallback.height.saturating_sub(window.height) as i32;
+                window.x = window.x.clamp(fallback.x, max_x.max(fallback.x));
+                window.y = window.y.clamp(fallback.y, max_y.max(fallback.y));
+                let _ = conn.configure_window(window.id, &ConfigureWindowAux::new().x(window.x).y(window.y));
+            }
+        }
+    }
+    info!(count = state.monitors.len(), names = ?state.monitors.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), "RandR monitor topology refreshed");
+    arrange(conn, root, state);
 }
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {
     use mrx_core::layout::{arrange as calculate, LayoutKind, Rect};

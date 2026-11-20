@@ -35,7 +35,7 @@ The compiled WM smoke test covers:
 
 ## Not validated by CI
 
-- Push-based IPC event subscriptions; the current IPC protocol is request/reply and the shell refreshes snapshots periodically.
+- End-to-end Quickshell consumption of pushed IPC events; the server subscription path and disconnect cleanup have automated coverage, but full shell event-driven behavior still needs runtime validation.
 
 - Complete Quickshell/QML runtime or end-to-end desktop session.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.

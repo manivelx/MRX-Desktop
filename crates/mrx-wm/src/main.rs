@@ -361,8 +361,9 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
         let mut s = state.lock().unwrap();
         s.monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
         let fallback = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()).cloned().unwrap_or_default();
+        let current_monitors = s.monitors.clone();
         for window in s.clients.values_mut() {
-            if !s.monitors.iter().any(|m| m.name == window.monitor) {
+            if !current_monitors.iter().any(|m| m.name == window.monitor) {
                 window.monitor = fallback.name.clone();
                 if window.floating {
                     let max_x = fallback.x + fallback.width.saturating_sub(window.width) as i32;

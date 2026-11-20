@@ -449,7 +449,7 @@ impl Response {
     }
 
     pub fn err(message: impl Into<String>) -> Self {
-        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None }
+        Self { protocol_version: IPC_PROTOCOL_VERSION, request_id: None, ok: false, message: message.into(), snapshot: None, settings: None, data: None, operation: None, error: None, health: None, sequence: None }
     }
 
     pub fn err_code(code: impl Into<String>, message: impl Into<String>, retryable: bool) -> Self {

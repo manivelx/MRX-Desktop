@@ -8,6 +8,18 @@ use x11rb::{connection::Connection, properties::WmHints, protocol::{randr::{self
 #[derive(Debug)] enum Action { Switch(u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
 fn snapshot(s:&State)->Snapshot { let workspaces=(1..=s.settings.workspace.count as u32).map(|id| WorkspaceInfo{id,name:s.settings.workspace.names.get((id-1) as usize).cloned().unwrap_or_else(||id.to_string()),active:id==s.active,windows:s.clients.values().filter(|w|w.workspace==id).count()}).collect(); Snapshot{protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:s.active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors:s.monitors.clone()} }
+fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, height: u32) -> String {
+    let center_x = x + (width / 2) as i32;
+    let center_y = y + (height / 2) as i32;
+    monitors.iter()
+        .find(|m| center_x >= m.x && center_x < m.x + m.width as i32
+            && center_y >= m.y && center_y < m.y + m.height as i32)
+        .or_else(|| monitors.iter().find(|m| m.focused))
+        .or_else(|| monitors.first())
+        .map(|m| m.name.clone())
+        .unwrap_or_default()
+}
+
 fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: &mpsc::Sender<Action>) -> Result<()> {
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
@@ -286,7 +298,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let title=String::from_utf8_lossy(&title).into_owned();
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
      s.client_order.push(window);
-     s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,..Default::default()});
+     s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace:1,monitor:monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32),x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,..Default::default()});
      let _=set_wm_state(&conn,window,wm_state,1);
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
    }
@@ -307,7 +319,24 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
  loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::Switch(id)=>{let id=id.clamp(1,s.settings.workspace.count as u32); s.active=id; for w in s.clients.values_mut(){w.focused=false;} let _=conn.delete_property(root,net_active_window); for w in s.clients.values(){if w.workspace==id{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}} let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[id-1]);arrange(&conn,root,&s);}, Action::Relative(d)=>{let max=s.settings.workspace.count as i32;let mut id=s.active as i32+d;if s.settings.workspace.wrap{id=((id-1).rem_euclid(max))+1}else{id=id.clamp(1,max)};s.active=id as u32;for w in s.clients.values_mut(){w.focused=false;}let _=conn.delete_property(root,net_active_window);for w in s.clients.values(){if w.workspace==s.active{let _=conn.map_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(w.id);let _=set_wm_state(&conn,w.id,wm_state,1);let _=set_atom_state(&conn,w.id,net_wm_state,net_wm_state_hidden,true);}}let _=conn.change_property32(xproto::PropMode::REPLACE,root,current,AtomEnum::CARDINAL,&[s.active-1]);arrange(&conn,root,&s);}, Action::Focus(id)=>{if s.clients.get(&id).is_some_and(|w|w.workspace==s.active){for w in s.clients.values_mut(){w.focused=w.id==id;}if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus){warn!(window=id,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);}}, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; } if let Some(w)=s.clients.get_mut(&id){w.workspace=ws;let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);if ws==s.active{let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}else{let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}}arrange(&conn,root,&s);}, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
-   match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => { let mut s = state.lock().unwrap(); s.monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels); arrange(&conn, root, &s); }, Some(Event::MapRequest(e))=>{let mut s=state.lock().unwrap();let ws=s.active; let _=conn.map_window(e.window);let _=conn.configure_window(e.window,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));let g=conn.get_geometry(e.window)?.reply()?;let floating=is_transient(&conn,e.window).unwrap_or(false);let title=conn.get_property(false,e.window,AtomEnum::WM_NAME,AtomEnum::STRING,0,1024)?.reply()?.value;let title=String::from_utf8_lossy(&title).to_string();for c in s.clients.values_mut(){c.focused=false;}if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); } s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);let _=set_wm_state(&conn,e.window,wm_state,1);let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}arrange(&conn,root,&s);}, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==s.active){s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}}, Some(Event::ConfigureRequest(e))=>{
+   match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => {
+        let mut s = state.lock().unwrap();
+        s.monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
+        let fallback = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()).cloned().unwrap_or_default();
+        for window in s.clients.values_mut() {
+            if !s.monitors.iter().any(|m| m.name == window.monitor) {
+                window.monitor = fallback.name.clone();
+                if window.floating {
+                    let max_x = fallback.x + fallback.width.saturating_sub(window.width) as i32;
+                    let max_y = fallback.y + fallback.height.saturating_sub(window.height) as i32;
+                    window.x = window.x.clamp(fallback.x, max_x.max(fallback.x));
+                    window.y = window.y.clamp(fallback.y, max_y.max(fallback.y));
+                    let _ = conn.configure_window(window.id, &ConfigureWindowAux::new().x(window.x).y(window.y));
+                }
+            }
+        }
+        arrange(&conn, root, &s);
+    }, Some(Event::MapRequest(e))=>{let mut s=state.lock().unwrap();let ws=s.active; let _=conn.map_window(e.window);let _=conn.configure_window(e.window,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));let g=conn.get_geometry(e.window)?.reply()?;let floating=is_transient(&conn,e.window).unwrap_or(false);let title=conn.get_property(false,e.window,AtomEnum::WM_NAME,AtomEnum::STRING,0,1024)?.reply()?.value;let title=String::from_utf8_lossy(&title).to_string();for c in s.clients.values_mut(){c.focused=false;}if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); } s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32),x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);let _=set_wm_state(&conn,e.window,wm_state,1);let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}arrange(&conn,root,&s);}, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==s.active){s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}}, Some(Event::ConfigureRequest(e))=>{
        let managed = state.lock().unwrap().clients.get(&e.window).cloned();
        if let Some(window) = managed {
          if window.floating && !window.fullscreen {
@@ -359,21 +388,26 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
 }
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {
     use mrx_core::layout::{arrange as calculate, LayoutKind, Rect};
-    let visible: Vec<&WindowInfo> = s.clients.values()
-        .filter(|w| w.workspace == s.active && !w.floating && !w.fullscreen)
-        .collect();
-    if visible.is_empty() { return; }
     let layout = LayoutKind::parse(&s.settings.window.layout).unwrap_or(LayoutKind::MasterStack);
-    let rects = calculate(
-        { let monitor = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()); let m = monitor.cloned().unwrap_or_default(); Rect { x: m.x, y: m.y, width: m.width, height: m.height } },
-        visible.len(), layout, s.settings.window.master_ratio, s.settings.appearance.gaps,
-    );
-    for (window, rect) in visible.iter().zip(rects.iter()) {
-        let aux = ConfigureWindowAux::new()
-            .x(rect.x).y(rect.y).width(rect.width).height(rect.height)
-            .border_width(s.settings.appearance.border_width);
-        if let Err(error) = conn.configure_window(window.id, &aux) {
-            warn!(window = window.id, %error, "failed to apply window geometry");
+    let fallback = s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first()).cloned().unwrap_or_default();
+    let monitors = if s.monitors.is_empty() { vec![fallback] } else { s.monitors.clone() };
+    for monitor in &monitors {
+        let visible: Vec<&WindowInfo> = s.clients.values()
+            .filter(|w| w.workspace == s.active && !w.floating && !w.fullscreen
+                && (w.monitor == monitor.name || (w.monitor.is_empty() && monitor.focused)))
+            .collect();
+        if visible.is_empty() { continue; }
+        let rects = calculate(
+            Rect { x: monitor.x, y: monitor.y, width: monitor.width, height: monitor.height },
+            visible.len(), layout, s.settings.window.master_ratio, s.settings.appearance.gaps,
+        );
+        for (window, rect) in visible.iter().zip(rects.iter()) {
+            let aux = ConfigureWindowAux::new()
+                .x(rect.x).y(rect.y).width(rect.width).height(rect.height)
+                .border_width(s.settings.appearance.border_width);
+            if let Err(error) = conn.configure_window(window.id, &aux) {
+                warn!(window = window.id, %error, "failed to apply window geometry");
+            }
         }
     }
 }

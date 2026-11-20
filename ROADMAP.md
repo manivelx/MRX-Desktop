@@ -26,7 +26,7 @@ Items are marked complete only when implementation and relevant automated valida
 
 - [x] Version IPC messages (v3) and correlate request/response IDs.
 - [x] Bound IPC framing, timeouts and concurrent service clients.
-- [x] Add push-based event subscriptions and subscriber disconnect cleanup.
+- [ ] Implement push-based event subscriptions and subscriber disconnect cleanup.
 - [ ] Standardize structured asynchronous operation results and error categories.
 - [ ] Finish typed settings validation, atomic apply/rollback and profile import/export.
 - [ ] Add process health reporting, supervised restart and orderly shutdown tests.

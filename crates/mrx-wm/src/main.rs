@@ -517,7 +517,7 @@ fn focus_most_recent(
     let focused = focused_monitor_name(state);
     let active = active_workspace_for(state, &focused);
     let candidate = state.client_order.iter().rev().find(|id| {
-        state.clients.get(*id).is_some_and(|window| window.workspace == active && window.monitor == focused && !window.dock)
+        state.clients.get(*id).is_some_and(|window| window.workspace == active && window.monitor == focused && !window.dock && !window.minimized)
     }).copied();
     for window in state.clients.values_mut() {
         window.focused = Some(window.id) == candidate;
@@ -695,7 +695,7 @@ fn is_dock_window(conn: &RustConnection, window: Window, window_type_atom: u32, 
         .unwrap_or(false)
 }
 fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init(); let (conn,screen_num)=x11rb::connect(None).context("cannot connect to X11 display")?; let screen=&conn.setup().roots[screen_num]; let root=screen.root; conn.change_window_attributes(root,&ChangeWindowAttributesAux::new().event_mask(EventMask::SUBSTRUCTURE_REDIRECT|EventMask::SUBSTRUCTURE_NOTIFY|EventMask::PROPERTY_CHANGE|EventMask::BUTTON_PRESS)).context("another window manager may already own SubstructureRedirect")?.check()?;
- let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_normal_hints=intern(&conn,"WM_NORMAL_HINTS")?; let net_wm_window_type=intern(&conn,"_NET_WM_WINDOW_TYPE")?; let net_wm_window_type_dock=intern(&conn,"_NET_WM_WINDOW_TYPE_DOCK")?; let net_wm_strut=intern(&conn,"_NET_WM_STRUT")?; let net_wm_strut_partial=intern(&conn,"_NET_WM_STRUT_PARTIAL")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_wm_state_maximized_horz=intern(&conn,"_NET_WM_STATE_MAXIMIZED_HORZ")?; let net_wm_state_maximized_vert=intern(&conn,"_NET_WM_STATE_MAXIMIZED_VERT")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?; let workspace_atoms=WorkspaceAtoms{current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window};
+ let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_normal_hints=intern(&conn,"WM_NORMAL_HINTS")?; let net_wm_window_type=intern(&conn,"_NET_WM_WINDOW_TYPE")?; let net_wm_window_type_dock=intern(&conn,"_NET_WM_WINDOW_TYPE_DOCK")?; let net_wm_strut=intern(&conn,"_NET_WM_STRUT")?; let net_wm_strut_partial=intern(&conn,"_NET_WM_STRUT_PARTIAL")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let wm_change_state=intern(&conn,"WM_CHANGE_STATE")?; let net_wm_state_maximized_horz=intern(&conn,"_NET_WM_STATE_MAXIMIZED_HORZ")?; let net_wm_state_maximized_vert=intern(&conn,"_NET_WM_STATE_MAXIMIZED_VERT")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?; let workspace_atoms=WorkspaceAtoms{current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window};
  let atoms=[net_active,net_close,desktop,current,count,clientlist,clientlist_stacking,net_wm_state,net_wm_state_fullscreen,net_wm_state_hidden,net_wm_state_maximized_horz,net_wm_state_maximized_vert,net_desktop_names,net_workarea,net_viewport,net_geometry,net_wm_window_type,net_wm_window_type_dock,net_wm_strut,net_wm_strut_partial]; conn.change_property32(xproto::PropMode::REPLACE,root,supported,AtomEnum::ATOM,&atoms)?; conn.change_property8(xproto::PropMode::REPLACE,root,name,utf8,b"MRX Rust Desktop")?; let check=conn.generate_id()?; conn.create_window(x11rb::COPY_DEPTH_FROM_PARENT,check,root,0,0,1,1,0,xproto::WindowClass::INPUT_OUTPUT,0,&xproto::CreateWindowAux::new())?; conn.change_property32(xproto::PropMode::REPLACE,root,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property32(xproto::PropMode::REPLACE,check,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property8(xproto::PropMode::REPLACE,check,name,utf8,b"MRX Rust Desktop")?;
  let mut monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
   let primary = monitors.iter().find(|m| m.focused).or_else(|| monitors.first()).map(|m| m.name.clone()).unwrap_or_default();
@@ -787,11 +787,13 @@ Action::Focus(id)=>{
 }, Action::Close(id)=>{if let Err(e)=request_close(&conn,id,wm_protocols,wm_delete){warn!(window=id,error=%e,"close request failed");}}, Action::Move(id,ws)=>{
     if ws==0 || ws>s.settings.workspace.count as u32 { warn!(workspace=ws,"move rejected: invalid workspace"); continue; }
     if s.clients.get(&id).is_some_and(|window|window.dock) { warn!(window=id,"move rejected: dock clients are sticky"); continue; }
-    let visible=s.clients.get(&id).is_some_and(|w|ws==active_workspace_for(&s,&w.monitor));
+    let minimized=s.clients.get(&id).is_some_and(|w|w.minimized);
+    let visible=s.clients.get(&id).is_some_and(|w|!w.minimized && ws==active_workspace_for(&s,&w.monitor));
     if let Some(w)=s.clients.get_mut(&id){
         w.workspace=ws;
         let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[ws-1]);
-        if visible {let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}
+        if minimized { let _=set_wm_state(&conn,id,wm_state,3); let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true); }
+        else if visible {let _=conn.map_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);}
         else {let _=conn.unmap_window(id);let _=set_wm_state(&conn,id,wm_state,1);let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);}
     }
     arrange(&conn,root,&s);
@@ -886,7 +888,7 @@ Action::Focus(id)=>{
     }, Some(Event::UnmapNotify(e))=>{
         let mut s=state.lock().unwrap();
         let dock_removed=s.docks.remove(&e.window).is_some();
-        let removed=s.clients.get(&e.window).is_some_and(|w|w.dock || w.workspace==active_workspace_for(&s,&w.monitor));
+        let removed=s.clients.get(&e.window).is_some_and(|w|!w.minimized && (w.dock || w.workspace==active_workspace_for(&s,&w.monitor)));
         if removed {
             s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.restore_geometry.remove(&e.window);s.client_order.retain(|id|*id!=e.window);
             let _=set_wm_state(&conn,e.window,wm_state,0);
@@ -932,6 +934,9 @@ Action::Focus(id)=>{
          let target_monitor=s.clients.get(&target).map(|w|w.monitor.clone());
          if let Some(monitor)=target_monitor {
              if s.clients.get(&target).is_some_and(|w|!w.dock && w.workspace==active_workspace_for(&s,&monitor)) {
+                 if let Some(window)=s.clients.get_mut(&target) { window.minimized=false; }
+                 let _=set_wm_state(&conn,target,wm_state,1);
+                 let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);
                  set_focused_monitor(&mut s,&monitor);
                  for w in s.clients.values_mut(){w.focused=w.id==target;}
                  let _=conn.map_window(target);
@@ -939,6 +944,30 @@ Action::Focus(id)=>{
                  let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[target]);
              }
          }
+       }
+       else if e.type_==wm_change_state {
+         let target=e.window;
+         let minimize=data[0]==3;
+         let mut s=state.lock().unwrap();
+         let visible=s.clients.get(&target).is_some_and(|w|!w.dock && w.workspace==active_workspace_for(&s,&w.monitor));
+         if let Some(window)=s.clients.get_mut(&target) {
+           window.minimized=minimize;
+           if minimize { window.focused=false; }
+         }
+         if minimize {
+           let _=conn.unmap_window(target);
+           let _=set_wm_state(&conn,target,wm_state,3);
+           let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);
+           focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);
+         } else if visible {
+           let _=conn.map_window(target);
+           let _=set_wm_state(&conn,target,wm_state,1);
+           let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);
+         } else {
+           let _=set_wm_state(&conn,target,wm_state,1);
+           let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);
+         }
+         arrange(&conn,root,&s);
        }
        else if e.type_==net_wm_state {
          // EWMH action: 0=remove, 1=add, 2=toggle. Only fullscreen is
@@ -985,6 +1014,34 @@ Action::Focus(id)=>{
              let _=set_atom_state(&conn,e.window,net_wm_state,net_wm_state_maximized_vert,next_v);
              arrange(&conn,root,&s);
            }
+           else if atom==net_wm_state_hidden {
+             let mut s=state.lock().unwrap();
+             let Some(client)=s.clients.get(&e.window) else { continue; };
+             if client.dock { continue; }
+             let was_minimized=client.minimized;
+             let minimize=match action { 0=>false, 1=>true, 2=>!was_minimized, _=>was_minimized };
+             let visible=client.workspace==active_workspace_for(&s,&client.monitor);
+             if minimize!=was_minimized {
+               if let Some(window)=s.clients.get_mut(&e.window) {
+                 window.minimized=minimize;
+                 if minimize { window.focused=false; }
+               }
+               if minimize {
+                 let _=conn.unmap_window(e.window);
+                 let _=set_wm_state(&conn,e.window,wm_state,3);
+                 let _=set_atom_state(&conn,e.window,net_wm_state,net_wm_state_hidden,true);
+                 focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);
+               } else if visible {
+                 let _=conn.map_window(e.window);
+                 let _=set_wm_state(&conn,e.window,wm_state,1);
+                 let _=set_atom_state(&conn,e.window,net_wm_state,net_wm_state_hidden,false);
+               } else {
+                 let _=set_wm_state(&conn,e.window,wm_state,1);
+                 let _=set_atom_state(&conn,e.window,net_wm_state,net_wm_state_hidden,true);
+               }
+               arrange(&conn,root,&s);
+             }
+           }
            else if atom==net_wm_state_fullscreen {
              let geometry=conn.get_geometry(e.window).ok().and_then(|cookie| cookie.reply().ok());
              let mut s=state.lock().unwrap();
@@ -1018,12 +1075,14 @@ Action::Focus(id)=>{
          if requested!=u32::MAX && requested<s.settings.workspace.count as u32 {
              let ws=requested+1;
              let is_dock=s.clients.get(&target).is_some_and(|w|w.dock);
-             let visible=s.clients.get(&target).is_some_and(|w|!w.dock && ws==active_workspace_for(&s,&w.monitor));
+             let minimized=s.clients.get(&target).is_some_and(|w|w.minimized);
+             let visible=s.clients.get(&target).is_some_and(|w|!w.dock && !w.minimized && ws==active_workspace_for(&s,&w.monitor));
              if is_dock { continue; }
              if let Some(w)=s.clients.get_mut(&target){
                  w.workspace=ws;
                  let _=conn.change_property32(xproto::PropMode::REPLACE,target,desktop,AtomEnum::CARDINAL,&[requested]);
-                 if visible {let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}
+                 if minimized {let _=set_wm_state(&conn,target,wm_state,3);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}
+                 else if visible {let _=conn.map_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,false);}
                  else {let _=conn.unmap_window(target);let _=set_wm_state(&conn,target,wm_state,1);let _=set_atom_state(&conn,target,net_wm_state,net_wm_state_hidden,true);}
              }
              arrange(&conn,root,&s);
@@ -1102,6 +1161,7 @@ fn switch_monitor_workspace(
     state.active_by_monitor.insert(monitor.to_owned(), id);
     set_focused_monitor(state, monitor);
     for window in state.clients.values().filter(|w| w.monitor == monitor && !w.dock) {
+        if window.minimized { continue; }
         if window.workspace == id {
             let _ = conn.map_window(window.id);
             let _ = set_wm_state(conn, window.id, atoms.wm_state, 1);
@@ -1140,7 +1200,7 @@ fn arrange(conn: &RustConnection, _root: Window, s: &State) {
     let monitors = if s.monitors.is_empty() { vec![fallback] } else { s.monitors.clone() };
     for monitor in &monitors {
         let visible: Vec<&WindowInfo> = s.clients.values()
-            .filter(|w| w.workspace == active_workspace_for(s, &monitor.name) && !w.dock && !w.floating && !w.fullscreen && !w.maximized_horz && !w.maximized_vert
+            .filter(|w| w.workspace == active_workspace_for(s, &monitor.name) && !w.dock && !w.minimized && !w.floating && !w.fullscreen && !w.maximized_horz && !w.maximized_vert
                 && (w.monitor == monitor.name || (w.monitor.is_empty() && monitor.focused)))
             .collect();
         if visible.is_empty() { continue; }

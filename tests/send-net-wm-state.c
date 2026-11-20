@@ -15,18 +15,20 @@ int main(int argc, char **argv) {
     Display *display = XOpenDisplay(NULL);
     if (display == NULL) return 3;
     Atom state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom change_state = XInternAtom(display, "WM_CHANGE_STATE", False);
     Atom horizontal = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
     Atom vertical = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    Atom hidden = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
 
     XEvent event;
     memset(&event, 0, sizeof(event));
     event.xclient.type = ClientMessage;
     event.xclient.window = (Window)id;
-    event.xclient.message_type = state;
+    event.xclient.message_type = strcmp(argv[3], "icccm") == 0 ? change_state : state;
     event.xclient.format = 32;
-    event.xclient.data.l[0] = action;
-    event.xclient.data.l[1] = strcmp(argv[3], "vertical") == 0 ? 0 : (long)horizontal;
-    event.xclient.data.l[2] = strcmp(argv[3], "horizontal") == 0 ? 0 : (long)vertical;
+    event.xclient.data.l[0] = strcmp(argv[3], "icccm") == 0 ? (action == 1 ? 3 : 1) : action;
+    event.xclient.data.l[1] = strcmp(argv[3], "hidden") == 0 ? (long)hidden : (strcmp(argv[3], "vertical") == 0 ? 0 : (long)horizontal);
+    event.xclient.data.l[2] = strcmp(argv[3], "hidden") == 0 || strcmp(argv[3], "horizontal") == 0 ? 0 : (long)vertical;
     event.xclient.data.l[3] = 1; /* application source indication */
 
     int sent = XSendEvent(display, DefaultRootWindow(display), False,

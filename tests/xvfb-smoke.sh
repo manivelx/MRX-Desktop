@@ -230,6 +230,15 @@ done
   exit 1
 }
 echo "PASS: EWMH dock partial strut reduces usable workarea"
+"$CTL" snapshot >"$RUNTIME/snapshot.json"
+python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
+assert window.get('dock') is True, window
+assert window.get('focused') is False, window
+print('PASS: dock clients remain sticky and do not steal keyboard focus')
+PY
 
 # Set the ICCCM urgency flag on the live client and verify PropertyNotify
 # refreshes the shared snapshot rather than leaving a stale initial value.

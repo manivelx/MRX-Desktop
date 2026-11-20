@@ -92,7 +92,26 @@ PY
 # change the active workspace of the other output.
 "$CTL" workspace 2 MRX-LEFT >/dev/null
 "$CTL" workspace 3 MRX-RIGHT >/dev/null
-"$CTL" snapshot >"$RUNTIME/snapshot.json"
+WORKSPACES_APPLIED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+monitors = {m['name']: m for m in data['monitors']}
+ok = (monitors.get('MRX-LEFT', {}).get('active_workspace') == 2
+      and monitors.get('MRX-RIGHT', {}).get('active_workspace') == 3)
+raise SystemExit(0 if ok else 1)
+PY
+  then WORKSPACES_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$WORKSPACES_APPLIED" == 1 ]] || {
+  echo "FAIL: monitor-local workspace switches were not applied" >&2
+  "$CTL" snapshot >&2 || true
+  cat "$RUNTIME/wm.log" >&2
+  exit 1
+}
 python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)

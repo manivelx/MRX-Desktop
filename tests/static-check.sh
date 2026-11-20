@@ -93,6 +93,8 @@ grep -q 'randr_get_monitors' crates/mrx-wm/src/main.rs || fail 'RandR monitor di
 grep -Fq 'randr_get_monitors(root, false)' crates/mrx-wm/src/main.rs || fail 'RandR discovery must include inactive and virtual monitor objects'
 grep -q 'randr_select_input' crates/mrx-wm/src/main.rs || fail 'RandR hotplug notifications missing'
 grep -q 'Event::RandrNotify' crates/mrx-wm/src/main.rs || fail 'RandR notification event handling missing'
+grep -q 'last_monitor_refresh.elapsed' crates/mrx-wm/src/main.rs || fail 'periodic RandR monitor reconciliation fallback missing'
+grep -q 'fn refresh_monitor_state' crates/mrx-wm/src/main.rs || fail 'shared RandR monitor reconciliation routine missing'
 grep -q 'monitor_for_geometry' crates/mrx-wm/src/main.rs || fail 'window-to-monitor assignment missing'
 if grep -Fq 's.monitor.' crates/mrx-wm/src/main.rs; then fail 'legacy single-monitor state reference remains'; fi
 grep -q 'window.monitor = fallback.name' crates/mrx-wm/src/main.rs || fail 'monitor-removal window migration missing'

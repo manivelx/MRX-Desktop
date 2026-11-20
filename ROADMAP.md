@@ -21,7 +21,8 @@ This roadmap is directional. Items are not complete until code, tests and valida
 
 ## Phase 2 — Desktop core and live settings
 
-- [ ] Version the IPC protocol and add request IDs and structured errors.
+- [x] Version the IPC protocol, add request IDs, correlate responses and reject incompatible clients.
+- [ ] Add push-based event subscriptions and structured asynchronous operation results.
 - [ ] Replace polling with event subscriptions.
 - [ ] Make settings typed, validated and transactionally applied.
 - [ ] Add undo/reset/profile import-export where appropriate.

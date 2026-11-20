@@ -13,12 +13,12 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - RandR 1.5 monitor discovery, atom names, primary-monitor selection, active-CRTC fallback, notification refresh and 250ms reconciliation. Synthetic root-screen rectangles are discarded when actual output monitors are available.
 - Independent monitor-local workspaces, visibility, per-monitor snapshots and monitor-targeted IPC. Quickshell workspace bars route to the matching monitor.
 - Window monitor identity, per-monitor tiling, client migration after monitor removal and floating-window clamping.
-- IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts and connection cleanup; typed setting application and atomic writes. Push-based subscriptions now form part of the protocol and subscriber cleanup is implemented; shell integration still needs end-to-end validation.
+- IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts and connection cleanup; typed setting application and atomic writes. The current request schema exposes no push-subscription command; QML currently polls snapshots.
 - Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox and Xvfb server/WM smoke tests.
 
 ## Latest CI validation
 
-The latest successful software baseline is [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) on commit `160a38916088503cf5ccf00b63217928c23669ba`. It passed format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. Later documentation and session compatibility changes still need a final exact-head CI run.
+The latest successful pre-merge validation is [run #369](https://github.com/manivelx/MRX-Desktop/actions/runs/44763952758) on commit `160a38916088503cf5ccf00b63217928c23669ba`. It passed format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The merged default-branch commit is being validated separately by GitHub Actions.
 
 ## Remaining Phase 1 acceptance work
 

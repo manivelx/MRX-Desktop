@@ -15,6 +15,13 @@ pass 'Rust workspace source layout exists'
 bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh
 pass 'Shell scripts pass bash -n'
 
+for gate in 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'cargo build --release --workspace'; do
+  grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
+done
+grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
+grep -Fq 'Xvfb xdpyinfo xprop xmessage python3' check-deps.sh || fail 'dependency checker does not verify all required Xvfb smoke tools'
+pass 'developer build script runs the complete validation suite and dependency checks match the smoke test'
+
 python3 - <<'PY'
 import tomllib
 from pathlib import Path

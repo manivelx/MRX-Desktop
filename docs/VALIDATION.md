@@ -2,7 +2,7 @@
 
 ## Latest successful `main` validation
 
-PASS — GitHub Actions [run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) passed on the merged default-branch commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6` on 2026-11-20.
+PASS — GitHub Actions [run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) passed on the merged default-branch commit `579dacb6f099726621583fa034b88d9d9df40b28` on 2026-11-20.
 
 | Check | Result |
 |---|---|
@@ -25,6 +25,14 @@ The compiled WM smoke test covers:
 - ICCCM `WM_HINTS` urgency updates via a correctly typed X property.
 - Client mapping, workspace visibility and close lifecycle.
 
+## Phase 2 IPC subscription branch validation
+
+PASS — GitHub Actions [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970) validated the Phase 2 branch head `65118681ba2200da143e6ffe5f600bfaff801857` on 2026-11-20. This is branch-level evidence; it is distinct from the successful `main` baseline above.
+
+The run passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox, Xvfb server probe and the compiled-WM Xvfb smoke test. The smoke test starts `mrxctl subscribe`, receives an initial snapshot, changes the active workspace and verifies a change-only snapshot over the same persistent connection. A read probe also detects client disconnects so abandoned subscribers release bounded IPC worker slots.
+
+The Quickshell adapter consumes the newline-delimited stream with `SplitParser`, reconnects after process exit and retains a slow one-shot snapshot fallback while the stream is unavailable. The WM checks state deltas every 100 ms; this removes normal shell polling but is not yet an internal event-broadcast architecture.
+
 ## Validation environment
 
 - GitHub-hosted Ubuntu 26.04 runner.
@@ -35,7 +43,7 @@ The compiled WM smoke test covers:
 
 ## Not implemented / not validated by CI
 
-- Push-based IPC events are not implemented in the current protocol; the Quickshell adapter polls snapshots. Event-stream design and QML subscription integration remain Phase 2 work.
+- Structured asynchronous mutation results, subscriber backpressure metrics and high-rate event-ordering tests remain outstanding. The subscription implementation uses a 100 ms state-delta check rather than an internal event-broadcast architecture.
 
 - Complete Quickshell/QML runtime or end-to-end desktop session.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.

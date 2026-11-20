@@ -73,8 +73,8 @@ The repository contains shell screenshots showing the imported/adapted visual di
 ### Developer experience
 
 - `mrxctl` command-line client.
-- Versioned local IPC (v3) with request IDs and bounded socket reads/writes.
-- Settings persistence and developer build helpers.
+- Versioned local IPC (v3) with request IDs, bounded socket I/O and persistent snapshot subscriptions (`mrxctl subscribe`).
+- Typed settings with candidate validation and atomic persistence, plus developer build helpers.
 - Automated formatting, tests, Clippy, build, installer sandbox and Xvfb integration.
 
 ## Project status
@@ -89,7 +89,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
-| IPC | Protocol v3 request/reply, request IDs and bounded I/O; push events and health reporting remain |
+| IPC | Protocol v3 request/reply plus persistent change-only snapshot subscriptions; async operation results and health reporting remain |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
 | Graphics/animations | Renderer and workspace animations are future phases |
 | Installer | Experimental; isolated temporary-home regression tests only |
@@ -209,7 +209,7 @@ The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local 
 
 ### Latest CI baseline
 
-The merged `main` commit passed [GitHub Actions run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) on commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6`. The full workflow passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox and the compiled-WM Xvfb smoke test.
+The merged `main` commit passed [GitHub Actions run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) on commit `579dacb6f099726621583fa034b88d9d9df40b28`. The full workflow passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox and the compiled-WM Xvfb smoke test.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

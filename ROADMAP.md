@@ -26,11 +26,12 @@ Items are marked complete only when implementation and relevant automated valida
 
 - [x] Version IPC messages (v3) and correlate request/response IDs.
 - [x] Bound IPC framing, timeouts and concurrent service clients.
-- [ ] Implement push-based event subscriptions and subscriber disconnect cleanup.
+- [x] Implement persistent push-based snapshot subscriptions with change-only events and bounded subscriber disconnect cleanup.
 - [ ] Standardize structured asynchronous operation results and error categories.
-- [ ] Finish typed settings validation, atomic apply/rollback and profile import/export.
+- [x] Validate typed settings on a candidate copy and persist atomically before replacing live settings.
+- [ ] Add undo/reset and profile import/export.
 - [ ] Add process health reporting, supervised restart and orderly shutdown tests.
-- [ ] Validate event ordering, backpressure and high-rate update behavior.
+- [ ] Add structured asynchronous operation results and validate event ordering, backpressure and high-rate update behavior.
 
 ## Phase 3 — Graphics and animations
 
@@ -47,7 +48,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [ ] Add honest disabled/unsupported states for unavailable features.
 - [ ] Consolidate theme, typography, spacing, responsive layouts and accessibility.
 - [ ] Validate each QML page and interactive control in a complete session.
-- [ ] Replace snapshot polling with subscription-driven updates where supported.
+- [x] Replace normal Quickshell snapshot polling with the IPC event stream and retain reconnect/fallback snapshots.
 
 ## Phase 5 — Session, installer and release engineering
 

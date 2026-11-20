@@ -13,12 +13,12 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - RandR 1.5 monitor discovery, atom names, primary-monitor selection, active-CRTC fallback, notification refresh and 250ms reconciliation. Synthetic root-screen rectangles are discarded when actual output monitors are available.
 - Independent monitor-local workspaces, visibility, per-monitor snapshots and monitor-targeted IPC. Quickshell workspace bars route to the matching monitor.
 - Window monitor identity, per-monitor tiling, client migration after monitor removal and floating-window clamping.
-- IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts and connection cleanup; typed setting application and atomic writes. The current request schema exposes no push-subscription command; QML currently polls snapshots.
+- IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts, persistent change-only snapshot subscriptions and disconnect cleanup; typed setting application and atomic writes. Quickshell consumes subscription events with reconnect and a slow snapshot fallback.
 - Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox and Xvfb server/WM smoke tests.
 
 ## Latest CI validation
 
-The merged `main` baseline [run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) passed on commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke.
+The merged `main` baseline [run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) passed on commit `579dacb6f099726621583fa034b88d9d9df40b28`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The Phase 2 subscription implementation separately passed branch CI [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970); the integration PR must pass CI on its exact current head before merge.
 
 ## Remaining Phase 1 acceptance work
 

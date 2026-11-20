@@ -280,7 +280,13 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  let monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
  let state=Arc::new(Mutex::new(State{active:1,settings:Settings::load().unwrap_or_default(),monitors,..Default::default()})); let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
  conn.change_property32(xproto::PropMode::REPLACE,root,count,AtomEnum::CARDINAL,&[workspace_count])?;
- if conn.extension_information(randr::X11_EXTENSION_NAME)?.is_some() { let mask = NotifyMask::SCREEN_CHANGE | NotifyMask::CRTC_CHANGE | NotifyMask::OUTPUT_CHANGE | NotifyMask::RESOURCE_CHANGE; if let Err(error) = conn.randr_select_input(root, mask).and_then(|cookie| cookie.check()) { warn!(%error, "RandR change notifications unavailable"); } }
+ if conn.extension_information(randr::X11_EXTENSION_NAME)?.is_some() {
+     let mask = NotifyMask::SCREEN_CHANGE | NotifyMask::CRTC_CHANGE | NotifyMask::OUTPUT_CHANGE | NotifyMask::RESOURCE_CHANGE;
+     match conn.randr_select_input(root, mask) {
+         Ok(cookie) => if let Err(error) = cookie.check() { warn!(%error, "RandR change notifications unavailable"); },
+         Err(error) => warn!(%error, "RandR change notifications unavailable"),
+     }
+ }
  let settings_snapshot=state.lock().unwrap().settings.clone();
  let mut desktop_names=Vec::new();
  for index in 0..workspace_count as usize { let label=settings_snapshot.workspace.names.get(index).cloned().unwrap_or_else(|| (index+1).to_string()); desktop_names.extend_from_slice(label.as_bytes()); desktop_names.push(0); }

@@ -37,7 +37,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Validate typed settings on a candidate copy and persist atomically before replacing live settings.
 - [x] Add bounded settings undo history, atomic reset, and validated atomic profile import/export with Xvfb acceptance coverage.
 - [x] Add IPC process health reporting and orderly shutdown with root-property/socket cleanup and Xvfb acceptance tests.
-- [ ] Add supervised restart with bounded backoff and crash-recovery tests.
+- [x] Add a session WM supervisor with health-gated startup, capped exponential crash-restart backoff, clean-shutdown detection and Xvfb crash-recovery coverage.
 - [x] Add structured asynchronous operation results.
 - [ ] Validate event ordering, backpressure and high-rate update behavior.
 

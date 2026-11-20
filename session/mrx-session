@@ -18,7 +18,8 @@ if ! command -v mrx-wm >/dev/null 2>&1; then
 fi
 
 # Start our own window manager and wait until its IPC socket answers.
-mrx-wm &
+mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/mrx"
+MRX_WM_LOG="${XDG_CACHE_HOME:-$HOME/.cache}/mrx/wm.log" mrx-wm-supervisor &
 WM_PID=$!
 cleanup() { kill "$WM_PID" 2>/dev/null || true; wait "$WM_PID" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM

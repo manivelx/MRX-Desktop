@@ -26,7 +26,7 @@ bash "$ROOT/install.sh"
 [[ "$(cat "$HOME/.config/mrx/picom.conf")" == user-picom-config ]]
 [[ "$(cat "$HOME/.config/mrx/settings.toml")" == user-settings ]]
 [[ "$(cat "$HOME/.local/share/xsessions/mrx.desktop")" == "$(cat "$ROOT/session/mrx.desktop")" ]]
-[[ -x "$HOME/.local/bin/mrx-wm" && -x "$HOME/.local/bin/mrxctl" ]]
+[[ -x "$HOME/.local/bin/mrx-wm" && -x "$HOME/.local/bin/mrxctl" && -x "$HOME/.local/bin/mrx-wm-supervisor" ]]
 [[ -f "$HOME/.config/quickshell/mrx/user.qml" ]]
 compgen -G "$HOME/.local/share/xsessions/mrx.desktop.backup.*" >/dev/null
 
@@ -37,7 +37,7 @@ bash "$ROOT/install.sh"
 compgen -G "$HOME/.config/quickshell/mrx.backup.*" >/dev/null
 
 bash "$ROOT/uninstall.sh"
-[[ ! -e "$HOME/.local/bin/mrx-wm" && ! -e "$HOME/.local/bin/mrxctl" ]]
+[[ ! -e "$HOME/.local/bin/mrx-wm" && ! -e "$HOME/.local/bin/mrxctl" && ! -e "$HOME/.local/bin/mrx-wm-supervisor" ]]
 [[ ! -e "$HOME/.local/share/xsessions/mrx.desktop" ]]
 compgen -G "$HOME/.config/mrx.removed.*" >/dev/null
 compgen -G "$HOME/.config/quickshell/mrx.removed.*" >/dev/null

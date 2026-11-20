@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Supervise only the MRX WM process. A clean IPC shutdown exits without restart;
+# crashes restart with capped exponential backoff.
+set -uo pipefail
+export PATH="$HOME/.local/bin:$PATH"
+
+WM_BIN="${MRX_WM_BIN:-$(command -v mrx-wm || true)}"
+CTL_BIN="${MRX_CTL_BIN:-$(command -v mrxctl || true)}"
+if [[ -z "$WM_BIN" || -z "$CTL_BIN" || ! -x "$WM_BIN" || ! -x "$CTL_BIN" ]]; then
+  echo "mrx-wm or mrxctl is unavailable" >&2
+  exit 127
+fi
+
+RUNTIME="${XDG_RUNTIME_DIR:-/tmp/mrx-${USER:-user}}"
+mkdir -p "$RUNTIME"
+chmod 700 "$RUNTIME" 2>/dev/null || true
+PID_FILE="$RUNTIME/mrx-wm.pid"
+CHILD_PID=""
+STOPPING=0
+FAILURES=0
+
+cleanup() {
+  STOPPING=1
+  if [[ -n "$CHILD_PID" ]] && kill -0 "$CHILD_PID" 2>/dev/null; then
+    kill -TERM "$CHILD_PID" 2>/dev/null || true
+    wait "$CHILD_PID" 2>/dev/null || true
+  fi
+  rm -f "$PID_FILE"
+}
+trap cleanup EXIT INT TERM
+
+while [[ "$STOPPING" == 0 ]]; do
+  STARTED_AT="$(date +%s)"
+  WM_LOG="${MRX_WM_LOG:-/dev/null}"
+  "$WM_BIN" >>"$WM_LOG" 2>&1 &
+  CHILD_PID=$!
+  printf '%s\n' "$CHILD_PID" >"$PID_FILE"
+
+  READY=0
+  for _ in $(seq 1 60); do
+    if "$CTL_BIN" ping >/dev/null 2>&1; then
+      READY=1
+      break
+    fi
+    if ! kill -0 "$CHILD_PID" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+
+  if [[ "$READY" != 1 ]] && kill -0 "$CHILD_PID" 2>/dev/null; then
+    echo "MRX WM did not become healthy within 6 seconds; terminating failed start" >&2
+    kill -TERM "$CHILD_PID" 2>/dev/null || true
+  fi
+
+  if wait "$CHILD_PID"; then
+    STATUS=0
+  else
+    STATUS=$?
+  fi
+  CHILD_PID=""
+  rm -f "$PID_FILE"
+
+  # Exit code 0 is an intentional orderly shutdown; never restart it.
+  [[ "$STOPPING" == 0 && "$STATUS" != 0 ]] || exit "$STATUS"
+
+  NOW="$(date +%s)"
+  UPTIME=$((NOW-STARTED_AT))
+  if (( UPTIME >= 60 )); then FAILURES=0; fi
+  FAILURES=$((FAILURES+1))
+  DELAY=1
+  for ((attempt=1; attempt<FAILURES; attempt++)); do
+    DELAY=$((DELAY*2))
+    (( DELAY >= 30 )) && { DELAY=30; break; }
+  done
+  echo "MRX WM exited with status $STATUS; restart $FAILURES in ${DELAY}s" >&2
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "MRX window manager restarted" "Previous process exited with status $STATUS." 2>/dev/null || true
+  fi
+  sleep "$DELAY"
+done

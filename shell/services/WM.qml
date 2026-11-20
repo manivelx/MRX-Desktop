@@ -104,8 +104,8 @@ Singleton {
             return
         }
         if (root.compositor === "mrx") {
-            if (/workspace\s+r?\+1/.test(s)) { root.switchWorkspaceRelative("next"); return }
-            if (/workspace\s+r?-1/.test(s)) { root.switchWorkspaceRelative("previous"); return }
+            const relative = relativeWorkspaceDirection(s)
+            if (relative) { root.switchWorkspaceRelative(relative); return }
             let am = s.match(/address:([0-9]+)/)
             if (am && /close/.test(s)) { root.closeWindow(am[1]); return }
             if (am && /focus|activate/.test(s)) { root.focusWindow(am[1]); return }

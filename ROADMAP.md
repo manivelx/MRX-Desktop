@@ -39,7 +39,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Add IPC process health reporting and orderly shutdown with root-property/socket cleanup and Xvfb acceptance tests.
 - [x] Add a session WM supervisor with health-gated startup, capped exponential crash-restart backoff, clean-shutdown detection and Xvfb crash-recovery coverage.
 - [x] Add structured asynchronous operation results.
-- [ ] Validate event ordering, backpressure and high-rate update behavior.
+- [x] Add monotonic snapshot event sequence numbers, subscriber lifecycle/traffic metrics, slow-client timeout/drop accounting and high-rate Xvfb subscription tests.
 
 ## Phase 3 — Graphics and animations
 

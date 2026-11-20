@@ -233,3 +233,9 @@ grep -Fq 'mrx-wm-supervisor &' session/mrx-session || fail 'session launcher doe
 grep -Fq 'mrx-wm-supervisor' install.sh || fail 'installer does not install the WM supervisor'
 grep -Fq 'mrx-wm-supervisor' uninstall.sh || fail 'uninstaller does not remove the WM supervisor'
 grep -Fq 'supervisor restarts crashed WM child' tests/xvfb-smoke.sh || fail 'Xvfb supervisor crash-recovery test is missing'
+
+grep -Fq 'pub subscription_slow_clients_dropped' crates/mrx-core/src/lib.rs || fail 'subscription backpressure health metrics are missing'
+grep -Fq 'pub sequence: Option<u64>' crates/mrx-core/src/lib.rs || fail 'snapshot event sequence numbers are missing'
+grep -Fq 'fn record_subscription_write' crates/mrx-wm/src/main.rs || fail 'subscription write metrics recorder is missing'
+grep -Fq 'slow_subscription_socket_write_records_backpressure_and_latency' crates/mrx-wm/src/main.rs || fail 'slow subscriber backpressure unit test is missing'
+grep -Fq 'snapshot subscriptions report monotonic sequence' tests/xvfb-smoke.sh || fail 'Xvfb subscription sequence/metrics acceptance test is missing'

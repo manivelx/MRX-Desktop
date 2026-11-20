@@ -180,6 +180,49 @@ assert op['error']['code']=='profile_export_failed', op
 PY
 echo "PASS: settings undo/reset, profile import/export and profile path validation"
 
+SUBSCRIPTION_LOG="$RUNTIME/subscription.log"
+"$CTL" subscribe >"$SUBSCRIPTION_LOG" 2>&1 &
+SUB_PID=$!
+SUB_ACTIVE=0
+for _ in $(seq 1 30); do
+  ACTIVE="$("$CTL" health | python3 -c 'import json,sys; print(json.load(sys.stdin)["health"]["active_subscriptions"])')"
+  if [[ "$ACTIVE" -ge 1 ]]; then SUB_ACTIVE=1; break; fi
+  sleep 0.1
+done
+[[ "$SUB_ACTIVE" == 1 ]] || { echo "FAIL: IPC snapshot subscription did not become active" >&2; exit 1; }
+for workspace in 2 1 2 1 2 1; do
+  run_operation workspace "$workspace" >/dev/null
+  sleep 0.15
+done
+kill "$SUB_PID" 2>/dev/null || true
+wait "$SUB_PID" 2>/dev/null || true
+SUB_PID=""
+SUB_HEALTH=""
+for _ in $(seq 1 30); do
+  SUB_HEALTH="$("$CTL" health)"
+  ACTIVE="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["health"]["active_subscriptions"])' <<<"$SUB_HEALTH")"
+  if [[ "$ACTIVE" == 0 ]]; then break; fi
+  sleep 0.1
+done
+python3 - "$SUBSCRIPTION_LOG" "$SUB_HEALTH" <<'PY'
+import json,sys
+events=[]
+for line in open(sys.argv[1],encoding='utf-8'):
+    try:
+        event=json.loads(line)
+    except json.JSONDecodeError:
+        continue
+    if event.get('sequence') is not None:
+        events.append(event['sequence'])
+health=json.loads(sys.argv[2])['health']
+assert len(events)>=2, events
+assert all(a<b for a,b in zip(events,events[1:])), events
+assert health['active_subscriptions']==0, health
+assert health['subscription_events_sent']>=len(events), health
+assert health['subscription_bytes_sent']>0 and health['subscription_disconnects']>=1, health
+PY
+echo "PASS: snapshot subscriptions report monotonic sequence, traffic and disconnect metrics"
+
 STARTUP_ADOPTED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

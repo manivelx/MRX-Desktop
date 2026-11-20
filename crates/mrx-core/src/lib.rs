@@ -533,6 +533,15 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_sequence_is_optional_and_serialized_when_present() {
+        let mut response=Response::ok("snapshot event");
+        response.sequence=Some(9);
+        let encoded=serde_json::to_string(&response).unwrap();
+        let decoded:Response=serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded.sequence,Some(9));
+    }
+
+    #[test]
     fn health_report_serializes_process_and_service_metrics() {
         let health=HealthReport{pid:42,uptime_ms:1234,managed_windows:3,monitor_count:2,active_ipc_clients:1,operations_queued:1,operations_succeeded:4,operations_failed:2};
         let response=Response::with_health(health.clone());

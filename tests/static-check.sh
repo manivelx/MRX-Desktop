@@ -68,6 +68,8 @@ grep -q 'set_wm_state' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_STATE lifecyc
 grep -q 'take(65_537)' crates/mrx-wm/src/main.rs || fail 'IPC request size limit missing'
 grep -q 'MAX_IPC_CLIENTS: usize = 32' crates/mrx-wm/src/main.rs || fail 'bounded IPC concurrency missing'
 grep -q 'is_socket()' crates/mrx-wm/src/main.rs || fail 'IPC socket path safety check missing'
+grep -q 'take(65_537)' crates/mrxctl/src/main.rs || fail 'mrxctl response size limit missing'
+grep -q 'set_read_timeout' crates/mrxctl/src/main.rs || fail 'mrxctl socket timeout missing'
 pass 'ICCCM WM_STATE/polite close, transient classification, EWMH workspace/close/active/fullscreen/client-stacking handling, startup adoption and bounded IPC are present'
 
 old_identity="aure""lia"

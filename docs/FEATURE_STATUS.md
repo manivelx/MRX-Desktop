@@ -8,7 +8,7 @@ This document separates design intent from implemented behavior. “Partial” m
 | Window mapping/focus | Partial | Initial unmap withdrawal handling added; focus input models, startup adoption and edge-case tests remain. |
 | EWMH desktop metadata | Partial | Desktop names, viewport, workarea and geometry are published; stacking order, struts and full state semantics remain. |
 | Workspaces | Partial | Basic workspace state and switching; no slide animation. |
-| Master/stack layout | Initial | Shared geometry engine added; runtime size-hint handling incomplete. |
+| Master/stack layout | Partial | Shared geometry engine with per-monitor tiling and ICCCM min/max/base/increment/aspect constraints; small-workarea and real-client behavior still need broader validation. |
 | Monocle layout | Initial | Shared geometry engine added; runtime testing pending. |
 | Floating windows | Not complete | Dialog/transient behavior is not production-ready. |
 | Fullscreen | Not complete | Full protocol and restoration behavior required. |

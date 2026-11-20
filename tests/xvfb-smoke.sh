@@ -291,8 +291,8 @@ def geometry(path):
     return tuple(values[key] for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'))
 snapshot = json.load(open(sys.argv[3], encoding='utf-8'))
 window = next(w for w in snapshot['windows'] if str(w['id']) == sys.argv[4])
-assert not window.get('maximized_horz') and not window.get('maximized_vert'), window
-assert geometry(sys.argv[1]) == geometry(sys.argv[2]), (geometry(sys.argv[1]), geometry(sys.argv[2]))
+if window.get('maximized_horz') or window.get('maximized_vert') or geometry(sys.argv[1]) != geometry(sys.argv[2]):
+    raise SystemExit(1)
 print('PASS: EWMH maximize/restore round-trip preserves original geometry')
 PY
   then RESTORED=1; break; fi
@@ -316,7 +316,9 @@ PY
   sleep 0.1
 done
 [[ "$MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not minimize the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
-xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Iconic State'
+WM_STATE_OUTPUT="$(xprop -id "$WINDOW_ID" WM_STATE || true)"
+echo "$WM_STATE_OUTPUT"
+grep -Eq 'Iconic State|=[[:space:]]*3([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not become Iconic" >&2; exit 1; }
 "$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 hidden
 RESTORE_MINIMIZED=0
 for _ in $(seq 1 30); do
@@ -331,7 +333,9 @@ PY
   sleep 0.1
 done
 [[ "$RESTORE_MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
-xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Normal State'
+WM_STATE_OUTPUT="$(xprop -id "$WINDOW_ID" WM_STATE || true)"
+echo "$WM_STATE_OUTPUT"
+grep -Eq 'Normal State|=[[:space:]]*1([,[:space:]]|$)' <<<"$WM_STATE_OUTPUT" || { echo "FAIL: WM_STATE did not return to Normal" >&2; exit 1; }
 echo "PASS: EWMH minimize/restore retains the managed client and WM_STATE"
 
 # Also exercise the ICCCM WM_CHANGE_STATE IconicState/NormalState messages.

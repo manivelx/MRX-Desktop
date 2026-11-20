@@ -7,7 +7,7 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [x] Publish source tree and upstream license files.
 - [x] Document current limitations and validation gaps.
 - [ ] Establish maintainer/release process and repository settings.
-- [ ] Add CI that passes on a clean supported runner.
+- [x] Add CI that passes on a clean supported runner.
 
 ## Phase 1 — Reliable X11 window manager
 
@@ -20,7 +20,7 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
 - [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.
 - [ ] Validate independent workspaces on physical multi-output hardware.
-- [ ] Add deterministic Xvfb/Xephyr integration tests.
+- [x] Add deterministic Xvfb integration tests for the compiled WM.\n- [ ] Add Xephyr nested-server coverage.
 
 ## Phase 2 — Desktop core and live settings
 

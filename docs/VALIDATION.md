@@ -2,25 +2,9 @@
 
 ## Latest CI result
 
-PASS — GitHub Actions CI run [#105](https://github.com/manivelx/MRX-Desktop/actions/runs/44737503616) validated commit `5190f3bacd66b51e9aa4c88daa66b8ae8d1ccdc6` on 2026-11-20.
+The development branch has changed substantially since the historical baseline below. Commit-specific validation is being rerun after the latest RandR, per-monitor workspace, dock and urgency changes. Check the [GitHub Actions history](https://github.com/manivelx/MRX-Desktop/actions) for the exact latest head and result. Do not treat a cancelled, superseded or failed run as a passing validation.
 
-| Check | Result |
-|---|---|
-| `cargo fmt --all` | PASS |
-| `cargo test --workspace` | PASS |
-| `cargo clippy --workspace --all-targets -- -D warnings` | PASS |
-| `cargo build --workspace` | PASS |
-| `bash ./tests/static-check.sh` | PASS |
-| `bash ./tests/xvfb-server-check.sh` | PASS |
-| `bash ./tests/xvfb-smoke.sh` | PASS |
-
-The Xvfb WM smoke test launched the compiled MRX WM and exercised:
-- IPC startup and ping.
-- EWMH desktop and client-stacking metadata.
-- Initial snapshot, workspace switching and `_NET_CURRENT_DESKTOP` synchronization.
-- Runtime setting update and persistence.
-- RandR monitor snapshot geometry and primary-monitor selection.
-- Mapping a real X11 client, assigning it to a monitor, and closing it through the ICCCM close path.
+The workflow covers Rust formatting, workspace tests, Clippy with warnings denied, build, static checks, isolated installer regression tests, Xvfb server startup and the compiled WM smoke test.
 
 ## Validation environment and limits
 

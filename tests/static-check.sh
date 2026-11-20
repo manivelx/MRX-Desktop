@@ -42,7 +42,7 @@ grep -q 'WmHints::get' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_HINTS input m
 grep -q 'WM_TAKE_FOCUS' crates/mrx-wm/src/main.rs || fail 'ICCCM WM_TAKE_FOCUS negotiation missing'
 grep -q 'focus_client' crates/mrx-wm/src/main.rs || fail 'central ICCCM focus helper missing'
 grep -q 'WM_TRANSIENT_FOR' crates/mrx-wm/src/main.rs || fail 'transient-window classification missing'
-grep -q 'e.type_==net_close' crates/mrx-wm/src/main.rs || fail 'EWMH close client message missing'
+grep -Fq 'net_close {' crates/mrx-wm/src/main.rs && grep -Fq 'EWMH close request failed' crates/mrx-wm/src/main.rs || fail 'EWMH close client message missing'
 grep -q 'e.type_==net_active' crates/mrx-wm/src/main.rs || fail 'EWMH active-window client message missing'
 grep -q 'e.type_==current' crates/mrx-wm/src/main.rs || fail 'EWMH desktop client message missing'
 grep -q 'e.type_==desktop' crates/mrx-wm/src/main.rs || fail 'EWMH per-window desktop client message missing'

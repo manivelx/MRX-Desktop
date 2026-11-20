@@ -90,6 +90,7 @@ if grep -Eq 'set_wm_state\(&conn,target,wm_state,3\)' crates/mrx-wm/src/main.rs;
 grep -q 'Adopt already-viewable' crates/mrx-wm/src/main.rs || fail 'startup client adoption missing'
 grep -q 'Event::UnmapNotify' crates/mrx-wm/src/main.rs || fail 'ICCCM unmap lifecycle handling missing'
 grep -q 'randr_get_monitors' crates/mrx-wm/src/main.rs || fail 'RandR monitor discovery missing'
+grep -Fq 'randr_get_monitors(root, false)' crates/mrx-wm/src/main.rs || fail 'RandR discovery must include inactive and virtual monitor objects'
 grep -q 'randr_select_input' crates/mrx-wm/src/main.rs || fail 'RandR hotplug notifications missing'
 grep -q 'Event::RandrNotify' crates/mrx-wm/src/main.rs || fail 'RandR notification event handling missing'
 grep -q 'monitor_for_geometry' crates/mrx-wm/src/main.rs || fail 'window-to-monitor assignment missing'

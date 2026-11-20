@@ -188,3 +188,8 @@ grep -Fq 'net_wm_state_above' crates/mrx-wm/src/main.rs || fail 'EWMH ABOVE stat
 grep -Fq 'net_wm_state_below' crates/mrx-wm/src/main.rs || fail 'EWMH BELOW state is missing'
 grep -Fq 'pub above: bool' crates/mrx-core/src/lib.rs && grep -Fq 'pub below: bool' crates/mrx-core/src/lib.rs || fail 'IPC window snapshot omits ABOVE/BELOW state'
 grep -Fq 'EWMH ABOVE/BELOW state requests are mutually exclusive' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits ABOVE/BELOW stacking coverage'
+
+grep -Fq 'fn read_atom_list' crates/mrx-wm/src/main.rs || fail 'startup EWMH atom-list reader is missing'
+grep -Fq 'let existing_states=read_atom_list' crates/mrx-wm/src/main.rs || fail 'startup EWMH state adoption is missing'
+grep -Fq 'existing_wm_state==3' crates/mrx-wm/src/main.rs || fail 'startup ICCCM IconicState adoption is missing'
+grep -Fq 'STARTUP_ADOPTED' tests/xvfb-smoke.sh || fail 'Xvfb startup adoption test is missing'

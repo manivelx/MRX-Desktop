@@ -555,6 +555,22 @@ fn set_atom_state(conn: &RustConnection, window: Window, property: u32, atom: u3
     Ok(())
 }
 
+
+/// Read an existing EWMH atom-list property. Missing or malformed properties
+/// are treated as an empty list; the client remains manageable.
+fn read_atom_list(conn: &RustConnection, window: Window, property: u32) -> Vec<u32> {
+    conn.get_property(false, window, property, AtomEnum::ATOM, 0, 64).ok()
+        .and_then(|cookie| cookie.reply().ok())
+        .and_then(|reply| reply.value32().map(|values| values.collect()))
+        .unwrap_or_default()
+}
+
+/// Read the first CARDINAL from an ICCCM/EWMH property when its type matches.
+fn read_cardinal(conn: &RustConnection, window: Window, property: u32, property_type: u32) -> Option<u32> {
+    conn.get_property(false, window, property, property_type, 0, 1).ok()?
+        .reply().ok()?.value32()?.next()
+}
+
 /// Publish EWMH client lists with their required ordering semantics.
 /// `_NET_CLIENT_LIST` follows initial map order; `_NET_CLIENT_LIST_STACKING`
 /// follows the X server's bottom-to-top child stacking order.
@@ -729,27 +745,72 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
    for window in tree.children {
      if window==check { continue; }
      let attributes=match conn.get_window_attributes(window)?.reply() { Ok(value)=>value, Err(_)=>continue };
-     if attributes.override_redirect || attributes.map_state==xproto::MapState::UNMAPPED { continue; }
+     if attributes.override_redirect { continue; }
      let geometry=match conn.get_geometry(window)?.reply() { Ok(value)=>value, Err(_)=>continue };
      let title=conn.get_property(false,window,AtomEnum::WM_NAME,AtomEnum::STRING,0,1024)?.reply()?.value;
      let size_hints = read_size_hints(&conn, window);
      let dock = is_dock_window(&conn,window,net_wm_window_type,net_wm_window_type_dock);
-      let floating = dock || is_transient(&conn,window).unwrap_or(false) || has_fixed_size(size_hints.as_ref());
+     let floating = dock || is_transient(&conn,window).unwrap_or(false) || has_fixed_size(size_hints.as_ref());
      let title=String::from_utf8_lossy(&title).into_owned();
+     let existing_states=read_atom_list(&conn,window,net_wm_state);
+     let existing_wm_state=read_cardinal(&conn,window,wm_state,wm_state).unwrap_or(1);
+     let minimized=existing_wm_state==3 || existing_states.contains(&net_wm_state_hidden);
+     if attributes.map_state==xproto::MapState::UNMAPPED && !minimized { continue; }
+     let desktop_index=read_cardinal(&conn,window,desktop,AtomEnum::CARDINAL.into())
+         .filter(|value|*value!=u32::MAX && *value<workspace_count)
+         .map(|value|value+1);
      let _=conn.change_window_attributes(window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));
-     if is_dock_window(&conn,window,net_wm_window_type,net_wm_window_type_dock) {
+     if dock {
          if let Some(strut)=read_dock_strut(&conn,window,net_wm_strut_partial,net_wm_strut) { s.docks.insert(window,strut); }
      }
      s.client_order.push(window);
      if let Some(hints) = size_hints { s.size_hints.insert(window, hints); }
      let assigned_monitor=monitor_for_geometry(&s.monitors,geometry.x as i32,geometry.y as i32,geometry.width as u32,geometry.height as u32);
-     let workspace=active_workspace_for(&s,&assigned_monitor);
-     s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,urgent:read_urgent_hint(&conn,window),dock,..Default::default()});
-     let _=set_wm_state(&conn,window,wm_state,1);
+     let workspace=desktop_index.unwrap_or_else(||active_workspace_for(&s,&assigned_monitor));
+     let fullscreen=existing_states.contains(&net_wm_state_fullscreen);
+     let maximized_horz=existing_states.contains(&net_wm_state_maximized_horz);
+     let maximized_vert=existing_states.contains(&net_wm_state_maximized_vert);
+     let above=existing_states.contains(&net_wm_state_above);
+     let below=existing_states.contains(&net_wm_state_below) && !above;
+     s.clients.insert(window,WindowInfo{
+         id:window,title,class:String::new(),workspace,monitor:assigned_monitor,
+         x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,
+         focused:false,floating,dock,minimized,fullscreen,maximized_horz,maximized_vert,above,below,
+         urgent:read_urgent_hint(&conn,window),..Default::default()
+     });
+     if fullscreen || maximized_horz || maximized_vert {
+         let original=mrx_core::layout::Rect{x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32};
+         s.restore_geometry.insert(window,(original,floating));
+         let area=s.monitors.iter().find(|monitor|monitor.name==s.clients[&window].monitor)
+             .map(|monitor|monitor_workarea(monitor,&s.docks,s.root_width,s.root_height))
+             .unwrap_or(mrx_core::layout::Rect{x:0,y:0,width:s.root_width.max(1),height:s.root_height.max(1)});
+         let target=if fullscreen { area } else { maximized_rect(original,area,maximized_horz,maximized_vert) };
+         if let Some(client)=s.clients.get_mut(&window) { client.floating=true; client.x=target.x; client.y=target.y; client.width=target.width; client.height=target.height; }
+         let border=if fullscreen {0}else{s.settings.appearance.border_width};
+         let _=conn.configure_window(window,&ConfigureWindowAux::new().x(target.x).y(target.y).width(target.width).height(target.height).border_width(border));
+     }
+     let _=set_wm_state(&conn,window,wm_state,if minimized {3}else{1});
      let desktop_value=if dock {u32::MAX} else {workspace.saturating_sub(1)};
      let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[desktop_value]);
+     let visible=!minimized && (dock || workspace==active_workspace_for(&s,&s.clients[&window].monitor));
+     if visible { let _=conn.map_window(window); } else { let _=conn.unmap_window(window); }
+     let _=set_atom_state(&conn,window,net_wm_state,net_wm_state_hidden,minimized || (!dock && !visible));
+     let _=set_atom_state(&conn,window,net_wm_state,net_wm_state_above,above);
+     let _=set_atom_state(&conn,window,net_wm_state,net_wm_state_below,below);
    }
-   if let Some(topmost)=s.client_order.iter().rev().find(|id|s.clients.get(id).is_some_and(|w|!w.dock)).copied() {
+   // Restore requested EWMH layers after all clients have been adopted.
+   // XQueryTree order is bottom-to-top; apply BELOW first and ABOVE last.
+   for id in s.client_order.clone() {
+     if s.clients.get(&id).is_some_and(|client|client.below) {
+       let _=conn.configure_window(id,&ConfigureWindowAux::new().stack_mode(xproto::StackMode::BELOW));
+     }
+   }
+   for id in s.client_order.clone() {
+     if s.clients.get(&id).is_some_and(|client|client.above) {
+       let _=conn.configure_window(id,&ConfigureWindowAux::new().stack_mode(xproto::StackMode::ABOVE));
+     }
+   }
+   if let Some(topmost)=s.client_order.iter().rev().find(|id|s.clients.get(id).is_some_and(|w|!w.dock && !w.minimized && w.workspace==active_workspace_for(&s,&w.monitor))).copied() {
      if let Some(monitor)=s.clients.get(&topmost).map(|client|client.monitor.clone()) { set_focused_monitor(&mut s,&monitor); }
      if let Some(client)=s.clients.get_mut(&topmost) { client.focused=true; }
      let _=focus_client(&conn,topmost,wm_protocols,wm_take_focus);
@@ -970,8 +1031,8 @@ Action::Focus(id)=>{
          arrange(&conn,root,&s);
        }
        else if e.type_==net_wm_state {
-         // EWMH action: 0=remove, 1=add, 2=toggle. Only fullscreen is
-         // advertised until maximize/above/below have complete semantics.
+         // EWMH action: 0=remove, 1=add, 2=toggle. State atoms are adopted
+         // before mapping and then updated through this client-message path.
          let action=data[0]; let first=data[1]; let second=data[2];
          for atom in [first,second].into_iter().filter(|a| *a!=0) {
            if atom==net_wm_state_maximized_horz || atom==net_wm_state_maximized_vert {

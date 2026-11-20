@@ -30,8 +30,8 @@ The Xvfb monitor-object test now verifies that two virtual RandR monitors appear
 
 - Extend `WM_NORMAL_HINTS` validation for remaining ICCCM edge cases, especially aspect-ratio/increment combinations under very small work areas; add physical-client tests for focus, withdrawal and urgency transitions.
 - Finish EWMH state semantics beyond the current subset: initial client state adoption, maximize/restore, above/below and complete minimized/hidden behavior.
-- Add dock/panel strut parsing and compute usable workareas rather than using full monitor rectangles.
-- Per-monitor workspace ownership and independent per-monitor workspace switching are not implemented; workspaces remain global across the X screen.
+- Validate EWMH dock/panel strut parsing and per-monitor usable workareas on mixed-resolution physical outputs; partial and legacy struts are parsed and applied to tiling and the focused-monitor EWMH workarea.
+- Physical multi-output hotplug, disconnect/reconnect, independent workspace behavior and dock workarea geometry still require physical monitor validation; Xvfb covers virtual monitor objects and independent workspace switching.
 - Physical multi-output hotplug, disconnect/reconnect and floating-window migration need an integration test on a multi-output X server or real hardware. Xvfb validates only its virtual single-screen configuration.
 - Validate transient dialogs, startup adoption, unmap/destroy races, focus policy, fullscreen restore and EWMH client stacking in more comprehensive Xephyr/Xorg scenarios.
 - IPC event subscriptions and orderly shutdown remain open; the shell currently uses periodic snapshot refresh.

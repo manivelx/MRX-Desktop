@@ -12,7 +12,7 @@ This document separates design intent from implemented behavior. “Partial” m
 | Monocle layout | Initial | Shared geometry engine added; runtime testing pending. |
 | Floating windows | Not complete | Dialog/transient behavior is not production-ready. |
 | Fullscreen | Not complete | Full protocol and restoration behavior required. |
-| Multi-monitor | Not complete | RandR integration and per-monitor work areas remain. |
+| Multi-monitor | Partial | RandR monitor discovery, hotplug refresh, and per-monitor tiling geometry exist; dock-aware work areas and independent per-monitor workspaces are not implemented. Physical multi-output validation remains outstanding. |
 | IPC | Partial | Local Unix socket; protocol needs versioning and event streaming. |
 | Settings | Partial | Initial TOML persistence; runtime validation/application needs completion. |
 | Dashboard | Partial | Imported QML source and early adapter; not all pages are MRX-backed. |

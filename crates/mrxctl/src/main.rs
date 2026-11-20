@@ -111,6 +111,8 @@ fn main() -> Result<()> {
     let request = match command.as_str() {
         "snapshot" => Request::Snapshot,
         "ping" => Request::Ping,
+        "health" => Request::Health,
+        "shutdown" => Request::Shutdown,
         "operation" => Request::GetOperation {
             id: args.next().context("operation ID required")?.parse()?,
         },
@@ -157,7 +159,7 @@ fn main() -> Result<()> {
         },
         _ => {
             println!(
-                "mrxctl snapshot|subscribe|ping|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload|undo|reset|profile import|export <name>"
+                "mrxctl snapshot|subscribe|ping|health|shutdown|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload|undo|reset|profile import|export <name>"
             );
             return Ok(());
         }

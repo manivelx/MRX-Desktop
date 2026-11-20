@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use mrx_core::{OperationError, OperationResult, OperationStatus, Request, RequestEnvelope, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo, IPC_PROTOCOL_VERSION};
-use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::Duration};
+use mrx_core::{HealthReport, OperationError, OperationResult, OperationStatus, Request, RequestEnvelope, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo, IPC_PROTOCOL_VERSION};
+use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::{Duration,Instant}};
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
-#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64, settings_history:Vec<Settings> }
+#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, restore_geometry:BTreeMap<u32,(mrx_core::layout::Rect,bool)>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String, docks:BTreeMap<u32,DockStrut>, root_width:u32, root_height:u32, operations:BTreeMap<u64,OperationResult>, next_operation_id:u64, settings_history:Vec<Settings>, started_at:Option<Instant> }
 #[derive(Clone, Copy)]
 struct WorkspaceAtoms {
     current: u32,
@@ -14,7 +14,7 @@ struct WorkspaceAtoms {
     net_active_window: u32,
 }
 
-#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, UndoSettings, ResetSettings, ExportProfile(String), ImportProfile(String), Operation(u64,Box<Action>) }
+#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, UndoSettings, ResetSettings, ExportProfile(String), ImportProfile(String), Shutdown, Operation(u64,Box<Action>) }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
 
 /// Queue an asynchronous WM operation and return its stable operation ID.
@@ -164,7 +164,7 @@ fn stream_ipc_snapshots(
     }
 }
 
-fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: &mpsc::Sender<Action>) -> Result<()> {
+fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: &mpsc::Sender<Action>, active_clients:&Arc<AtomicUsize>) -> Result<()> {
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
 
@@ -203,6 +203,21 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                     Request::ResetSettings => enqueue_operation(state,tx,"reset_settings",Action::ResetSettings),
                     Request::ExportSettingsProfile{name} => enqueue_operation(state,tx,"export_settings_profile",Action::ExportProfile(name)),
                     Request::ImportSettingsProfile{name} => enqueue_operation(state,tx,"import_settings_profile",Action::ImportProfile(name)),
+                    Request::Health => {
+                        let state=state.lock().unwrap();
+                        let operations_queued=state.operations.values().filter(|op|op.status==OperationStatus::Queued).count();
+                        let operations_succeeded=state.operations.values().filter(|op|op.status==OperationStatus::Succeeded).count();
+                        let operations_failed=state.operations.values().filter(|op|op.status==OperationStatus::Failed).count();
+                        Response::with_health(HealthReport{
+                            pid:std::process::id(),
+                            uptime_ms:state.started_at.map(|started|started.elapsed().as_millis().min(u64::MAX as u128) as u64).unwrap_or(0),
+                            managed_windows:state.clients.len(),
+                            monitor_count:state.monitors.len(),
+                            active_ipc_clients:active_clients.load(Ordering::Relaxed),
+                            operations_queued,operations_succeeded,operations_failed,
+                        })
+                    },
+                    Request::Shutdown => enqueue_operation(state,tx,"shutdown",Action::Shutdown),
                     Request::Snapshot => {
                         let mut response = Response::ok("snapshot");
                         response.snapshot = Some(snapshot(&state.lock().unwrap()));
@@ -298,7 +313,7 @@ fn serve_ipc(state: Arc<Mutex<State>>, tx: mpsc::Sender<Action>) -> Result<()> {
                             let spawn = thread::Builder::new()
                                 .name("mrx-ipc-client".into())
                                 .spawn(move || {
-                                    if let Err(error) = handle_ipc_connection(stream, &client_state, &client_tx) {
+                                    if let Err(error) = handle_ipc_connection(stream, &client_state, &client_tx, &client_count) {
                                         warn!(error = %error, "IPC client request failed");
                                     }
                                     client_count.fetch_sub(1, Ordering::AcqRel);
@@ -802,7 +817,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
   for monitor in &mut monitors { monitor.focused = monitor.name == primary; monitor.active_workspace = 1; }
   let active_by_monitor = monitors.iter().map(|m| (m.name.clone(), 1)).collect();
   let settings = Settings::load().unwrap_or_default();
-  let state=Arc::new(Mutex::new(State{active:1,settings,monitors,active_by_monitor,focused_monitor:primary,root_width:screen.width_in_pixels as u32,root_height:screen.height_in_pixels as u32,..Default::default()}));
+  let state=Arc::new(Mutex::new(State{active:1,settings,monitors,active_by_monitor,focused_monitor:primary,root_width:screen.width_in_pixels as u32,root_height:screen.height_in_pixels as u32,started_at:Some(Instant::now()),..Default::default()}));
   let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
  conn.change_property32(xproto::PropMode::REPLACE,root,count,AtomEnum::CARDINAL,&[workspace_count])?;
  publish_workarea(&conn,root,net_workarea,&state.lock().unwrap())?;
@@ -910,6 +925,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  conn.flush()?; info!("MRX X11 window manager started");
  let mut last_monitor_refresh = std::time::Instant::now();
  loop {
+   let mut should_shutdown=false;
    while let Ok(received)=rx.try_recv() {
      let (operation_id,action)=match received {
        Action::Operation(id,action)=>(Some(id),*action),
@@ -1039,10 +1055,12 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
            Err(error)=>failure=Some(OperationError{code:"settings_reload_failed".into(),message:error.to_string(),retryable:true}),
          }
        },
+       Action::Shutdown=>{should_shutdown=true;},
        Action::Operation(_,_)=>failure=Some(OperationError{code:"invalid_operation".into(),message:"nested operation envelopes are not supported".into(),retryable:false}),
      }
      if let Some(id)=operation_id { finish_operation(&mut s,id,failure); }
    }
+   if should_shutdown { info!("orderly shutdown requested over IPC"); break; }
    match conn.poll_for_event()? {
     Some(Event::RandrNotify(_)) => {
         let mut s=state.lock().unwrap();
@@ -1425,6 +1443,15 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
        last_monitor_refresh = std::time::Instant::now();
    }
    conn.flush()?; }
+ // Remove WM-owned root properties before releasing SubstructureRedirect.
+ for atom in [supported,wmcheck,current,count,clientlist,clientlist_stacking,net_active_window,net_workarea,net_desktop_names,net_viewport,net_geometry] {
+     let _=conn.delete_property(root,atom);
+ }
+ let _=conn.destroy_window(check);
+ conn.flush()?;
+ let _=std::fs::remove_file(runtime_dir().join("mrx.sock"));
+ info!("MRX X11 window manager stopped cleanly");
+ Ok(())
 }
 fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State, width: u16, height: u16) {
     state.root_width = width as u32; state.root_height = height as u32;

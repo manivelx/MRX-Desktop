@@ -36,8 +36,10 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Standardize structured asynchronous operation results, stable operation IDs, bounded result retention, polling and categorized failures.
 - [x] Validate typed settings on a candidate copy and persist atomically before replacing live settings.
 - [x] Add bounded settings undo history, atomic reset, and validated atomic profile import/export with Xvfb acceptance coverage.
-- [ ] Add process health reporting, supervised restart and orderly shutdown tests.
-- [ ] Add structured asynchronous operation results and validate event ordering, backpressure and high-rate update behavior.
+- [x] Add IPC process health reporting and orderly shutdown with root-property/socket cleanup and Xvfb acceptance tests.
+- [ ] Add supervised restart with bounded backoff and crash-recovery tests.
+- [x] Add structured asynchronous operation results.
+- [ ] Validate event ordering, backpressure and high-rate update behavior.
 
 ## Phase 3 — Graphics and animations
 

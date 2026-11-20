@@ -1398,6 +1398,18 @@ mod monitor_tests {
     }
 
     #[test]
+    fn managed_stacking_order_respects_protocol_layers_and_stability() {
+        let mut state = State::default();
+        state.client_order = vec![1, 2, 3, 4, 5, 6];
+        state.clients.insert(1, WindowInfo { id: 1, ..Default::default() });
+        state.clients.insert(2, WindowInfo { id: 2, above: true, ..Default::default() });
+        state.clients.insert(3, WindowInfo { id: 3, below: true, ..Default::default() });
+        state.clients.insert(4, WindowInfo { id: 4, dock: true, ..Default::default() });
+        state.clients.insert(5, WindowInfo { id: 5, fullscreen: true, ..Default::default() });
+        state.clients.insert(6, WindowInfo { id: 6, ..Default::default() });
+        assert_eq!(stacking_order(&state), vec![3, 1, 6, 2, 4, 5]);
+    }
+
     fn synthetic_screen_monitor_is_removed_when_real_outputs_exist() {
         let mut list = vec![
             MonitorInfo { name: "screen".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },

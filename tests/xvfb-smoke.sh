@@ -134,6 +134,13 @@ print(data['windows'][0]['id'] if data.get('windows') else '')
 PY
 )"
 [[ -n "$WINDOW_ID" ]] || { echo "FAIL: xterm was not managed" >&2; echo '--- xterm log ---' >&2; cat "$RUNTIME/xterm.log" >&2; echo '--- root tree ---' >&2; xwininfo -root -tree >&2 || true; echo '--- WM log ---' >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+window = next(w for w in data['windows'] if str(w['id']) == sys.argv[2])
+assert window['monitor'] in {m['name'] for m in data['monitors']}, data
+print('PASS: managed window has a live monitor assignment')
+PY
 "$CTL" close "$WINDOW_ID" >/dev/null
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"

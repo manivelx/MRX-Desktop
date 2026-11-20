@@ -968,7 +968,7 @@ fn switch_monitor_workspace(
     let id = requested.clamp(1, count);
     state.active_by_monitor.insert(monitor.to_owned(), id);
     set_focused_monitor(state, monitor);
-    for window in state.clients.values().filter(|w| w.monitor == monitor) {
+    for window in state.clients.values().filter(|w| w.monitor == monitor && !w.dock) {
         if window.workspace == id {
             let _ = conn.map_window(window.id);
             let _ = set_wm_state(conn, window.id, atoms.wm_state, 1);

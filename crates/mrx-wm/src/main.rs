@@ -473,6 +473,15 @@ fn set_atom_state(conn: &RustConnection, window: Window, property: u32, atom: u3
 /// Publish EWMH client lists with their required ordering semantics.
 /// `_NET_CLIENT_LIST` follows initial map order; `_NET_CLIENT_LIST_STACKING`
 /// follows the X server's bottom-to-top child stacking order.
+fn publish_workarea(conn: &RustConnection, root: Window, workarea_atom: u32, workspace_count: u32, width: u16, height: u16) -> Result<()> {
+    let mut values = Vec::with_capacity(workspace_count as usize * 4);
+    for _ in 0..workspace_count {
+        values.extend_from_slice(&[0, 0, width as u32, height as u32]);
+    }
+    conn.change_property32(xproto::PropMode::REPLACE, root, workarea_atom, AtomEnum::CARDINAL, &values)?;
+    Ok(())
+}
+
 fn publish_client_lists(
     conn: &RustConnection,
     root: Window,
@@ -513,6 +522,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
   let state=Arc::new(Mutex::new(State{active:1,settings,monitors,active_by_monitor,focused_monitor:primary,..Default::default()}));
   let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
  conn.change_property32(xproto::PropMode::REPLACE,root,count,AtomEnum::CARDINAL,&[workspace_count])?;
+ publish_workarea(&conn,root,net_workarea,workspace_count,screen.width_in_pixels,screen.height_in_pixels)?;
  if conn.extension_information(randr::X11_EXTENSION_NAME)?.is_some() {
      let mask = NotifyMask::SCREEN_CHANGE | NotifyMask::CRTC_CHANGE | NotifyMask::OUTPUT_CHANGE | NotifyMask::RESOURCE_CHANGE;
      match conn.randr_select_input(root, mask) {

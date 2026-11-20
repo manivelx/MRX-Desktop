@@ -9,7 +9,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - Bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
 - `mrxctl` uses bounded response reads and socket timeouts.
 - Workspace switching and EWMH desktop metadata, including `_NET_CLIENT_LIST`, `_NET_CLIENT_LIST_STACKING`, desktop names, viewport, workarea and geometry.
-- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, and focus restoration after client unmap/destruction.
+- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, `WM_NORMAL_HINTS` min/max/base/increment/aspect constraints, fixed-size floating policy, and focus restoration after client unmap/destruction.
 - Startup adoption of already-viewable non-override-redirect clients.
 - EWMH handling for close, active-window, current-desktop, per-window desktop and fullscreen state requests.
 - Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.
@@ -21,13 +21,13 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-The initial CI baseline passed the Rust workspace, Clippy, build, static checks and single-screen Xvfb client smoke test.
+GitHub Actions [run #201](https://github.com/manivelx/MRX-Desktop/actions/runs/44750922323) passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer regression tests, Xvfb server checks and the compiled WM smoke test. It validates the RandR topology reconciliation and the then-current ICCCM urgency integration.
 
-The added multi-monitor monitor-object test exposed an important distinction: Xvfb can report RandR monitor objects with `xrandr --listmonitors`, but this alone does not prove MRX refreshes its IPC monitor snapshot. The current branch adds version-aware RandR 1.5 discovery, a RandR 1.2 active-CRTC fallback, and a low-frequency topology reconciliation path for servers that do not deliver monitor-object notifications. CI run #194 is validating this change; do not claim this smoke test passed until the run is green.
+The Xvfb monitor-object test now verifies that two virtual RandR monitors appear in the WM IPC snapshot with the expected geometry. The WM uses version-aware RandR 1.5 discovery, an active-CRTC fallback, event-driven refresh and a low-frequency reconciliation pass for servers that miss monitor-object notifications. A subsequent smoke-test increment is validating live `WM_HINTS` urgency changes; its newest CI run must pass before that new test is treated as green.
 
 ## Remaining work before Phase 1 can be considered complete
 
-- Implement and test full `WM_NORMAL_HINTS` size-hint handling, urgency (`WM_HINTS` urgency), and remaining ICCCM lifecycle edge cases.
+- Extend `WM_NORMAL_HINTS` validation for remaining ICCCM edge cases, especially aspect-ratio/increment combinations under very small work areas; add physical-client tests for focus, withdrawal and urgency transitions.
 - Finish EWMH state semantics beyond the current subset: initial client state adoption, maximize/restore, above/below and complete minimized/hidden behavior.
 - Add dock/panel strut parsing and compute usable workareas rather than using full monitor rectangles.
 - Per-monitor workspace ownership and independent per-monitor workspace switching are not implemented; workspaces remain global across the X screen.

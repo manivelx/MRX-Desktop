@@ -14,7 +14,6 @@ int main(int argc, char **argv) {
 
     XWMHints hints = {0};
     hints.flags = XUrgencyHint;
-    hints.urgency = True;
     int result = XSetWMHints(display, (Window)id, &hints);
     XSync(display, False);
     XCloseDisplay(display);

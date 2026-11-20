@@ -26,5 +26,6 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo build --workspace
       - run: bash ./tests/static-check.sh
+      - run: bash ./tests/installer-sandbox.sh
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh

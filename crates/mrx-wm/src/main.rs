@@ -429,8 +429,10 @@ fn focus_most_recent(
     wm_take_focus: u32,
     net_active_window: u32,
 ) {
+    let focused = focused_monitor_name(state);
+    let active = active_workspace_for(state, &focused);
     let candidate = state.client_order.iter().rev().find(|id| {
-        state.clients.get(*id).is_some_and(|window| window.workspace == state.active)
+        state.clients.get(*id).is_some_and(|window| window.workspace == active && window.monitor == focused)
     }).copied();
     for window in state.clients.values_mut() {
         window.focused = Some(window.id) == candidate;

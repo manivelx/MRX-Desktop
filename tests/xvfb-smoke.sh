@@ -7,7 +7,7 @@ CTL="$ROOT/target/debug/mrxctl"
 for f in "$WM" "$CTL"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
-for c in Xvfb xdpyinfo xprop xterm python3; do
+for c in Xvfb xdpyinfo xprop xmessage python3; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 
@@ -112,7 +112,7 @@ echo "PASS: live setting update and persistence"
 
 # Start a client on the currently active workspace after the WM has completed
 # workspace and settings operations. Keep it alive so ICCCM close can be tested.
-xterm -title 'MRX Xvfb test client' -geometry 80x24+10+10 -fn fixed -e sleep 30 >"$RUNTIME/xterm.log" 2>&1 &
+xmessage -title 'MRX Xvfb test client' -buttons Close:0 -default Close 'MRX smoke test' >"$RUNTIME/xterm.log" 2>&1 &
 XTERM_PID=$!
 sleep 0.5
 
@@ -133,7 +133,7 @@ with open(sys.argv[1], encoding='utf-8') as f: data=json.load(f)
 print(data['windows'][0]['id'] if data.get('windows') else '')
 PY
 )"
-[[ -n "$WINDOW_ID" ]] || { echo "FAIL: xterm was not managed" >&2; echo '--- xterm log ---' >&2; cat "$RUNTIME/xterm.log" >&2; echo '--- root tree ---' >&2; xwininfo -root -tree >&2 || true; echo '--- WM log ---' >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+[[ -n "$WINDOW_ID" ]] || { echo "FAIL: xterm was not managed" >&2; echo '--- X11 client log ---' >&2; cat "$RUNTIME/xterm.log" >&2; echo '--- root tree ---' >&2; xwininfo -root -tree >&2 || true; echo '--- WM log ---' >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)

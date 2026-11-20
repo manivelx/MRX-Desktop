@@ -963,6 +963,36 @@ mod monitor_tests {
     }
 
     #[test]
+    fn monitor_workspace_ids_are_independent() {
+        let mut state = State::default();
+        state.settings = Settings::default();
+        state.monitors = monitors();
+        state.active_by_monitor.insert("DP-1".into(), 2);
+        state.active_by_monitor.insert("HDMI-1".into(), 3);
+        set_focused_monitor(&mut state, "HDMI-1");
+        assert_eq!(active_workspace_for(&state, "DP-1"), 2);
+        assert_eq!(active_workspace_for(&state, "HDMI-1"), 3);
+        assert_eq!(state.active, 3);
+    }
+
+    #[test]
+    fn snapshot_emits_monitor_scoped_workspace_instances() {
+        let mut state = State::default();
+        state.settings = Settings::default();
+        state.monitors = monitors();
+        state.active_by_monitor.insert("DP-1".into(), 2);
+        state.active_by_monitor.insert("HDMI-1".into(), 3);
+        state.clients.insert(10, WindowInfo { id: 10, workspace: 2, monitor: "DP-1".into(), ..Default::default() });
+        state.clients.insert(11, WindowInfo { id: 11, workspace: 3, monitor: "HDMI-1".into(), ..Default::default() });
+        set_focused_monitor(&mut state, "DP-1");
+        let snapshot = snapshot(&state);
+        assert_eq!(snapshot.workspaces.len(), state.monitors.len() * state.settings.workspace.count as usize);
+        assert!(snapshot.workspaces.iter().any(|w| w.monitor == "DP-1" && w.id == 2 && w.active && w.windows == 1));
+        assert!(snapshot.workspaces.iter().any(|w| w.monitor == "HDMI-1" && w.id == 3 && w.active && w.windows == 1));
+        assert_eq!(snapshot.active_workspace, 2);
+    }
+
+    #[test]
     fn empty_monitor_registry_is_safe() {
         assert_eq!(monitor_for_geometry(&[], 0, 0, 800, 600), "");
     }

@@ -670,7 +670,8 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
      let workspace=active_workspace_for(&s,&assigned_monitor);
      s.clients.insert(window,WindowInfo{id:window,title,class:String::new(),workspace,monitor:assigned_monitor,x:geometry.x as i32,y:geometry.y as i32,width:geometry.width as u32,height:geometry.height as u32,focused:false,floating,urgent:read_urgent_hint(&conn,window),dock,..Default::default()});
      let _=set_wm_state(&conn,window,wm_state,1);
-     let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[0]);
+     let desktop_value=if dock {u32::MAX} else {workspace.saturating_sub(1)};
+     let _=conn.change_property32(xproto::PropMode::REPLACE,window,desktop,AtomEnum::CARDINAL,&[desktop_value]);
    }
    if let Some(topmost)=s.client_order.iter().rev().find(|id|s.clients.get(id).is_some_and(|w|!w.dock)).copied() {
      if let Some(monitor)=s.clients.get(&topmost).map(|client|client.monitor.clone()) { set_focused_monitor(&mut s,&monitor); }
@@ -719,10 +720,20 @@ Action::Focus(id)=>{
     }
     arrange(&conn,root,&s);
 }, Action::Set(k,v)=>{if let Err(e)=apply_setting(&mut s,&k,v){warn!(error=%e,"setting rejected")}else{for w in s.clients.values(){let _=conn.configure_window(w.id,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));}arrange(&conn,root,&s);}}, Action::Reload=>{match Settings::load(){Ok(c)=>s.settings=c,Err(e)=>warn!(error=%e,"settings reload rejected; keeping previous settings")}} } }
-   match conn.poll_for_event()? { Some(Event::RandrNotify(_)) | Some(Event::RandrScreenChangeNotify(_)) => {
-        let mut s = state.lock().unwrap();
-        refresh_monitor_state(&conn, root, &mut s, screen.width_in_pixels, screen.height_in_pixels);
-    }, Some(Event::PropertyNotify(e))=>{
+   match conn.poll_for_event()? {
+    Some(Event::RandrNotify(_)) => {
+        let mut s=state.lock().unwrap();
+        let width=s.root_width.min(u16::MAX as u32) as u16;
+        let height=s.root_height.min(u16::MAX as u32) as u16;
+        refresh_monitor_state(&conn,root,&mut s,width,height);
+        if let Err(error)=publish_workarea(&conn,root,net_workarea,&s){warn!(%error,"failed to refresh workarea after RandR resource change");}
+    },
+    Some(Event::RandrScreenChangeNotify(event)) => {
+        let mut s=state.lock().unwrap();
+        refresh_monitor_state(&conn,root,&mut s,event.width,event.height);
+        if let Err(error)=publish_workarea(&conn,root,net_workarea,&s){warn!(%error,"failed to refresh workarea after screen resize");}
+    },
+    Some(Event::PropertyNotify(e))=>{
         if e.atom == wm_hints || e.atom == wm_normal_hints || e.atom == net_wm_strut || e.atom == net_wm_strut_partial || e.atom == net_wm_window_type {
             let urgent = if e.atom == wm_hints { Some(read_urgent_hint(&conn, e.window)) } else { None };
             let size_hints = if e.atom == wm_normal_hints { Some(read_size_hints(&conn, e.window)) } else { None };
@@ -751,6 +762,10 @@ Action::Focus(id)=>{
                     window.dock=dock;
                     window.floating=dock || transient || fixed;
                     if dock { window.focused=false; }
+                }
+                if let Some(window)=s.clients.get(&e.window) {
+                    let desktop_value=if window.dock {u32::MAX} else {window.workspace.saturating_sub(1)};
+                    let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[desktop_value]);
                 }
                 if dock && was_focused {
                     focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);

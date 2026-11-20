@@ -68,7 +68,7 @@ echo "PASS: MRX WM IPC responds"
 STARTUP_ADOPTED=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
-  if python3 - "$RUNTIME/snapshot.json" "$STARTUP_ABOVE" "$STARTUP_BELOW" "$STARTUP_HIDDEN" <<'PY'
+  if python3 - "$RUNTIME/snapshot.json" "$STARTUP_ABOVE" "$STARTUP_BELOW" "$STARTUP_HIDDEN" "$STARTUP_OFFDESKTOP" <<'PY'
 import json, sys
 data=json.load(open(sys.argv[1],encoding='utf-8'))
 windows={str(w['id']):w for w in data['windows']}

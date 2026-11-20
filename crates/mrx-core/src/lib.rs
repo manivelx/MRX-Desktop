@@ -1,9 +1,9 @@
-pub mod layout;
-
 //! Shared, versioned data model for MRX Desktop.
 //!
 //! This crate deliberately contains no X11 or Qt code so the protocol and
 //! settings model can be tested without starting a graphical session.
+
+pub mod layout;
 
 use serde::{Deserialize, Serialize};
 use std::{

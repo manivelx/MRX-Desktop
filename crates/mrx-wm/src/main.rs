@@ -503,8 +503,13 @@ fn is_transient(conn: &RustConnection, window: Window) -> Result<bool> {
 fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init(); let (conn,screen_num)=x11rb::connect(None).context("cannot connect to X11 display")?; let screen=&conn.setup().roots[screen_num]; let root=screen.root; conn.change_window_attributes(root,&ChangeWindowAttributesAux::new().event_mask(EventMask::SUBSTRUCTURE_REDIRECT|EventMask::SUBSTRUCTURE_NOTIFY|EventMask::PROPERTY_CHANGE|EventMask::BUTTON_PRESS)).context("another window manager may already own SubstructureRedirect")?.check()?;
  let supported=intern(&conn,"_NET_SUPPORTED")?; let wmcheck=intern(&conn,"_NET_SUPPORTING_WM_CHECK")?; let name=intern(&conn,"_NET_WM_NAME")?; let utf8=intern(&conn,"UTF8_STRING")?; let current=intern(&conn,"_NET_CURRENT_DESKTOP")?; let count=intern(&conn,"_NET_NUMBER_OF_DESKTOPS")?; let clientlist=intern(&conn,"_NET_CLIENT_LIST")?; let clientlist_stacking=intern(&conn,"_NET_CLIENT_LIST_STACKING")?; let desktop=intern(&conn,"_NET_WM_DESKTOP")?; let wm_protocols=intern(&conn,"WM_PROTOCOLS")?; let wm_hints=intern(&conn,"WM_HINTS")?; let wm_normal_hints=intern(&conn,"WM_NORMAL_HINTS")?; let wm_delete=intern(&conn,"WM_DELETE_WINDOW")?; let wm_take_focus=intern(&conn,"WM_TAKE_FOCUS")?; let wm_state=intern(&conn,"WM_STATE")?; let net_close=intern(&conn,"_NET_CLOSE_WINDOW")?; let net_active=intern(&conn,"_NET_ACTIVE_WINDOW")?; let net_wm_state=intern(&conn,"_NET_WM_STATE")?; let net_wm_state_fullscreen=intern(&conn,"_NET_WM_STATE_FULLSCREEN")?; let net_wm_state_hidden=intern(&conn,"_NET_WM_STATE_HIDDEN")?; let net_desktop_names=intern(&conn,"_NET_DESKTOP_NAMES")?; let net_workarea=intern(&conn,"_NET_WORKAREA")?; let net_viewport=intern(&conn,"_NET_DESKTOP_VIEWPORT")?; let net_geometry=intern(&conn,"_NET_DESKTOP_GEOMETRY")?; let net_active_window=intern(&conn,"_NET_ACTIVE_WINDOW")?;
  let atoms=[net_active,net_close,desktop,current,count,clientlist,clientlist_stacking,net_wm_state,net_wm_state_fullscreen,net_wm_state_hidden,net_desktop_names,net_workarea,net_viewport,net_geometry]; conn.change_property32(xproto::PropMode::REPLACE,root,supported,AtomEnum::ATOM,&atoms)?; conn.change_property8(xproto::PropMode::REPLACE,root,name,utf8,b"MRX Rust Desktop")?; let check=conn.generate_id()?; conn.create_window(x11rb::COPY_DEPTH_FROM_PARENT,check,root,0,0,1,1,0,xproto::WindowClass::INPUT_OUTPUT,0,&xproto::CreateWindowAux::new())?; conn.change_property32(xproto::PropMode::REPLACE,root,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property32(xproto::PropMode::REPLACE,check,wmcheck,AtomEnum::WINDOW,&[check])?; conn.change_property8(xproto::PropMode::REPLACE,check,name,utf8,b"MRX Rust Desktop")?;
- let monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
- let state=Arc::new(Mutex::new(State{active:1,settings:Settings::load().unwrap_or_default(),monitors,..Default::default()})); let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
+ let mut monitors = discover_monitors(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
+  let primary = monitors.iter().find(|m| m.focused).or_else(|| monitors.first()).map(|m| m.name.clone()).unwrap_or_default();
+  for monitor in &mut monitors { monitor.focused = monitor.name == primary; monitor.active_workspace = 1; }
+  let active_by_monitor = monitors.iter().map(|m| (m.name.clone(), 1)).collect();
+  let settings = Settings::load().unwrap_or_default();
+  let state=Arc::new(Mutex::new(State{active:1,settings,monitors,active_by_monitor,focused_monitor:primary,..Default::default()}));
+  let workspace_count=state.lock().unwrap().settings.workspace.count as u32;
  conn.change_property32(xproto::PropMode::REPLACE,root,count,AtomEnum::CARDINAL,&[workspace_count])?;
  if conn.extension_information(randr::X11_EXTENSION_NAME)?.is_some() {
      let mask = NotifyMask::SCREEN_CHANGE | NotifyMask::CRTC_CHANGE | NotifyMask::OUTPUT_CHANGE | NotifyMask::RESOURCE_CHANGE;
@@ -561,7 +566,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
  // Client lists were already published after startup adoption; do not erase them here.
  conn.flush()?; info!("MRX X11 window manager started");
  let mut last_monitor_refresh = std::time::Instant::now();
- loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::Switch(id)=>{
+ loop { while let Ok(a)=rx.try_recv(){ let mut s=state.lock().unwrap(); match a { Action::SwitchMonitor(name,id)=>{switch_monitor_workspace(&conn,root,&mut s,&name,id,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);}, Action::Switch(id)=>{
     switch_focused_workspace(&conn,root,&mut s,id,None,current,wm_state,net_wm_state,net_wm_state_hidden,net_active_window);
 },
 Action::SwitchMonitor(monitor,id)=>{
@@ -637,7 +642,7 @@ Action::Focus(id)=>{
         let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]);
         if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}
         arrange(&conn,root,&s);
-    }, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==s.active){s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}, Some(Event::ConfigureRequest(e))=>{
+    }, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==active_workspace_for(&s,&w.monitor)){s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.size_hints.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}, Some(Event::ConfigureRequest(e))=>{
        let managed = state.lock().unwrap().clients.get(&e.window).cloned();
        if let Some(window) = managed {
          if window.floating && !window.fullscreen {
@@ -752,55 +757,50 @@ Action::Focus(id)=>{
 fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State, width: u16, height: u16) {
     let discovered = discover_monitors(conn, root, width, height);
     let changed = discovered.len() != state.monitors.len()
-        || discovered.iter().zip(&state.monitors).any(|(a, b)| {
-            a.name != b.name || a.x != b.x || a.y != b.y
-                || a.width != b.width || a.height != b.height || a.focused != b.focused
-        });
+        || discovered.iter().zip(&state.monitors).any(|(a,b)| a.name != b.name
+            || a.x != b.x || a.y != b.y || a.width != b.width || a.height != b.height);
     if !changed { return; }
-    state.monitors = discovered;
-    let current_names = state.monitors.iter().map(|m| m.name.clone()).collect::<std::collections::BTreeSet<_>>();
-    for monitor in &state.monitors {
-        state.active_by_monitor.entry(monitor.name.clone()).or_insert(1);
+    let old_focus=focused_monitor_name(state);
+    let old_active=state.active_by_monitor.clone();
+    let mut next=discovered;
+    let mut active=BTreeMap::new();
+    for monitor in &mut next {
+        let id=old_active.get(&monitor.name).copied().unwrap_or(1)
+            .clamp(1,state.settings.workspace.count.max(1) as u32);
+        monitor.active_workspace=id;
+        active.insert(monitor.name.clone(),id);
     }
-    state.active_by_monitor.retain(|name, _| current_names.contains(name));
-    let fallback = state.monitors.iter().find(|m| m.name == state.focused_monitor)
-        .or_else(|| state.monitors.iter().find(|m| m.focused))
-        .or_else(|| state.monitors.first()).cloned().unwrap_or_default();
-    if !current_names.contains(&state.focused_monitor) && !fallback.name.is_empty() {
-        set_focused_monitor(state, &fallback.name);
-    }
-    let current_monitors = state.monitors.clone();
+    let names:std::collections::BTreeSet<String>=next.iter().map(|m|m.name.clone()).collect();
+    let fallback=next.iter().find(|m|m.name==old_focus).or_else(||next.iter().find(|m|m.focused))
+        .or_else(||next.first()).cloned().unwrap_or_default();
     for window in state.clients.values_mut() {
-        if !current_monitors.iter().any(|m| m.name == window.monitor) {
-            window.monitor = fallback.name.clone();
+        if !names.contains(&window.monitor) {
+            window.monitor=fallback.name.clone();
+            window.workspace=active.get(&fallback.name).copied().unwrap_or(1);
             if window.floating {
-                let max_x = fallback.x + fallback.width.saturating_sub(window.width) as i32;
-                let max_y = fallback.y + fallback.height.saturating_sub(window.height) as i32;
-                window.x = window.x.clamp(fallback.x, max_x.max(fallback.x));
-                window.y = window.y.clamp(fallback.y, max_y.max(fallback.y));
-                let _ = conn.configure_window(window.id, &ConfigureWindowAux::new().x(window.x).y(window.y));
+                let max_x=fallback.x+fallback.width.saturating_sub(window.width) as i32;
+                let max_y=fallback.y+fallback.height.saturating_sub(window.height) as i32;
+                window.x=window.x.clamp(fallback.x,max_x.max(fallback.x));
+                window.y=window.y.clamp(fallback.y,max_y.max(fallback.y));
+                let _=conn.configure_window(window.id,&ConfigureWindowAux::new().x(window.x).y(window.y));
             }
         }
     }
-    info!(count = state.monitors.len(), names = ?state.monitors.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), "RandR monitor topology refreshed");
-    arrange(conn, root, state);
+    state.monitors=next;
+    state.active_by_monitor=active;
+    let focus=if names.contains(&old_focus){old_focus}else{fallback.name.clone()};
+    set_focused_monitor(state,&focus);
+    info!(count=state.monitors.len(),names=?state.monitors.iter().map(|m|m.name.as_str()).collect::<Vec<_>>(),"RandR monitor topology refreshed");
+    arrange(conn,root,state);
 }
+
 fn switch_monitor_workspace(
-    conn: &RustConnection,
-    root: Window,
-    state: &mut State,
-    monitor: &str,
-    requested: u32,
-    count: u32,
-    wrap: bool,
-    desktop_current: u32,
-    desktop_names: u32,
-    net_active_window: u32,
-    wm_state: u32,
-    net_wm_state: u32,
-    net_wm_state_hidden: u32,
+    conn: &RustConnection, root: Window, state: &mut State, monitor: &str,
+    requested: u32, current: u32, wm_state: u32, net_wm_state: u32,
+    net_wm_state_hidden: u32, net_active_window: u32,
 ) {
-    if !state.monitors.iter().any(|m| m.name == monitor) || count == 0 { return; }
+    let count = state.settings.workspace.count.max(1) as u32;
+    if !state.monitors.iter().any(|m| m.name == monitor) { return; }
     let id = requested.clamp(1, count);
     state.active_by_monitor.insert(monitor.to_owned(), id);
     set_focused_monitor(state, monitor);
@@ -816,37 +816,26 @@ fn switch_monitor_workspace(
         }
     }
     let _ = conn.delete_property(root, net_active_window);
-    let _ = conn.change_property32(xproto::PropMode::REPLACE, root, desktop_current, AtomEnum::CARDINAL, &[id - 1]);
-    let _ = desktop_names;
-    let _ = wrap;
+    let _ = conn.change_property32(xproto::PropMode::REPLACE, root, current, AtomEnum::CARDINAL, &[id - 1]);
     arrange(conn, root, state);
 }
 
 fn switch_focused_workspace(
-    conn: &RustConnection,
-    root: Window,
-    state: &mut State,
-    requested: u32,
-    relative: Option<i32>,
-    current: u32,
-    wm_state: u32,
-    net_wm_state: u32,
-    net_wm_state_hidden: u32,
-    net_active_window: u32,
+    conn: &RustConnection, root: Window, state: &mut State, requested: u32,
+    relative: Option<i32>, current: u32, wm_state: u32, net_wm_state: u32,
+    net_wm_state_hidden: u32, net_active_window: u32,
 ) {
     let monitor = focused_monitor_name(state);
     let max = state.settings.workspace.count.max(1) as u32;
     let active = active_workspace_for(state, &monitor);
     let id = if let Some(delta) = relative {
-        let mut next = active as i32 + delta;
+        let next = active as i32 + delta;
         if state.settings.workspace.wrap {
-            next = ((next - 1).rem_euclid(max as i32)) + 1;
-        } else {
-            next = next.clamp(1, max as i32);
-        }
-        next as u32
+            ((next - 1).rem_euclid(max as i32) + 1) as u32
+        } else { next.clamp(1, max as i32) as u32 }
     } else { requested.clamp(1, max) };
-    switch_monitor_workspace(conn, root, state, &monitor, id, max, state.settings.workspace.wrap, current, 0, net_active_window, wm_state, net_wm_state, net_wm_state_hidden);
+    switch_monitor_workspace(conn, root, state, &monitor, id, current, wm_state,
+        net_wm_state, net_wm_state_hidden, net_active_window);
 }
 
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {

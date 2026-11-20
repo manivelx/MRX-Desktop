@@ -615,7 +615,7 @@ fn is_transient(conn: &RustConnection, window: Window) -> Result<bool> {
 fn is_dock_window(conn: &RustConnection, window: Window, window_type_atom: u32, dock_atom: u32) -> bool {
     conn.get_property(false,window,window_type_atom,AtomEnum::ATOM,0,16).ok()
         .and_then(|cookie|cookie.reply().ok())
-        .and_then(|reply|reply.value32().map(|atoms|atoms.any(|atom|atom==dock_atom)))
+        .and_then(|reply|reply.value32().map(|mut atoms|atoms.any(|atom|atom==dock_atom)))
         .unwrap_or(false)
 }
 fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init(); let (conn,screen_num)=x11rb::connect(None).context("cannot connect to X11 display")?; let screen=&conn.setup().roots[screen_num]; let root=screen.root; conn.change_window_attributes(root,&ChangeWindowAttributesAux::new().event_mask(EventMask::SUBSTRUCTURE_REDIRECT|EventMask::SUBSTRUCTURE_NOTIFY|EventMask::PROPERTY_CHANGE|EventMask::BUTTON_PRESS)).context("another window manager may already own SubstructureRedirect")?.check()?;
@@ -1157,7 +1157,7 @@ mod monitor_tests {
         let monitor=MonitorInfo{name:"HDMI-1".into(),x:1920,y:0,width:1280,height:720,focused:false,active_workspace:1};
         let strut=DockStrut{top:50,top_start_x:0,top_end_x:1000,..Default::default()};
         let docks=BTreeMap::from([(100,strut)]);
-        let area=monitor_workarea(&monitor,&docks);
+        let area=monitor_workarea(&monitor,&docks,1920,1080);
         assert_eq!((area.x,area.y,area.width,area.height),(1920,0,1280,720));
     }
 

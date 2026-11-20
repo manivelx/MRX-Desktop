@@ -2,24 +2,36 @@
 
 ## Process model
 
-`mrx-wm` owns the X11 `SubstructureRedirect` selection and is the only window-manager process. It publishes root EWMH metadata and manages client/workspace state. `mrxctl` is a stateless Unix-socket client. Quickshell is a presentation process and must never own window policy.
+`mrx-wm` owns the X11 `SubstructureRedirect` selection and is the only window-manager process. It publishes root EWMH metadata and manages client/workspace state. `mrxctl` is a stateless Unix-domain socket client. Quickshell is a presentation process and must not own window-management policy.
 
-## IPC
+## IPC protocol (v3)
 
-One JSON request per line over `$XDG_RUNTIME_DIR/mrx.sock`; socket mode 0600. Requests are tagged by `command`. Replies are JSON. Future versioning should add `protocol_version`, request IDs, event subscriptions and structured error codes. Never expose a TCP listener.
+- Socket: `$XDG_RUNTIME_DIR/mrx.sock` (0600). When `XDG_RUNTIME_DIR` is unset, MRX uses a private per-user fallback runtime directory.
+- Transport: one newline-terminated JSON request and one JSON response per connection; no TCP listener.
+- Each request carries `protocol_version` and a monotonically allocated client-side `request_id`. The server rejects incompatible versions and echoes the ID; `mrxctl` verifies both before accepting a response.
+- The server bounds request framing, socket read/write timeouts and concurrent client workers. It refuses to replace a non-socket at the IPC path.
+- The server supports push-style snapshot event subscriptions over a separate long-lived Unix-socket connection. Subscriber workers are bounded and released on client disconnect. The current QML adapter still uses periodic snapshot refresh; wiring QML fully to the push stream and validating event ordering/backpressure remain open.
 
 ## Settings
 
-Runtime settings are owned by the Rust core. QML asks the core to validate and apply a setting; the core atomically persists TOML. Settings must not trigger a whole-shell restart. Unsupported settings must return an explicit error, not silently succeed.
+Runtime settings are owned by the Rust window manager. The `set` request parses a typed JSON value for a supported key, applies it to a candidate settings copy, validates the candidate, atomically writes TOML and only then swaps it into runtime state. Invalid types, unknown keys or out-of-range values are rejected without replacing the current configuration. Full multi-setting transactions, rollback UI and profile import/export are not implemented.
 
 ## X11 policy
 
-Use x11rb and explicit protocol extension features. Implement ICCCM/EWMH incrementally and test with common X11 applications. The WM must not assume that X11 client windows are all normal toplevels. Treat docks, dialogs, splash screens, override-redirect windows, transient windows and fullscreen clients separately.
+The WM uses `x11rb` and explicit protocol extension features. It handles common ICCCM/EWMH behaviors incrementally and is tested against Xvfb and simple X11 clients. Clients are not all ordinary toplevels: startup adoption skips override-redirect windows; transient/fixed-size clients float; dock clients are sticky, excluded from ordinary workspace tiling and may reserve monitor workarea through partial/legacy struts.
 
-## Animation boundary
+Implemented protocol areas include polite `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS` negotiation, `WM_STATE`, `WM_HINTS` urgency, common `WM_NORMAL_HINTS`, desktop metadata, client lists/stacking, current desktop, per-window desktop, close/active requests and basic fullscreen state. Maximized/restored geometry, ABOVE/BELOW, full initial-state adoption, hidden/minimize lifecycle and advanced dialog modality still need work.
 
-Workspace animation is a separate renderer project. The WM publishes workspace transitions and geometry; renderer captures/retains window content via XComposite and damage tracking, and presents frames using a validated GLX/Present path. Do not add an unverified Picom animation patch as a dependency. GT 740/NVIDIA 470 testing is mandatory before enabling the renderer by default.
+## Monitor model
+
+RandR 1.5 monitor objects are preferred, with active-CRTC fallback. The WM refreshes on RandR notifications and reconciles periodically for servers that do not report monitor-object changes reliably. Workspaces are local to a monitor; identical workspace numbers on different outputs are distinct state instances. The EWMH root `_NET_WORKAREA` remains a root-screen compatibility view; monitor-specific workareas are used internally for tiling.
+
+Xvfb virtual-monitor coverage does not replace physical EDID, hotplug, mixed-resolution or mixed-DPI tests.
+
+## Graphics and animations
+
+Workspace animation is a future renderer project. The renderer must capture/retain window content with XComposite and track damage with XDamage before presenting frames through a validated GLX/Present path. No animation renderer is shipped as a validated production feature. GT 740/NVIDIA 470 testing is mandatory before enabling one by default.
 
 ## Session safety
 
-MRX owns only its own binaries, session entry, `~/.config/mrx`, and `~/.config/quickshell/mrx`. It must not kill processes by broad name, change SDDM defaults, replace the existing lock screen, or mutate the user's BSPWM/end4 sessions.
+MRX owns only its own binaries, session entry and MRX-specific configuration/shell directories. Its installer is experimental and user-scoped. It must not broadly kill processes, change SDDM defaults, replace the existing lock screen, or mutate the user's BSPWM/end4 sessions.

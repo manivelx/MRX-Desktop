@@ -20,6 +20,7 @@ Singleton {
     property string userKeybindConfigPath: FileUtils.trimFileProtocol(`${Directories.config}/hypr/custom`)
     property string bspwmKeybindParserPath: FileUtils.trimFileProtocol(`${Directories.scriptPath}/x11/get_sxhkd_keybinds.py`)
     property string bspwmKeybindConfigPath: FileUtils.trimFileProtocol(`${Directories.config}/mrx/sxhkdrc`)
+    property bool isMrx: WM.compositor === "mrx"
     property var defaultKeybinds: {"children": []}
     property var userKeybinds: {"children": []}
     property var keybinds: ({
@@ -59,7 +60,7 @@ Singleton {
 
     Process {
         id: getBspwmKeybinds
-        running: WM.isX11
+        running: WM.compositor === "bspwm" || root.isMrx
         command: ["python3", root.bspwmKeybindParserPath, "--path", root.bspwmKeybindConfigPath]
         stdout: StdioCollector {
             onStreamFinished: {

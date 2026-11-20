@@ -1,23 +1,22 @@
 # Feature status
 
-This document separates design intent from implemented behavior. “Partial” means the code exists but is not complete or sufficiently tested for general use.
+This table distinguishes implemented code from complete, validated desktop behavior. “Partial” means real implementation exists but acceptance coverage or full protocol semantics are still outstanding.
 
 | Feature | Status | Notes |
 |---|---|---|
-| X11 connection | Partial | Initial connection and root-window ownership code exists. |
-| Window mapping/focus | Partial | Startup adoption, unmap/destroy cleanup, focus restoration, transient handling and urgency snapshots exist; input focus models and edge-case runtime coverage remain. |
-| EWMH desktop metadata | Partial | Desktop names, viewport, workarea, geometry, client lists and stacking are published; dock struts have initial parsing and workarea support; full state semantics remain. |
-| Workspaces | Partial | Independent monitor-local workspace state, monitor-specific IPC and Quickshell workspace routing are implemented; slide animation is not implemented. |
-| Master/stack layout | Partial | Shared geometry engine with per-monitor tiling and ICCCM min/max/base/increment/aspect constraints; small-workarea and real-client behavior still need broader validation. |
-| Monocle layout | Initial | Shared geometry engine added; runtime testing pending. |
-| Floating windows | Partial | Transient/fixed-size clients float; complete dialog modality, stacking and edge-case behavior need validation. |
-| Fullscreen | Partial | Basic EWMH fullscreen state is implemented; maximize/restore, initial state adoption and complete restoration semantics remain. |
-| Multi-monitor | Partial | RandR discovery/reconciliation, per-monitor tiling and workspaces, monitor-specific IPC, Quickshell routing and initial EWMH dock struts/workareas are implemented. Physical multi-output and panel validation remain outstanding. |
-| IPC | Partial | Versioned local Unix-socket protocol, request IDs, bounded framing and timeouts; push subscriptions and asynchronous operation results remain. |
-| Settings | Partial | TOML persistence and live application for initial options; typed validation, transactions, rollback and profiles remain. |
-| Dashboard | Partial | Imported QML source and early adapter; not all pages are MRX-backed. |
-| Media/audio/network | Upstream-dependent | Must audit each integration and remove unsupported assumptions. |
-| Workspace animations | Not implemented | Requires dedicated renderer feasibility and hardware tests. |
-| Installer | Experimental | Isolated install/reinstall/uninstall regression tests exist; full VM/session coexistence and release signing remain. Do not use on a daily-use machine. |
+| X11 connection and WM ownership | Partial | Rust X11 connection, root selection and event loop are implemented; nested-session and long-session behavior still need validation. |
+| Window mapping and focus | Partial | Startup adoption, unmap/destroy cleanup, focus restoration, transient classification, focus negotiation and urgency snapshots are implemented; remaining focus/withdrawal edge cases need broader X server tests. |
+| ICCCM size hints | Partial | Min/max/base/increment/aspect constraints and fixed-size floating policy exist; pathological combinations/small workareas need more tests. |
+| EWMH desktop metadata | Partial | Desktop names, viewport, geometry, workarea, client lists and stacking are published; complete state semantics remain. |
+| EWMH window state | Partial | Close, active/current desktop, per-window desktop, fullscreen and initial dock behavior exist; maximize/restore, above/below and complete hidden/minimized lifecycle remain. |
+| Workspaces and layouts | Partial | Master/stack, columns, monocle and independent monitor-local workspace state are implemented; animation and real-client edge coverage remain. |
+| Floating and dialogs | Partial | Transient and fixed-size clients float; modality, stacking and complex dialog rules need more validation. |
+| Multi-monitor | Partial | RandR discovery/reconciliation, per-monitor tiling/workspaces, monitor-aware IPC and QML routing, hotplug state refresh and initial dock workareas are implemented. Physical multi-output, EDID and mixed-resolution behavior remain untested. |
+| Dock panels | Partial | Partial and legacy struts influence workareas; overlapping, vertical and multi-panel geometry needs physical/Xephyr coverage. |
+| IPC | Partial | Versioned request/reply protocol v3, request IDs, bounded framing/timeouts, server-push subscriptions and client-worker cleanup are implemented. End-to-end QML subscription integration and load/backpressure validation remain. |
+| Settings | Partial | TOML persistence and initial live-apply actions exist; full typed validation, transactional rollback and profiles remain. |
+| Shell integration | Partial | MRX adapter maps supported window/workspace APIs; not every imported QML service or action has a verified MRX implementation. |
+| Graphics/animations | Not implemented | XComposite/Damage capture, renderer, transitions and frame pacing are future work. |
+| Installer | Experimental | Isolated temporary-home install/reinstall/backup/uninstall tests pass in CI; VM/session coexistence, upgrade policy and signed release artifacts remain. |
 
-See [Phase 1 status](PHASE-1-STATUS.md) for the implementation increment and explicit acceptance blockers.
+See [Phase 1 status](PHASE-1-STATUS.md), [Roadmap](../ROADMAP.md) and [Validation](VALIDATION.md) for acceptance boundaries.

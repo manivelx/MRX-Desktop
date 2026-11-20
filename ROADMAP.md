@@ -1,56 +1,71 @@
-# Roadmap
+# MRX Desktop roadmap
 
-This roadmap is directional. Items are not complete until code, tests and validation evidence are merged.
+Items are marked complete only when implementation and relevant automated validation exist. Physical hardware and end-to-end session checks are recorded separately.
 
-## Phase 0 — Public foundation
+## Phase 0 — Repository foundation
 
-- [x] Publish source tree and upstream license files.
-- [x] Document current limitations and validation gaps.
-- [ ] Establish maintainer/release process and repository settings.
-- [x] Add CI that passes on a clean supported runner.
+- [x] Publish source tree, license notices and contributor documentation.
+- [x] Define project scope and record known gaps.
+- [x] Add CI for formatting, tests, lint, build, static checks, installer sandbox and Xvfb.
 
 ## Phase 1 — Reliable X11 window manager
 
-- [ ] Complete ICCCM/EWMH essentials and startup client discovery.
-- [ ] Correctly handle dialogs, transients, docks, override-redirect windows and urgency.
-- [x] Implement common ICCCM size hints, fixed-size floating detection, fullscreen and focus policies.
-- [ ] Validate edge-case size-hint/aspect combinations and complete remaining ICCCM lifecycle semantics.
-- [x] Add RandR monitor discovery/change handling and per-monitor tiling foundation.
-- [x] Add initial EWMH dock strut parsing and per-monitor usable workareas.
-- [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
-- [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.
-- [ ] Validate independent workspaces on physical multi-output hardware.
-- [x] Add deterministic Xvfb integration tests for the compiled WM.\n- [ ] Add Xephyr nested-server coverage.
+- [x] Rust X11 connection, event loop and local IPC.
+- [x] ICCCM close/focus basics, startup adoption, urgency and common size hints.
+- [x] EWMH desktop metadata and core client messages.
+- [x] RandR 1.5 monitor discovery, event updates and reconciliation.
+- [x] Per-monitor tiling, independent workspaces and monitor-aware shell workspace routing.
+- [x] Initial EWMH dock strut/workarea handling.
+- [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
+- [ ] Complete EWMH maximize/restore, above/below and minimized/hidden state lifecycle.
+- [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
+- [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
+- [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.
 
-## Phase 2 — Desktop core and live settings
+## Phase 2 — Desktop core and IPC
 
-- [x] Version the IPC protocol, add request IDs, correlate responses and reject incompatible clients.
-- [ ] Add push-based event subscriptions and structured asynchronous operation results.
-- [ ] Replace polling with event subscriptions.
-- [ ] Make settings typed, validated and transactionally applied.
-- [ ] Add undo/reset/profile import-export where appropriate.
-- [ ] Add service health reporting and crash recovery.
+- [x] Version IPC messages (v3) and correlate request/response IDs.
+- [x] Bound IPC framing, timeouts and concurrent service clients.
+- [x] Add push-based event subscriptions and subscriber disconnect cleanup.
+- [ ] Standardize structured asynchronous operation results and error categories.
+- [ ] Finish typed settings validation, atomic apply/rollback and profile import/export.
+- [ ] Add process health reporting, supervised restart and orderly shutdown tests.
+- [ ] Validate event ordering, backpressure and high-rate update behavior.
 
 ## Phase 3 — Graphics and animations
 
-- [ ] Prototype XComposite window capture and damage tracking.
-- [ ] Validate GLX/Present rendering on supported hardware.
-- [ ] Build workspace transitions with correct input/focus handoff.
-- [ ] Measure frame pacing, CPU/GPU usage and memory.
-- [ ] Keep a graceful no-animation fallback.
+- [ ] Prototype XComposite capture and XDamage tracking.
+- [ ] Build/validate renderer with a no-animation fallback.
+- [ ] Add workspace transitions with correct input/focus handoff.
+- [ ] Verify GLX/Present behavior on supported hardware.
+- [ ] Measure frame pacing, CPU/GPU use, memory and recovery from renderer failure.
 
-## Phase 4 — Shell integration and visual system
+## Phase 4 — Quickshell integration and visual system
 
-- [ ] Audit every QML service and compositor-specific command.
-- [ ] Replace supported Hyprland/BSPWM calls with the MRX API.
-- [ ] Provide explicit disabled states for unsupported features.
-- [ ] Unify layout, spacing, typography, controls and responsive behavior.
-- [ ] Test all settings from the UI without shell restarts.
+- [ ] Audit every imported QML service, shell command and compositor-specific API.
+- [ ] Route supported window/workspace/settings actions through MRX APIs.
+- [ ] Add honest disabled/unsupported states for unavailable features.
+- [ ] Consolidate theme, typography, spacing, responsive layouts and accessibility.
+- [ ] Validate each QML page and interactive control in a complete session.
+- [ ] Replace snapshot polling with subscription-driven updates where supported.
 
-## Phase 5 — Session and release engineering
+## Phase 5 — Session, installer and release engineering
 
-- [ ] Make install/uninstall idempotent and ownership-scoped.
-- [ ] Test in a disposable VM and nested X server.
-- [ ] Verify coexistence with existing sessions and display managers.
-- [ ] Publish signed/checksummed artifacts and release notes.
-- [ ] Validate hardware matrix before making compatibility claims.
+- [x] Add reversible user-scoped install/uninstall scaffolding with isolated regression tests.
+- [ ] Test installation, upgrade, rollback and removal in disposable Arch/CachyOS VMs.
+- [ ] Validate coexistence with existing BSPWM/SDDM/lock-screen configuration.
+- [ ] Add recovery and diagnostics for failed session startup.
+- [ ] Publish reproducible release artifacts, checksums and release notes.
+- [ ] Complete hardware compatibility matrix before making support claims.
+
+## Release gates
+
+MRX remains experimental until all of the following are true:
+
+1. CI is green on the exact release commit.
+2. The WM passes nested-X and real-client integration tests.
+3. The Quickshell session is validated end-to-end.
+4. Installer/upgrade/rollback are tested in disposable VMs.
+5. Hardware claims have recorded results for each supported GPU/output path.
+
+A virtual Xvfb monitor test is not a substitute for physical multi-monitor validation. A successful Rust build is not evidence that the full desktop session is stable.

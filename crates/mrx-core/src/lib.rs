@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
 };
 
-pub const IPC_PROTOCOL_VERSION: u32 = 2;
+pub const IPC_PROTOCOL_VERSION: u32 = 3;
 pub const SOCKET_NAME: &str = "mrx.sock";
 pub const DEFAULT_WORKSPACES: usize = 9;
 pub const MAX_WORKSPACES: usize = 32;

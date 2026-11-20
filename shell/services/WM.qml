@@ -116,10 +116,10 @@ Singleton {
             return
         }
         if (root.compositor !== "bspwm") return
-        if (s.includes("quickshell:wallpaperSelectorToggle")) {
-            Quickshell.execDetached(["qs", "-c", "mrx", "ipc", "call", "end4", "toggleWallpaperSelector"])
-            return
-        }
+        // The end4 wallpaper selector IPC is not part of the MRX shell API yet.
+        // Ignore this upstream-only action rather than invoking another Quickshell
+        // configuration under an MRX session.
+        if (s.includes("quickshell:wallpaperSelectorToggle")) return
         if (/workspace\s+r?\+1/.test(s)) { root.switchWorkspaceRelative("next"); return }
         if (/workspace\s+r?-1/.test(s)) { root.switchWorkspaceRelative("previous"); return }
         let m = s.match(/window\s*=\s*"address:([^"]+)"/)

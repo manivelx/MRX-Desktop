@@ -9,46 +9,6 @@ pub struct Rect {
     pub height: u32,
 }
 
-/// ICCCM WM_NORMAL_HINTS constraints used when fitting a client into a tile.
-/// Aspect constraints are kept for a later pass; these fields cover the common
-/// minimum, maximum, base-size and resize-increment hints.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct SizeHints {
-    pub min_width: Option<u32>,
-    pub min_height: Option<u32>,
-    pub max_width: Option<u32>,
-    pub max_height: Option<u32>,
-    pub base_width: Option<u32>,
-    pub base_height: Option<u32>,
-    pub width_inc: Option<u32>,
-    pub height_inc: Option<u32>,
-}
-
-/// Constrain a tiled rectangle to the client's ICCCM size limits. When a
-/// client requests a smaller size than its tile, center it in the available
-/// rectangle; minimum sizes may exceed the tile when the screen is too small.
-pub fn constrain_size(rect: Rect, hints: &SizeHints) -> Rect {
-    fn dimension(value: u32, min: Option<u32>, max: Option<u32>, base: Option<u32>, inc: Option<u32>) -> u32 {
-        let minimum = min.unwrap_or(1).max(1);
-        let maximum = max.filter(|v| *v >= minimum).unwrap_or(u32::MAX);
-        let mut result = value.clamp(minimum, maximum);
-        if let Some(step) = inc.filter(|step| *step > 0) {
-            let origin = base.or(min).unwrap_or(0);
-            if result >= origin {
-                result = origin.saturating_add(((result - origin) / step) * step);
-            }
-            result = result.clamp(minimum, maximum);
-        }
-        result.max(1)
-    }
-
-    let width = dimension(rect.width, hints.min_width, hints.max_width, hints.base_width, hints.width_inc);
-    let height = dimension(rect.height, hints.min_height, hints.max_height, hints.base_height, hints.height_inc);
-    let x = rect.x.saturating_add(((rect.width as i64 - width as i64) / 2) as i32);
-    let y = rect.y.saturating_add(((rect.height as i64 - height as i64) / 2) as i32);
-    Rect { x, y, width, height }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LayoutKind {
     MasterStack,
@@ -166,31 +126,5 @@ mod tests {
         assert!(rects.iter().all(|r| r.width >= 1 && r.height >= 1));
     }
 
-    #[test]
-    fn size_hints_enforce_minimum_and_maximum_dimensions() {
-        let rect = Rect { x: 0, y: 0, width: 900, height: 700 };
-        let hints = SizeHints {
-            min_width: Some(320), min_height: Some(240),
-            max_width: Some(800), max_height: Some(600), ..Default::default()
-        };
-        assert_eq!(constrain_size(rect, &hints), Rect { x: 50, y: 50, width: 800, height: 600 });
-    }
 
-    #[test]
-    fn resize_increments_are_applied_from_base_size() {
-        let rect = Rect { x: 0, y: 0, width: 503, height: 407 };
-        let hints = SizeHints {
-            base_width: Some(100), base_height: Some(80),
-            width_inc: Some(16), height_inc: Some(12), ..Default::default()
-        };
-        assert_eq!(constrain_size(rect, &hints), Rect { x: 1, y: 1, width: 500, height: 404 });
-    }
-
-    #[test]
-    fn size_hints_never_return_zero_for_pathological_values() {
-        let rect = Rect { x: -4, y: 7, width: 0, height: 0 };
-        let hints = SizeHints { min_width: Some(0), min_height: Some(0), width_inc: Some(0), height_inc: Some(0), ..Default::default() };
-        let result = constrain_size(rect, &hints);
-        assert!(result.width >= 1 && result.height >= 1);
-    }
 }

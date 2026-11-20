@@ -79,6 +79,8 @@ fn stream_ipc_snapshots(
     // request/response connections. A slow or disconnected reader is dropped
     // by the write timeout instead of blocking the X11 event loop.
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
+    let mut probe = stream.try_clone()?;
+    probe.set_read_timeout(Some(Duration::from_millis(100)))?;
     let mut previous = String::new();
     loop {
         let current = snapshot(&state.lock().unwrap());
@@ -91,7 +93,21 @@ fn stream_ipc_snapshots(
             stream.flush()?;
             previous = encoded;
         }
-        thread::sleep(Duration::from_millis(100));
+
+        // Detect client disconnects even when no state changes occur. Without
+        // this read probe, abandoned subscriptions would occupy the bounded
+        // IPC worker slots forever.
+        let mut incoming = [0u8; 1];
+        match probe.read(&mut incoming) {
+            Ok(0) => return Ok(()),
+            Ok(_) => anyhow::bail!("unexpected client data on snapshot subscription"),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
+            Err(error) => return Err(error.into()),
+        }
     }
 }
 

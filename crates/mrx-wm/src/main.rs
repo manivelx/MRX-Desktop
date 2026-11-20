@@ -1143,7 +1143,6 @@ mod monitor_tests {
     }
 
     #[test]
-    #[test]
     fn synthetic_screen_monitor_is_removed_when_real_outputs_exist() {
         let mut list = vec![
             MonitorInfo { name: "screen".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },
@@ -1164,6 +1163,7 @@ mod monitor_tests {
         assert_eq!(list[0].name, "screen");
     }
 
+    #[test]
     fn monitor_workspace_ids_are_independent() {
         let mut state = State { settings: Settings::default(), monitors: monitors(), ..Default::default() };
         state.active_by_monitor.insert("DP-1".into(), 2);

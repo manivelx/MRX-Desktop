@@ -288,7 +288,7 @@ def geometry(path):
     text = open(path, encoding='utf-8').read()
     values = {}
     for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'):
-        match = re.search(r'^\\s*' + re.escape(key) + r':\\s*(-?\\d+)', text, re.MULTILINE)
+        match = re.search(r'\s*' + re.escape(key) + r':\\s*(-?\\d+)', text, re.MULTILINE)
         assert match, (key, text)
         values[key] = int(match.group(1))
     return tuple(values[key] for key in ('Absolute upper-left X', 'Absolute upper-left Y', 'Width', 'Height'))

@@ -267,7 +267,14 @@ pub struct MonitorInfo {
     pub width: u32,
     pub height: u32,
     pub focused: bool,
+    /// Active workspace local to this monitor. Defaults to workspace 1 for
+    /// snapshots produced by earlier protocol-v2 MRX builds.
+    #[serde(default = "default_monitor_workspace")]
+    pub active_workspace: u32,
 }
+
+fn default_monitor_workspace() -> u32 { 1 }
+
 
 /// Versioned IPC request envelope. IDs correlate each response with its
 /// originating request, even when clients pipeline or retry operations.
@@ -295,6 +302,7 @@ impl RequestEnvelope {
 pub enum Request {
     Snapshot,
     SwitchWorkspace { id: u32 },
+    SwitchWorkspaceOnMonitor { monitor: String, id: u32 },
     SwitchRelative { direction: String },
     FocusWindow { id: u32 },
     CloseWindow { id: u32 },
@@ -362,6 +370,25 @@ mod tests {
         assert_eq!(window.id, 42);
         assert_eq!(window.monitor, "");
         assert!(!window.urgent);
+    }
+
+    #[test]
+    fn monitor_workspace_defaults_for_older_snapshots() {
+        let monitor: MonitorInfo = serde_json::from_str(
+            r#"{"name":"DP-1","x":0,"y":0,"width":1920,"height":1080,"focused":true}"#
+        ).unwrap();
+        assert_eq!(monitor.active_workspace, 1);
+    }
+
+    #[test]
+    fn monitor_workspace_switch_request_round_trips() {
+        let request = Request::SwitchWorkspaceOnMonitor {
+            monitor: "HDMI-1".into(),
+            id: 3,
+        };
+        let encoded = serde_json::to_string(&request).unwrap();
+        let decoded: Request = serde_json::from_str(&encoded).unwrap();
+        assert!(matches!(decoded, Request::SwitchWorkspaceOnMonitor { monitor, id: 3 } if monitor == "HDMI-1"));
     }
 
     #[test]

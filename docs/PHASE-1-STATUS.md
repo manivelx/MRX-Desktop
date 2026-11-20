@@ -18,7 +18,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 ## Latest CI validation
 
-The merged `main` baseline [run #385](https://github.com/manivelx/MRX-Desktop/actions/runs/44765068175) passed on commit `06d7f4f6c9b6018163429ff7b8a5cd4da79877c6`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The Phase 2 subscription implementation separately passed branch CI [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970); the integration PR must pass CI on its exact current head before merge.
+The merged `main` baseline [run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) passed on commit `579dacb6f099726621583fa034b88d9d9df40b28`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The Phase 2 subscription implementation separately passed branch CI [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970); the integration PR must pass CI on its exact current head before merge.
 
 ## Remaining Phase 1 acceptance work
 

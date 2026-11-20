@@ -169,3 +169,4 @@ grep -Fq '"subscribe"' crates/mrxctl/src/main.rs || fail 'mrxctl has no persiste
 grep -Fq 'mrxctl", "subscribe' shell/services/MRXBackend.qml || fail 'Quickshell does not consume the IPC event stream'
 grep -Fq 'SplitParser' shell/services/MRXBackend.qml || fail 'Quickshell cannot parse newline-delimited subscription events'
 grep -Fq 'persistent IPC subscription emits initial and changed snapshots' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits subscription event validation'
+grep -Fq 'probe.read(&mut incoming)' crates/mrx-wm/src/main.rs || fail 'IPC subscriptions do not detect disconnected clients'

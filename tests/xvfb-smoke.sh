@@ -111,6 +111,16 @@ xprop -root _NET_NUMBER_OF_DESKTOPS _NET_DESKTOP_NAMES _NET_WORKAREA _NET_CLIENT
 grep -q '_NET_NUMBER_OF_DESKTOPS' "$RUNTIME/ewmh.txt"
 grep -q '_NET_DESKTOP_NAMES' "$RUNTIME/ewmh.txt"
 grep -q '_NET_WORKAREA' "$RUNTIME/ewmh.txt"
+python3 - "$RUNTIME/ewmh.txt" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+line = next((line for line in text.splitlines() if '_NET_WORKAREA' in line), '')
+values = [int(value) for value in re.findall(r'\d+', line.split('=', 1)[-1])]
+assert len(values) == 36, (len(values), line)
+assert values[:4] == [0, 0, 1920, 1080], values[:4]
+assert all(values[i:i+4] == [0, 0, 1920, 1080] for i in range(0, 36, 4)), values
+print('PASS: EWMH workarea is published for all nine desktops')
+PY
 grep -q '_NET_CLIENT_LIST_STACKING' "$RUNTIME/ewmh.txt"
 echo "PASS: EWMH desktop and client-stacking metadata is published"
 

@@ -206,6 +206,31 @@ assert window['monitor'] in {m['name'] for m in data['monitors']}, data
 print('PASS: managed window has a live monitor assignment')
 PY
 
+# Reuse the live test client as a dock and reserve 48px at the top edge.
+xprop -id "$WINDOW_ID" -f _NET_WM_WINDOW_TYPE 32a -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DOCK
+xprop -id "$WINDOW_ID" -f _NET_WM_STRUT_PARTIAL 32c -set _NET_WM_STRUT_PARTIAL '0, 0, 48, 0, 0, 0, 0, 0, 0, 1919, 0, 0'
+WORKAREA_APPLIED=0
+for _ in $(seq 1 30); do
+  xprop -root _NET_WORKAREA >"$RUNTIME/workarea.txt"
+  if python3 - "$RUNTIME/workarea.txt" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+payload = text.split("=", 1)[-1]
+values = [int(v) for v in re.findall(r"\\d+", payload)]
+raise SystemExit(0 if len(values) >= 4 and values[:4] == [0, 48, 1920, 1032] else 1)
+PY
+  then WORKAREA_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$WORKAREA_APPLIED" == 1 ]] || {
+  echo "FAIL: dock partial strut did not reduce EWMH workarea" >&2
+  xprop -id "$WINDOW_ID" _NET_WM_WINDOW_TYPE _NET_WM_STRUT_PARTIAL >&2 || true
+  xprop -root _NET_WORKAREA >&2 || true
+  cat "$RUNTIME/wm.log" >&2
+  exit 1
+}
+echo "PASS: EWMH dock partial strut reduces usable workarea"
+
 # Set the ICCCM urgency flag on the live client and verify PropertyNotify
 # refreshes the shared snapshot rather than leaving a stale initial value.
 xprop -id "$WINDOW_ID" -f WM_HINTS 32c -set WM_HINTS '0x100, 0, 0, 0, 0, 0, 0, 0, 0'

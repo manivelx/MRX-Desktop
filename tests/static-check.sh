@@ -36,6 +36,10 @@ if grep -Eiq '(^|[[:space:]/])(/etc/sddm\.conf|/usr/share/sddm/themes|\.local/sh
   fail 'installer/session scripts reference protected login or lock-screen paths'
 fi
 pass 'installer scripts do not modify protected SDDM/lock-screen paths'
+if grep -Fq 'install -m644 "$ROOT/session/mrx.desktop" /usr/share/xsessions/mrx.desktop' install.sh; then fail 'installer must not silently overwrite a system-wide session entry'; fi
+if grep -Fq 'rm -f /usr/share/xsessions/mrx.desktop' uninstall.sh; then fail 'uninstaller must not remove a potentially pre-existing system-wide session entry'; fi
+grep -Fq 'picom.conf" ]] || install' install.sh || fail 'reinstall must preserve the existing Picom config'
+pass 'installer preserves user configuration and leaves system-wide session registration opt-in'
 
 # The MRX shell must use its own backend rather than launch BSPWM as WM.
 grep -q 'mrx-wm' session/mrx-session || fail 'session does not launch MRX WM'

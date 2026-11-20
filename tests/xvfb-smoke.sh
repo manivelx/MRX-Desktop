@@ -300,6 +300,40 @@ PY
 done
 [[ "$RESTORED" == 1 ]] || { echo "FAIL: EWMH maximize state did not restore original geometry" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
 
+# Exercise EWMH hidden/minimize state. The client must remain in the managed
+# client list while unmapped, report Iconic WM_STATE, and restore on removal.
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 1 hidden
+MINIMIZED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next((w for w in data['windows'] if str(w['id']) == sys.argv[2]), None)
+raise SystemExit(0 if window and window.get('minimized') else 1)
+PY
+  then MINIMIZED=1; break; fi
+  sleep 0.1
+done
+[[ "$MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not minimize the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Iconic State'
+"$RUNTIME/send-net-wm-state" "$WINDOW_ID" 0 hidden
+RESTORE_MINIMIZED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+window = next((w for w in data['windows'] if str(w['id']) == sys.argv[2]), None)
+raise SystemExit(0 if window and not window.get('minimized') else 1)
+PY
+  then RESTORE_MINIMIZED=1; break; fi
+  sleep 0.1
+done
+[[ "$RESTORE_MINIMIZED" == 1 ]] || { echo "FAIL: EWMH hidden state did not restore the client" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+xprop -id "$WINDOW_ID" WM_STATE | grep -q 'Normal State'
+echo "PASS: EWMH minimize/restore retains the managed client and WM_STATE"
+
 # Reuse the live test client as a dock and reserve 48px at the top edge.
 
 xprop -id "$WINDOW_ID" -f _NET_WM_WINDOW_TYPE 32a -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DOCK

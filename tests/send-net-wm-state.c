@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
     Atom state = XInternAtom(display, "_NET_WM_STATE", False);
     Atom horizontal = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
     Atom vertical = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    Atom hidden = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
 
     XEvent event;
     memset(&event, 0, sizeof(event));
@@ -25,8 +26,8 @@ int main(int argc, char **argv) {
     event.xclient.message_type = state;
     event.xclient.format = 32;
     event.xclient.data.l[0] = action;
-    event.xclient.data.l[1] = strcmp(argv[3], "vertical") == 0 ? 0 : (long)horizontal;
-    event.xclient.data.l[2] = strcmp(argv[3], "horizontal") == 0 ? 0 : (long)vertical;
+    event.xclient.data.l[1] = strcmp(argv[3], "hidden") == 0 ? (long)hidden : (strcmp(argv[3], "vertical") == 0 ? 0 : (long)horizontal);
+    event.xclient.data.l[2] = strcmp(argv[3], "hidden") == 0 || strcmp(argv[3], "horizontal") == 0 ? 0 : (long)vertical;
     event.xclient.data.l[3] = 1; /* application source indication */
 
     int sent = XSendEvent(display, DefaultRootWindow(display), False,

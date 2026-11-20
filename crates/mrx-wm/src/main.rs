@@ -220,6 +220,33 @@ fn focus_client(conn: &RustConnection, window: Window, wm_protocols: u32, wm_tak
     Ok(())
 }
 
+/// Restore focus to the most recently managed client on the active workspace.
+fn focus_most_recent(
+    conn: &RustConnection,
+    root: Window,
+    state: &mut State,
+    wm_protocols: u32,
+    wm_take_focus: u32,
+    net_active_window: u32,
+) {
+    let candidate = state.client_order.iter().rev().find(|id| {
+        state.clients.get(id).is_some_and(|window| window.workspace == state.active)
+    }).copied();
+    for window in state.clients.values_mut() {
+        window.focused = Some(window.id) == candidate;
+    }
+    if let Some(id) = candidate {
+        if let Err(error) = focus_client(conn, id, wm_protocols, wm_take_focus) {
+            warn!(window = id, %error, "failed to restore client focus");
+        }
+        let _ = conn.change_property32(
+            xproto::PropMode::REPLACE, root, net_active_window, AtomEnum::WINDOW, &[id],
+        );
+    } else {
+        let _ = conn.delete_property(root, net_active_window);
+    }
+}
+
 /// Set the ICCCM WM_STATE property (Withdrawn=0, Normal=1, Iconic=3).
 fn set_wm_state(conn: &RustConnection, window: Window, wm_state: u32, state: u32) -> Result<()> {
     conn.change_property32(xproto::PropMode::REPLACE, window, wm_state, wm_state, &[state, 0])?;
@@ -347,7 +374,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
             }
         }
         arrange(&conn, root, &s);
-    }, Some(Event::MapRequest(e))=>{let mut s=state.lock().unwrap();let ws=s.active; let _=conn.map_window(e.window);let _=conn.configure_window(e.window,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));let g=conn.get_geometry(e.window)?.reply()?;let floating=is_transient(&conn,e.window).unwrap_or(false);let title=conn.get_property(false,e.window,AtomEnum::WM_NAME,AtomEnum::STRING,0,1024)?.reply()?.value;let title=String::from_utf8_lossy(&title).to_string();for c in s.clients.values_mut(){c.focused=false;}if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); } s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32),x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);let _=set_wm_state(&conn,e.window,wm_state,1);let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}arrange(&conn,root,&s);}, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==s.active){s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}if s.clients.values().all(|w|!w.focused){let _=conn.delete_property(root,net_active_window);}}, Some(Event::ConfigureRequest(e))=>{
+    }, Some(Event::MapRequest(e))=>{let mut s=state.lock().unwrap();let ws=s.active; let _=conn.map_window(e.window);let _=conn.configure_window(e.window,&ConfigureWindowAux::new().border_width(s.settings.appearance.border_width));let g=conn.get_geometry(e.window)?.reply()?;let floating=is_transient(&conn,e.window).unwrap_or(false);let title=conn.get_property(false,e.window,AtomEnum::WM_NAME,AtomEnum::STRING,0,1024)?.reply()?.value;let title=String::from_utf8_lossy(&title).to_string();for c in s.clients.values_mut(){c.focused=false;}if !s.clients.contains_key(&e.window) { s.client_order.push(e.window); } s.clients.insert(e.window,WindowInfo{id:e.window,title,class:String::new(),workspace:ws,monitor:monitor_for_geometry(&s.monitors,g.x as i32,g.y as i32,g.width as u32,g.height as u32),x:g.x as i32,y:g.y as i32,width:g.width as u32,height:g.height as u32,focused:true,floating,..Default::default()});let _=conn.change_window_attributes(e.window,&ChangeWindowAttributesAux::new().event_mask(EventMask::PROPERTY_CHANGE));if let Err(error)=focus_client(&conn,e.window,wm_protocols,wm_take_focus){warn!(window=e.window,%error,"ICCCM focus negotiation failed");}let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[e.window]);let _=set_wm_state(&conn,e.window,wm_state,1);let _=conn.change_property32(xproto::PropMode::REPLACE,e.window,desktop,AtomEnum::CARDINAL,&[ws-1]);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}arrange(&conn,root,&s);}, Some(Event::UnmapNotify(e))=>{let mut s=state.lock().unwrap();if s.clients.get(&e.window).is_some_and(|w|w.workspace==s.active){s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);let _=set_wm_state(&conn,e.window,wm_state,0);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);arrange(&conn,root,&s);}}, Some(Event::DestroyNotify(e))=>{let mut s=state.lock().unwrap();s.clients.remove(&e.window);s.client_order.retain(|id|*id!=e.window);if let Err(error)=publish_client_lists(&conn,root,clientlist,clientlist_stacking,&s){warn!(%error,"failed to publish EWMH client lists");}focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);}, Some(Event::ConfigureRequest(e))=>{
        let managed = state.lock().unwrap().clients.get(&e.window).cloned();
        if let Some(window) = managed {
          if window.floating && !window.fullscreen {

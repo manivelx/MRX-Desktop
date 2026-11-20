@@ -165,7 +165,8 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
     let supports_monitor_objects = randr_version.as_ref()
         .is_some_and(|version| (version.major_version, version.minor_version) >= (1, 5));
     if supports_monitor_objects {
-        match conn.randr_get_monitors(root, true).and_then(|cookie| cookie.reply()) {
+        match conn.randr_get_monitors(root, true) {
+            Ok(cookie) => match cookie.reply() {
             Ok(reply) => {
                 for monitor in reply.monitors {
                     if monitor.width == 0 || monitor.height == 0 { continue; }
@@ -180,7 +181,9 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
                     });
                 }
             }
-            Err(error) => warn!(%error, "RandR GetMonitors failed; using active CRTC outputs"),
+            Err(error) => warn!(%error, "RandR GetMonitors reply failed; using active CRTC outputs"),
+            },
+            Err(error) => warn!(%error, "RandR GetMonitors request failed; using active CRTC outputs"),
         }
     }
 
@@ -188,11 +191,12 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
     // This still supports legacy RandR 1.2 servers and Xvfb configurations
     // where a root-screen has several attached output regions.
     if monitors.is_empty() && randr_available {
-        if let Ok(resources) = conn.randr_get_screen_resources_current(root).and_then(|cookie| cookie.reply()) {
+        if let Ok(resources_cookie) = conn.randr_get_screen_resources_current(root) {
+          if let Ok(resources) = resources_cookie.reply() {
             let mut crtcs = Vec::new();
             for crtc_id in resources.crtcs {
-                let Ok(info) = conn.randr_get_crtc_info(crtc_id, resources.config_timestamp)
-                    .and_then(|cookie| cookie.reply()) else { continue; };
+                let Ok(info_cookie) = conn.randr_get_crtc_info(crtc_id, resources.config_timestamp) else { continue; };
+                let Ok(info) = info_cookie.reply() else { continue; };
                 if info.mode == 0 || info.width == 0 || info.height == 0 { continue; }
                 let names = info.outputs.iter().filter_map(|output_id| {
                     conn.randr_get_output_info(*output_id, resources.config_timestamp).ok()
@@ -215,6 +219,7 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
             }
             crtcs.sort_by(|a, b| (a.x, a.y, &a.name).cmp(&(b.x, b.y, &b.name)));
             monitors = crtcs;
+          }
         }
     }
     if monitors.is_empty() {

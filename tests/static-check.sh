@@ -161,3 +161,11 @@ grep -Fq 'dock clients remain sticky and do not steal keyboard focus' tests/xvfb
 grep -Fq 'name: "root-workarea"' crates/mrx-wm/src/main.rs || fail 'EWMH workarea is not computed against the root screen'
 grep -Fq 'EWMH dock partial strut reduces usable workarea' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock strut reservation validation'
 grep -Fq 'right_and_bottom_struts_use_root_edge_distances' crates/mrx-wm/src/main.rs || fail 'dock strut root-edge geometry tests missing'
+
+grep -Fq 'pub const IPC_PROTOCOL_VERSION: u32 = 3' crates/mrx-core/src/lib.rs || fail 'IPC protocol version was not advanced for subscriptions'
+grep -Fq '    Subscribe,' crates/mrx-core/src/lib.rs || fail 'IPC protocol has no subscription request'
+grep -Fq 'fn stream_ipc_snapshots' crates/mrx-wm/src/main.rs || fail 'WM does not stream changed snapshots to subscribers'
+grep -Fq '"subscribe"' crates/mrxctl/src/main.rs || fail 'mrxctl has no persistent subscription command'
+grep -Fq 'mrxctl", "subscribe' shell/services/MRXBackend.qml || fail 'Quickshell does not consume the IPC event stream'
+grep -Fq 'SplitParser' shell/services/MRXBackend.qml || fail 'Quickshell cannot parse newline-delimited subscription events'
+grep -Fq 'persistent IPC subscription emits initial and changed snapshots' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits subscription event validation'

@@ -235,6 +235,10 @@ pub struct WindowInfo {
     pub focused: bool,
     pub floating: bool,
     pub fullscreen: bool,
+    #[serde(default)]
+    pub maximized_horz: bool,
+    #[serde(default)]
+    pub maximized_vert: bool,
     /// ICCCM WM_HINTS urgency bit; the client owns setting and clearing it.
     #[serde(default)]
     pub urgent: bool,

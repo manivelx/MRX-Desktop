@@ -22,6 +22,7 @@ Item {
     property string activeWindowAddress: activeWindow?.address ?? ""
     property bool focusingThisMonitor: WM.focusedMonitor?.name === monitor?.name
     property var biggestWindow: WM.biggestWindowForWorkspace(WM.activeWorkspaceForMonitor(monitor?.name)?.id ?? 1)
+    readonly property bool hasUrgentWindows: WM.windowList.some(window => window.urgent === true)
 
     property string activeAppClass: {
         if (!root.focusingThisMonitor || !root.activeWindow?.activated)
@@ -63,6 +64,20 @@ Item {
     }
 
     // Horizontal
+    Rectangle {
+        id: urgencyIndicator
+        visible: root.hasUrgentWindows
+        width: 7
+        height: 7
+        radius: 4
+        color: "#E05A5A"
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.rightMargin: 5
+        anchors.topMargin: 5
+        z: 10
+    }
+
     ColumnLayout {
         id: colLayout
         visible: !root.vertical

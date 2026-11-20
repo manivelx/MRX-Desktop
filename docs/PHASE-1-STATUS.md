@@ -14,7 +14,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - EWMH handling for close, active-window, current-desktop, per-window desktop and fullscreen state requests.
 - Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.
 - RandR 1.5 monitor discovery with atom-derived monitor names, geometry and primary-monitor selection, plus active-CRTC fallback for older or limited RandR servers.
-- RandR screen/CRTC/output/resource notifications refresh monitor state; discovery now probes the negotiated RandR version and falls back to active CRTC/output geometry when monitor-object queries fail.
+- RandR screen/CRTC/output/resource notifications refresh monitor state. A 250 ms low-frequency reconciliation pass also catches servers that expose monitor-object changes without delivering the expected notification; unchanged topologies do not trigger re-layout.
 - Windows retain monitor identity in the shared snapshot; tiled clients are arranged per monitor. On monitor removal, affected clients migrate to the remaining focused/primary monitor; floating windows are clamped into its bounds.
 - Quickshell MRX adapter consumes the reported monitor list and window monitor identity instead of hardcoding `screen-0`.
 - GitHub Actions validates formatting, workspace tests, Clippy, build, static checks, Xvfb server startup and the compiled WM smoke test.
@@ -23,7 +23,7 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 
 The initial CI baseline passed the Rust workspace, Clippy, build, static checks and single-screen Xvfb client smoke test.
 
-The added multi-monitor monitor-object test exposed an important distinction: Xvfb can report RandR monitor objects with `xrandr --listmonitors`, but this alone does not prove MRX refreshes its IPC monitor snapshot. The current branch now adds a RandR 1.2 active-CRTC fallback and a version-aware RandR 1.5 query path. The updated full CI run must pass before claiming monitor-object snapshot refresh is validated.
+The added multi-monitor monitor-object test exposed an important distinction: Xvfb can report RandR monitor objects with `xrandr --listmonitors`, but this alone does not prove MRX refreshes its IPC monitor snapshot. The current branch adds version-aware RandR 1.5 discovery, a RandR 1.2 active-CRTC fallback, and a low-frequency topology reconciliation path for servers that do not deliver monitor-object notifications. CI run #194 is validating this change; do not claim this smoke test passed until the run is green.
 
 ## Remaining work before Phase 1 can be considered complete
 

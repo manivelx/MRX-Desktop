@@ -1,50 +1,44 @@
 # Phase 1 — Rust X11 window manager status
 
 Release target: `0.1.0-alpha.12`  
-Status: **IN PROGRESS — not a daily-driver release**
+Status: **IN PROGRESS — experimental, not a daily-driver release**
 
-## Implemented in this revision
+## Implemented
 
-- Fixed an initialization regression where `_NET_CLIENT_LIST` and `_NET_CLIENT_LIST_STACKING` were published after startup adoption and then immediately cleared before entering the event loop.
-- Kept ICCCM `WM_STATE=NormalState` for clients hidden on another virtual desktop; `_NET_WM_STATE_HIDDEN` carries virtual-desktop visibility.
+- Rust X11 WM ownership and event loop with a shared state snapshot and typed local IPC.
+- Versioned IPC request envelopes (protocol v2) with request IDs, correlated responses and explicit mismatch rejection; bounded IPC input framing, socket read/write timeouts, bounded concurrent clients, private fallback runtime directory, safe socket-path handling, and atomic settings persistence.
+- `mrxctl` uses bounded response reads and socket timeouts.
+- Workspace switching and EWMH desktop metadata, including `_NET_CLIENT_LIST`, `_NET_CLIENT_LIST_STACKING`, desktop names, viewport, workarea and geometry.
+- ICCCM polite `WM_DELETE_WINDOW` close, `WM_STATE` updates, `WM_TAKE_FOCUS` negotiation, transient-window detection, live `WM_HINTS` urgency tracking, `WM_NORMAL_HINTS` min/max/base/increment/aspect constraints, fixed-size floating policy, and focus restoration after client unmap/destruction.
+- Startup adoption of already-viewable non-override-redirect clients.
+- EWMH handling for close, active-window, current-desktop, per-window desktop and fullscreen state requests.
+- Floating and tiled client ConfigureRequest policy; master/stack, columns and monocle layout calculations.
+- RandR 1.5 monitor discovery with atom-derived monitor names, geometry and primary-monitor selection, plus active-CRTC fallback for older or limited RandR servers.
+- RandR screen/CRTC/output/resource notifications refresh monitor state. A 250 ms low-frequency reconciliation pass also catches servers that expose monitor-object changes without delivering the expected notification; unchanged topologies do not trigger re-layout.
+- Independent monitor-local active workspaces, visibility, workspace snapshots, IPC switching, and Quickshell workspace-bar targeting are implemented; initial dock strut/workarea handling is implemented; physical multi-output validation remains open.
+- Windows retain monitor identity in the shared snapshot; tiled clients are arranged per monitor. On monitor removal, affected clients migrate to the remaining focused/primary monitor; floating windows are clamped into its bounds.
+- Quickshell MRX adapter consumes the reported monitor list and window monitor identity instead of hardcoding `screen-0`.
+- GitHub Actions validates formatting, workspace tests, Clippy, build, static checks, Xvfb server startup and the compiled WM smoke test.
 
-- Fixed startup EWMH client-list initialization: `_NET_CLIENT_LIST` and `_NET_CLIENT_LIST_STACKING` are published after startup adoption and are no longer immediately overwritten with empty arrays before the event loop starts.
-- Kept ICCCM `WM_STATE=NormalState` for clients hidden on another virtual desktop; `_NET_WM_STATE_HIDDEN` carries the desktop visibility state.
+## Latest CI validation
 
-- IPC accepts concurrent local clients using a bounded 32-client limit; slow clients no longer block all other clients.
-- IPC rejects oversized/non-newline-terminated requests, refuses to unlink non-socket paths, and uses mode 0600 for the socket. A private fallback runtime directory is mode 0700; an existing XDG_RUNTIME_DIR is not chmodded.
+GitHub Actions [run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790) passed on commit `25179f24cd3ff76a7f49d83c81256a896ca68eab`.
 
-- Shared, deterministic master/stack, columns and monocle geometry calculations.
-- ICCCM `WM_DELETE_WINDOW` is now requested through `WM_PROTOCOLS`; `KillClient` is reserved for clients that do not advertise polite close support.
-- ICCCM focus negotiation now reads `WM_HINTS` InputHint and sends `WM_TAKE_FOCUS` only when the client advertises that protocol.
-- Transient windows are identified through `WM_TRANSIENT_FOR` and excluded from tiling as floating windows.
-- Tiled clients no longer have arbitrary ConfigureRequest geometry applied; floating clients can request geometry.
-- EWMH root-message handling for `_NET_CLOSE_WINDOW`, `_NET_ACTIVE_WINDOW`, `_NET_CURRENT_DESKTOP`, and `_NET_WM_STATE_FULLSCREEN` add/remove/toggle requests.
-- ICCCM `WM_STATE` remains Normal for managed clients hidden on another workspace; Withdrawn is set when a visible client unmaps itself. EWMH hidden state represents workspace visibility.
-- EWMH `_NET_WM_STATE_HIDDEN` is updated alongside workspace visibility.
-- Publish desktop names, viewport, workarea and desktop geometry metadata.
-- Publish `_NET_CLIENT_LIST_STACKING` using the server root-child stacking order, and retain a separate MRX client map-order list for `_NET_CLIENT_LIST`.
-- Adopt already-viewable non-override-redirect root children on WM startup, initialize ICCCM Normal state, subscribe to property changes, and initialize the active-window property.
-- Handle `_NET_WM_DESKTOP` requests for regular workspaces and update `_NET_ACTIVE_WINDOW` on accepted focus changes.
-- Initial `UnmapNotify` withdrawal handling, with hidden-workspace unmaps excluded.
-- Fullscreen transitions preserve the current client geometry and restore it when fullscreen is removed.
-- IPC requests now have a 64 KiB input cap and read/write timeouts.
-- GitHub Actions CI added for formatting, tests, Clippy, build and Xvfb smoke checks.
+The run passed Rust formatting, all workspace tests, Clippy with warnings denied, build, static checks, isolated installer regression tests, Xvfb server checks and the compiled WM Xvfb smoke test. The smoke test verifies two virtual RandR monitors, independent per-monitor workspace switching, EWMH dock workarea reservation, sticky dock behavior without focus theft, live ICCCM urgency updates through a correctly typed `WM_HINTS` property, and client lifecycle handling.
 
-## Still blocking Phase 1 completion
+This validates the software paths exercised by the Ubuntu/Xvfb runner. It does not validate Quickshell runtime rendering, physical multi-monitor hotplug, NVIDIA 470 / GT 740, GPU acceleration or animation frame pacing.
 
-- Complete `WM_STATE` lifecycle (Withdrawn/Normal/Iconic), urgency handling, normal size hints, startup adoption and robust unmap handling. `WM_HINTS` InputHint and `WM_TAKE_FOCUS` negotiation are implemented but still require integration tests. The current unmap handling is an initial implementation and needs integration testing for synthetic and reparenting edge cases.
-- Remaining `_NET_WM_STATE` semantics: initial client state adoption, maximize/restore, above/below, and full hidden/minimized behavior. Fullscreen support is implemented as an initial subset.
-- Startup adoption can only approximate original map order from current stacking; full historical `_NET_CLIENT_LIST` ordering needs persistent tracking during a running WM. Client-list stacking is now published from the X server tree, but must be integration-tested. Workarea still assumes the full screen and does not yet subtract dock/panel struts.
-- Full ICCCM focus policy (`WM_HINTS` input model and `WM_TAKE_FOCUS`), focus restoration, urgency, stacking requests and keyboard grab error handling.
-- Dock/panel struts and work-area calculation.
-- RandR output/CRTC discovery, per-monitor workspace ownership, hotplug and monitor removal migration.
-- IPC now has a 64 KiB line cap, read/write timeouts, bounded concurrent clients and safer socket-path handling; multiple requests per connection, event subscriptions and orderly shutdown remain open.
-- Compilation, formatting, Clippy and runtime integration must pass on CI; CI now includes the full Xvfb WM smoke test but has not yet run.
-- Xephyr integration scenarios for normal map/unmap/destroy, transient dialog, focus, polite close, fullscreen restore, EWMH and RandR hotplug.
+## Remaining work before Phase 1 can be considered complete
 
-## Current validation boundary
+- Extend `WM_NORMAL_HINTS` validation for remaining ICCCM edge cases, especially aspect-ratio/increment combinations under very small work areas; add physical-client tests for focus, withdrawal and urgency transitions.
+- Finish EWMH state semantics beyond the current subset: initial client state adoption, maximize/restore, above/below and complete minimized/hidden behavior.
+- Validate EWMH dock/panel strut parsing and per-monitor usable workareas on mixed-resolution physical outputs; partial and legacy struts are parsed and applied to tiling and the focused-monitor EWMH workarea.
+- Physical multi-output hotplug, disconnect/reconnect and floating-window migration need an integration test on a multi-output X server or real hardware. Xvfb validates only its virtual single-screen configuration.
+- Validate transient dialogs, startup adoption, unmap/destroy races, focus policy, fullscreen restore and EWMH client stacking in more comprehensive Xephyr/Xorg scenarios.
+- IPC event subscriptions and orderly shutdown remain open; the shell currently uses periodic snapshot refresh.
 
-The local container has Xvfb but does not have `cargo`, `rustc`, Quickshell or an NVIDIA device/driver. The Xvfb probe validates the virtual X server only. It does not validate the Rust WM, QML runtime, proprietary NVIDIA 470 driver, GT 740, or animation performance. The expanded WM smoke test is present but remains unexecuted until a Rust build is available.
+## Validation boundary
 
-Do not mark Phase 1 complete until the CI build and integration matrix pass and the missing protocol items above are implemented.
+Rust formatting, tests, Clippy, build, static checks and the Xvfb WM smoke test pass in GitHub Actions. This does not validate Quickshell/QML runtime behavior, a complete MRX session, physical multi-monitor hotplug, the proprietary NVIDIA 470 driver, GT 740 compatibility, GLX acceleration or animation performance.
+
+Do not mark Phase 1 complete or recommend daily use until the remaining protocol work and runtime/hardware validation have been completed.

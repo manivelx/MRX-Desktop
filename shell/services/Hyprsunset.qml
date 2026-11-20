@@ -13,7 +13,8 @@ Singleton {
 
     readonly property real gammaLowerLimit: 25
     readonly property bool isNiri: WM.compositor === "niri"
-    readonly property bool isBspwm: WM.isX11
+    readonly property bool isBspwm: WM.compositor === "bspwm"
+    readonly property bool isMrx: WM.compositor === "mrx"
 
     property string from: Config.options?.light?.night?.from ?? "19:00"
     property string to: Config.options?.light?.night?.to ?? "06:30"
@@ -90,6 +91,9 @@ Singleton {
     }
 
     function load() {
+        // MRX does not yet own a night-light backend. Never kill or replace
+        // a user-managed gammastep/wlsunset process during shell startup.
+        if (root.isMrx) return;
         if (root.isNiri) {
             root.disableTemperature();
             return;
@@ -105,6 +109,7 @@ Singleton {
     }
 
     function enableTemperature() {
+        if (root.isMrx) return;
         if (root.isNiri) {
             root.startNiriSunset(root.colorTemperature);
         } else if (root.isBspwm) {
@@ -117,6 +122,7 @@ Singleton {
     }
 
     function disableTemperature() {
+        if (root.isMrx) return;
         if (root.isNiri) {
             root.stopNiriSunset();
         } else if (root.isBspwm) {
@@ -128,6 +134,7 @@ Singleton {
     }
 
     function setGamma(gamma) {
+        if (root.isMrx) return;
         root.gamma = Math.max(root.gammaLowerLimit, Math.min(100, gamma));
         root.gammaChangeAttempt();
 
@@ -150,6 +157,7 @@ Singleton {
     }
 
     function fetchState() {
+        if (root.isMrx) return;
         if (root.isNiri) {
             niriFetchProc.running = true;
         } else if (root.isBspwm) {
@@ -214,7 +222,7 @@ Singleton {
     Connections {
         target: Config.options.light.night
         function onColorTemperatureChanged() {
-            if (!root.temperatureActive) return;
+            if (root.isMrx || !root.temperatureActive) return;
             if (root.isNiri) {
                 root.startNiriSunset(Config.options.light.night.colorTemperature);
             } else if (root.isBspwm) {

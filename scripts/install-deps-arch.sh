@@ -14,7 +14,7 @@ packages=(
   # X11 server, diagnostics and isolated test servers
   xorg-server xorg-server-xephyr xorg-server-xvfb xorg-xrandr xorg-xprop
   xorg-xwininfo xorg-xinput xorg-xdpyinfo xorg-xset xorg-xsetroot
-  xdotool xsettingsd xterm
+  xdotool xsettingsd xterm xorg-xmessage xorg-fonts-misc
   # Quickshell / Qt QML frontend (X11/XCB)
   quickshell qt6-base qt6-declarative qt6-svg gtk4 libadwaita
   libsoup3 libportal-gtk4 gobject-introspection cairo dbus dconf pkgconf

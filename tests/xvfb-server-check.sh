@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validates the available virtual X server without requiring MRX binaries.
 set -euo pipefail
-for c in Xvfb xdpyinfo xterm xwininfo; do
+for c in Xvfb xdpyinfo xmessage xwininfo; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/mrx-xserver.XXXXXX")"
@@ -18,7 +18,7 @@ echo 'PASS: Xvfb server starts at 1920x1080x24'
 EXTENSIONS="$(xdpyinfo -queryExtensions)"
 grep -qi Composite <<<"$EXTENSIONS" && echo 'PASS: Composite extension advertised' || echo 'WARN: Composite extension missing'
 grep -qi GLX <<<"$EXTENSIONS" && echo 'PASS: GLX extension advertised (software Xvfb only)' || echo 'WARN: GLX extension missing'
-xterm -title 'MRX X11 probe' >"$TMP/xterm.log" 2>&1 & XPID=$!
+xmessage -title 'MRX X11 probe' -buttons Close:0 'MRX X11 probe' >"$TMP/xmessage.log" 2>&1 & XPID=$!
 for _ in $(seq 1 30); do xwininfo -root -tree 2>/dev/null | grep -q 'MRX X11 probe' && break; sleep 0.1; done
 xwininfo -root -tree | grep 'MRX X11 probe' >/dev/null
 echo 'PASS: X11 client creates a mapped window'

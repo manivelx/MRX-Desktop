@@ -125,4 +125,6 @@ mod tests {
         let rects = arrange(tiny, 8, LayoutKind::MasterStack, f32::NAN, u32::MAX);
         assert!(rects.iter().all(|r| r.width >= 1 && r.height >= 1));
     }
+
+
 }

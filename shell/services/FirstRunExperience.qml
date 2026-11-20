@@ -4,6 +4,7 @@ import qs.modules.common
 import qs.modules.common.functions
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 Singleton {
     id: root
@@ -26,7 +27,10 @@ Singleton {
     }
 
     function handleFirstRun() {
-        Quickshell.execDetached([Directories.wallpaperSwitchScriptPath, root.defaultWallpaperPath])
+        // The upstream wallpaper switcher is compositor-specific. Do not run it
+        // automatically in MRX; the MRX wallpaper UI can be used explicitly.
+        if (WM.compositor !== "mrx")
+            Quickshell.execDetached([Directories.wallpaperSwitchScriptPath, root.defaultWallpaperPath])
         Quickshell.execDetached(["bash", "-c", `qs -p '${root.welcomeQmlPath}'`])
     }
 

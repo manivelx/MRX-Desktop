@@ -54,13 +54,14 @@ Singleton {
     function switchWorkspace(id) { backend?.switchWorkspace(id) }
     function switchWorkspaceOnMonitor(id, monitorName) {
         if (root.compositor === "bspwm") backend?.switchWorkspace(id, monitorName)
+        else if (root.compositor === "mrx") backend?.switchWorkspaceOnMonitor(id, monitorName)
         else backend?.switchWorkspace(id)
     }
     function switchWorkspaceRelative(direction) { backend?.switchWorkspaceRelative(direction) }
     function moveWindowToWorkspace(id, wsId) { backend?.moveWindowToWorkspace(id, wsId) }
     function monitorFor(screen) { return backend?.monitorFor(screen) ?? null }
     function activeWorkspaceForMonitor(name) { return backend?.activeWorkspaceForMonitor(name) ?? null }
-    function biggestWindowForWorkspace(id) { return backend?.biggestWindowForWorkspace(id) ?? null }
+    function biggestWindowForWorkspace(id, monitorName) { return backend?.biggestWindowForWorkspace(id, monitorName) ?? null }
     function fullscreenOnMonitor(name) { return backend?.fullscreenOnMonitor(name) ?? false }
     function monitorGeometry(screen) { return backend?.monitorGeometry(screen) ?? { x: 0, y: 0, scale: 1 } }
 
@@ -76,32 +77,41 @@ Singleton {
     }
 
     // Compatibility dispatcher for the original end4-pC QML actions.
+    // Parse the small subset MRX implements; never pass upstream expressions
+    // through to a different window manager or execute arbitrary shell text.
+    function relativeWorkspaceDirection(expression) {
+        if (/workspace\s*=\s*["']?r?\+1/.test(expression)) return "next"
+        if (/workspace\s*=\s*["']?r?-1/.test(expression)) return "previous"
+        return ""
+    }
+
     function dispatch(command) {
         if (root.compositor === "hyprland") { Hyprland.dispatch(command); return }
         const s = String(command)
         if (root.compositor === "niri") {
-            if (/workspace\s+r?\+1/.test(s)) { root.switchWorkspaceRelative("next"); return }
-            if (/workspace\s+r?-1/.test(s)) { root.switchWorkspaceRelative("previous"); return }
+            const relative = relativeWorkspaceDirection(s)
+            if (relative) { root.switchWorkspaceRelative(relative); return }
+            
             let nm = s.match(/window\s*=\s*"address:([^"]+)"/)
             if (nm && /close/.test(s)) { root.closeWindow(nm[1]); return }
             if (nm && /(moveToWorkspace|window\.move)/.test(s)) {
-                const ws = s.match(/workspace\s*=\s*(-?\d+)/)
+                const ws = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
                 if (ws) root.moveWindowToWorkspace(nm[1], Number(ws[1]))
                 return
             }
             if (nm && /focus|activate/.test(s)) { root.focusWindow(nm[1]); return }
-            nm = s.match(/workspace\s*=\s*(-?\d+)/)
+            nm = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
             if (nm) { root.switchWorkspace(Number(nm[1])); return }
             return
         }
         if (root.compositor === "mrx") {
-            if (/workspace\s+r?\+1/.test(s)) { root.switchWorkspaceRelative("next"); return }
-            if (/workspace\s+r?-1/.test(s)) { root.switchWorkspaceRelative("previous"); return }
+            const relative = relativeWorkspaceDirection(s)
+            if (relative) { root.switchWorkspaceRelative(relative); return }
             let am = s.match(/address:([0-9]+)/)
             if (am && /close/.test(s)) { root.closeWindow(am[1]); return }
             if (am && /focus|activate/.test(s)) { root.focusWindow(am[1]); return }
-            if (am && /(moveToWorkspace|window\.move)/.test(s)) { const target = s.match(/workspace\s*=\s*(-?\d+)/); if (target) root.moveWindowToWorkspace(am[1], Number(target[1])); return }
-            am = s.match(/workspace\s*=\s*(-?\d+)/)
+            if (am && /(moveToWorkspace|window\.move)/.test(s)) { const target = s.match(/workspace\s*=\s*["\']?(-?\d+)/); if (target) root.moveWindowToWorkspace(am[1], Number(target[1])); return }
+            am = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
             if (am) root.switchWorkspace(Number(am[1]))
             return
         }
@@ -116,7 +126,7 @@ Singleton {
         const address = m?.[1]
         if (address && /close/.test(s)) { root.closeWindow(address); return }
         if (address && /(moveToWorkspace|window\.move)/.test(s)) {
-            const ws = s.match(/workspace\s*=\s*(-?\d+)/)
+            const ws = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
             if (ws) root.moveWindowToWorkspace(address, Number(ws[1]))
             return
         }
@@ -126,7 +136,7 @@ Singleton {
             return
         }
         if (address && /focus|activate/.test(s)) { root.focusWindow(address); return }
-        m = s.match(/workspace\s*=\s*(-?\d+)/)
+        m = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
         if (m) { root.switchWorkspace(Number(m[1])); return }
         // Hyprland cursor warp settings have no BSPWM equivalent; safely ignore.
     }

@@ -7,19 +7,25 @@ This roadmap is directional. Items are not complete until code, tests and valida
 - [x] Publish source tree and upstream license files.
 - [x] Document current limitations and validation gaps.
 - [ ] Establish maintainer/release process and repository settings.
-- [ ] Add CI that passes on a clean supported runner.
+- [x] Add CI that passes on a clean supported runner.
 
 ## Phase 1 — Reliable X11 window manager
 
 - [ ] Complete ICCCM/EWMH essentials and startup client discovery.
 - [ ] Correctly handle dialogs, transients, docks, override-redirect windows and urgency.
-- [ ] Implement floating, fullscreen, focus policies and size hints.
-- [ ] Add multi-monitor work areas and RandR change handling.
-- [ ] Add deterministic Xvfb/Xephyr integration tests.
+- [x] Implement common ICCCM size hints, fixed-size floating detection, fullscreen and focus policies.
+- [ ] Validate edge-case size-hint/aspect combinations and complete remaining ICCCM lifecycle semantics.
+- [x] Add RandR monitor discovery/change handling and per-monitor tiling foundation.
+- [x] Add initial EWMH dock strut parsing and per-monitor usable workareas.
+- [ ] Validate multiple/overlapping docks, vertical panels and physical mixed-resolution outputs.
+- [x] Implement independent monitor-local workspaces, per-monitor snapshots and workspace-bar routing.
+- [ ] Validate independent workspaces on physical multi-output hardware.
+- [x] Add deterministic Xvfb integration tests for the compiled WM.\n- [ ] Add Xephyr nested-server coverage.
 
 ## Phase 2 — Desktop core and live settings
 
-- [ ] Version the IPC protocol and add request IDs and structured errors.
+- [x] Version the IPC protocol, add request IDs, correlate responses and reject incompatible clients.
+- [ ] Add push-based event subscriptions and structured asynchronous operation results.
 - [ ] Replace polling with event subscriptions.
 - [ ] Make settings typed, validated and transactionally applied.
 - [ ] Add undo/reset/profile import-export where appropriate.

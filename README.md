@@ -5,7 +5,7 @@
 MRX combines a purpose-built Rust window manager and desktop services with a Quickshell/QML interface derived from the supplied end4-pC X11 port. The design goal is a cohesive, keyboard-driven desktop with configurable workspaces, a polished control center, media controls, notifications, and responsive live settings.
 
 > [!WARNING]
-> **Experimental development snapshot — not ready for daily use.** This repository is not a finished Hyprland replacement. It has not yet passed a complete Rust build, X11 session test, Quickshell runtime test, or hardware test. Workspace-slide animations are not implemented. Do not install it over your primary desktop or assume NVIDIA 470 compatibility.
+> **Experimental development snapshot — not ready for daily use.** This repository is not a finished Hyprland replacement. Recent development has added RandR monitor discovery, independent per-monitor workspaces, a versioned IPC protocol, ICCCM urgency handling and initial EWMH dock workarea support. The latest development commit passed the full Rust, static, installer-sandbox and Xvfb CI pipeline in [GitHub Actions run #300](https://github.com/manivelx/MRX-Desktop/actions/runs/44759250790). This does not establish physical hardware or full Quickshell-session compatibility. It has not passed a complete Quickshell session or physical hardware test. Workspace-slide animations are not implemented. Do not install it over your primary desktop or assume NVIDIA 470 compatibility.
 
 ## Project goals
 
@@ -24,12 +24,12 @@ MRX combines a purpose-built Rust window manager and desktop services with a Qui
 | Rust workspace and crate layout | Scaffolded |
 | X11 connection and WM ownership | Initial implementation |
 | Basic workspaces and layouts | Partial |
-| IPC and command-line client | Initial implementation; API needs hardening |
+| IPC and command-line client | Versioned protocol, request IDs, bounded framing, timeouts and response limits; event subscriptions remain |
 | TOML settings persistence | Initial implementation |
 | Quickshell/QML source | Imported and adapted from the supplied X11 port; not fully integrated |
-| Full ICCCM/EWMH behavior | Partial; polite close and initial root messages added |
+| ICCCM/EWMH behavior | Partial; polite close, focus negotiation/restoration and core desktop messages tested in Xvfb |
 | Floating, dialogs and fullscreen | Partial; transient detection added; fullscreen remains incomplete |
-| Multi-monitor support | Incomplete; RandR hotplug remains |
+| Multi-monitor support | RandR discovery/reconciliation, per-monitor tiling and workspaces, monitor-specific IPC and initial dock workareas implemented; physical hardware validation remains |
 | Live, event-driven UI updates | Incomplete; current bridge still needs work |
 | Hyprland-like workspace animations | Not implemented |
 | Full feature parity with end4-pC | Not implemented |
@@ -82,7 +82,7 @@ The project targets Arch Linux and CachyOS first. Exact dependencies are still b
 sudo pacman -S --needed \
   rust cargo git base-devel \
   libxcb xorg-server-xvfb xorg-server-xephyr \
-  xorg-xrandr xorg-xprop xorg-xwininfo \
+  xorg-xrandr xorg-xprop xorg-xwininfo xorg-xmessage xorg-fonts-misc \
   picom quickshell qt6-declarative \
   pipewire wireplumber networkmanager bluez
 ```
@@ -96,7 +96,7 @@ cargo build --workspace
 ./tests/static-check.sh
 ```
 
-These commands describe the intended developer workflow; they are **not evidence that the current snapshot builds successfully**. The Rust compiler and Quickshell runtime were unavailable in the environment used to assemble this snapshot. Check [Validation](docs/VALIDATION.md) for what has and has not been tested.
+GitHub Actions is the authoritative source for current validation. A green Rust build does not establish Quickshell runtime compatibility, physical multi-monitor behavior, NVIDIA 470 / GT 740 support or animation performance. Check [Validation](docs/VALIDATION.md) for the exact coverage and remaining hardware/runtime limits.
 
 ## Safe development testing
 

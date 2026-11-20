@@ -124,3 +124,11 @@ grep -Fq 'Some(Event::PropertyNotify(e))' crates/mrx-wm/src/main.rs || fail 'WM 
 grep -Fq 'WM_HINTS 32c' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not exercise urgency hint updates'
 grep -Fq 'urgent:w.urgent ?? false' shell/services/MRXBackend.qml || fail 'Quickshell adapter discards window urgency'
 grep -Fq 'hasUrgentWindows' shell/modules/ii/bar/ActiveWindow.qml || fail 'Quickshell active-window widget omits urgency indicator'
+
+grep -Fq 'WmSizeHints::get_normal_hints' crates/mrx-wm/src/main.rs || fail 'WM does not parse WM_NORMAL_HINTS'
+grep -Fq 'wm_normal_hints' crates/mrx-wm/src/main.rs || fail 'WM does not subscribe to WM_NORMAL_HINTS property changes'
+grep -Fq 'constrain_rect' crates/mrx-wm/src/main.rs || fail 'tiled placement does not apply ICCCM size constraints'
+grep -Fq 'normal_size_hints_apply_minimum_and_maximum_constraints' crates/mrx-wm/src/main.rs || fail 'WM_NORMAL_HINTS min/max regression test missing'
+grep -Fq 'normal_size_hints_apply_resize_increments' crates/mrx-wm/src/main.rs || fail 'WM_NORMAL_HINTS resize-increment regression test missing'
+grep -Fq 'normal_size_hints_apply_aspect_ratio_bounds' crates/mrx-wm/src/main.rs || fail 'WM_NORMAL_HINTS aspect-ratio regression test missing'
+grep -Fq 's.size_hints.remove(&e.window)' crates/mrx-wm/src/main.rs || fail 'window size-hint cache is not cleared on client removal'

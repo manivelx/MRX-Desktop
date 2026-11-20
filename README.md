@@ -52,7 +52,7 @@ The repository contains shell screenshots showing the imported/adapted visual di
 - Master/stack, columns and monocle layout geometry.
 - Floating behavior for transient and fixed-size clients.
 - ICCCM-aware polite close, focus negotiation, urgency and common size hints.
-- EWMH desktop metadata, client lists, fullscreen, horizontal/vertical maximize, minimize/restore and initial dock handling.
+- EWMH desktop metadata, client lists, fullscreen, horizontal/vertical maximize, minimize/restore, ABOVE/BELOW state requests and initial dock handling.
 - Per-monitor window assignment and tiling.
 
 ### Multi-monitor and workspaces
@@ -85,7 +85,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 |---|---|
 | Rust workspace | Builds and passes tests in the recorded CI baseline |
 | X11 window manager | Core path implemented; experimental |
-| ICCCM/EWMH | Partial; maximize and minimize/restore implemented; above/below and initial-state adoption remain |
+| ICCCM/EWMH | Partial; maximize, minimize/restore and ABOVE/BELOW requests implemented; initial-state adoption remains |
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |

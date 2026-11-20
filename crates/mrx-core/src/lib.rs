@@ -241,6 +241,10 @@ pub struct WindowInfo {
     pub maximized_vert: bool,
     #[serde(default)]
     pub minimized: bool,
+    #[serde(default)]
+    pub above: bool,
+    #[serde(default)]
+    pub below: bool,
     /// ICCCM WM_HINTS urgency bit; the client owns setting and clearing it.
     #[serde(default)]
     pub urgent: bool,

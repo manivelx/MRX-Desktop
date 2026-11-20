@@ -4,10 +4,44 @@ use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix
 use tracing::{info, warn};
 use x11rb::{connection::{Connection, RequestConnection}, properties::{WmHints, WmSizeHints}, protocol::{randr::{self, ConnectionExt as RandrConnectionExt, NotifyMask}, xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
-#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints> }
-#[derive(Debug)] enum Action { Switch(u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
+#[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitors:Vec<MonitorInfo>, size_hints:BTreeMap<u32,WmSizeHints>, active_by_monitor:BTreeMap<String,u32>, focused_monitor:String }
+#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
-fn snapshot(s:&State)->Snapshot { let workspaces=(1..=s.settings.workspace.count as u32).map(|id| WorkspaceInfo{id,name:s.settings.workspace.names.get((id-1) as usize).cloned().unwrap_or_else(||id.to_string()),active:id==s.active,windows:s.clients.values().filter(|w|w.workspace==id).count()}).collect(); Snapshot{protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:s.active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors:s.monitors.clone()} }
+fn active_workspace_for(s: &State, monitor: &str) -> u32 {
+    s.active_by_monitor.get(monitor).copied().unwrap_or(1).clamp(1, s.settings.workspace.count as u32)
+}
+
+fn focused_monitor_name(s: &State) -> String {
+    if s.monitors.iter().any(|m| m.name == s.focused_monitor) {
+        return s.focused_monitor.clone();
+    }
+    s.monitors.iter().find(|m| m.focused).or_else(|| s.monitors.first())
+        .map(|m| m.name.clone()).unwrap_or_default()
+}
+
+fn set_focused_monitor(s: &mut State, name: &str) {
+    if !s.monitors.iter().any(|m| m.name == name) { return; }
+    s.focused_monitor = name.to_owned();
+    for monitor in &mut s.monitors { monitor.focused = monitor.name == name; }
+    s.active = active_workspace_for(s, name);
+}
+
+fn snapshot(s:&State)->Snapshot {
+    let focused = focused_monitor_name(s);
+    let active = active_workspace_for(s, &focused);
+    let workspaces=(1..=s.settings.workspace.count as u32).map(|id| WorkspaceInfo{
+        id,
+        name:s.settings.workspace.names.get((id-1) as usize).cloned().unwrap_or_else(||id.to_string()),
+        active:id==active,
+        windows:s.clients.values().filter(|w|w.workspace==id && w.monitor==focused).count()
+    }).collect();
+    let mut monitors = s.monitors.clone();
+    for monitor in &mut monitors {
+        monitor.active_workspace = active_workspace_for(s, &monitor.name);
+        monitor.focused = monitor.name == focused;
+    }
+    Snapshot{protocol_version:mrx_core::IPC_PROTOCOL_VERSION,compositor:"mrx-x11".into(),active_workspace:active,workspaces,windows:s.clients.values().cloned().collect(),settings:s.settings.clone(),monitors}
+}
 fn monitor_for_geometry(monitors: &[MonitorInfo], x: i32, y: i32, width: u32, height: u32) -> String {
     let center_x = x + (width / 2) as i32;
     let center_y = y + (height / 2) as i32;
@@ -60,6 +94,10 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                     Request::SwitchWorkspace { id } => {
                         tx.send(Action::Switch(id)).context("WM event loop is unavailable")?;
                         Response::ok("workspace switch queued")
+                    }
+                    Request::SwitchWorkspaceOnMonitor { monitor, id } => {
+                        tx.send(Action::SwitchMonitor(monitor, id)).context("WM event loop is unavailable")?;
+                        Response::ok("monitor workspace switch queued")
                     }
                     Request::SwitchRelative { direction } => {
                         let delta = if direction == "next" { 1 } else { -1 };
@@ -189,7 +227,7 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
                     monitors.push(MonitorInfo {
                         name, x: monitor.x as i32, y: monitor.y as i32,
                         width: monitor.width as u32, height: monitor.height as u32,
-                        focused: monitor.primary,
+                        focused: monitor.primary, active_workspace: 1,
                     });
                 }
             }
@@ -226,7 +264,7 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
                     y: info.y as i32,
                     width: info.width as u32,
                     height: info.height as u32,
-                    focused: false,
+                    focused: false, active_workspace: 1,
                 });
             }
             crtcs.sort_by(|a, b| (a.x, a.y, &a.name).cmp(&(b.x, b.y, &b.name)));
@@ -237,7 +275,7 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
     if monitors.is_empty() {
         monitors.push(MonitorInfo {
             name: "screen-0".into(), x: 0, y: 0,
-            width: width as u32, height: height as u32, focused: true,
+            width: width as u32, height: height as u32, focused: true, active_workspace: 1,
         });
     } else if !monitors.iter().any(|monitor| monitor.focused) {
         monitors[0].focused = true;
@@ -644,6 +682,70 @@ fn refresh_monitor_state(conn: &RustConnection, root: Window, state: &mut State,
     info!(count = state.monitors.len(), names = ?state.monitors.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), "RandR monitor topology refreshed");
     arrange(conn, root, state);
 }
+fn switch_monitor_workspace(
+    conn: &RustConnection,
+    root: Window,
+    state: &mut State,
+    monitor: &str,
+    requested: u32,
+    count: u32,
+    wrap: bool,
+    desktop_current: u32,
+    desktop_names: u32,
+    net_active_window: u32,
+    wm_state: u32,
+    net_wm_state: u32,
+    net_wm_state_hidden: u32,
+) {
+    if !state.monitors.iter().any(|m| m.name == monitor) || count == 0 { return; }
+    let id = requested.clamp(1, count);
+    state.active_by_monitor.insert(monitor.to_owned(), id);
+    set_focused_monitor(state, monitor);
+    for window in state.clients.values().filter(|w| w.monitor == monitor) {
+        if window.workspace == id {
+            let _ = conn.map_window(window.id);
+            let _ = set_wm_state(conn, window.id, wm_state, 1);
+            let _ = set_atom_state(conn, window.id, net_wm_state, net_wm_state_hidden, false);
+        } else {
+            let _ = conn.unmap_window(window.id);
+            let _ = set_wm_state(conn, window.id, wm_state, 1);
+            let _ = set_atom_state(conn, window.id, net_wm_state, net_wm_state_hidden, true);
+        }
+    }
+    let _ = conn.delete_property(root, net_active_window);
+    let _ = conn.change_property32(xproto::PropMode::REPLACE, root, desktop_current, AtomEnum::CARDINAL, &[id - 1]);
+    let _ = desktop_names;
+    let _ = wrap;
+    arrange(conn, root, state);
+}
+
+fn switch_focused_workspace(
+    conn: &RustConnection,
+    root: Window,
+    state: &mut State,
+    requested: u32,
+    relative: Option<i32>,
+    current: u32,
+    wm_state: u32,
+    net_wm_state: u32,
+    net_wm_state_hidden: u32,
+    net_active_window: u32,
+) {
+    let monitor = focused_monitor_name(state);
+    let max = state.settings.workspace.count.max(1) as u32;
+    let active = active_workspace_for(state, &monitor);
+    let id = if let Some(delta) = relative {
+        let mut next = active as i32 + delta;
+        if state.settings.workspace.wrap {
+            next = ((next - 1).rem_euclid(max as i32)) + 1;
+        } else {
+            next = next.clamp(1, max as i32);
+        }
+        next as u32
+    } else { requested.clamp(1, max) };
+    switch_monitor_workspace(conn, root, state, &monitor, id, max, state.settings.workspace.wrap, current, 0, net_active_window, wm_state, net_wm_state, net_wm_state_hidden);
+}
+
 fn arrange(conn: &RustConnection, _root: Window, s: &State) {
     use mrx_core::layout::{arrange as calculate, LayoutKind, Rect};
     let layout = LayoutKind::parse(&s.settings.window.layout).unwrap_or(LayoutKind::MasterStack);
@@ -651,7 +753,7 @@ fn arrange(conn: &RustConnection, _root: Window, s: &State) {
     let monitors = if s.monitors.is_empty() { vec![fallback] } else { s.monitors.clone() };
     for monitor in &monitors {
         let visible: Vec<&WindowInfo> = s.clients.values()
-            .filter(|w| w.workspace == s.active && !w.floating && !w.fullscreen
+            .filter(|w| w.workspace == active_workspace_for(s, &monitor.name) && !w.floating && !w.fullscreen
                 && (w.monitor == monitor.name || (w.monitor.is_empty() && monitor.focused)))
             .collect();
         if visible.is_empty() { continue; }
@@ -701,8 +803,8 @@ mod monitor_tests {
 
     fn monitors() -> Vec<MonitorInfo> {
         vec![
-            MonitorInfo { name: "DP-1".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true },
-            MonitorInfo { name: "HDMI-1".into(), x: 1920, y: 0, width: 2560, height: 1440, focused: false },
+            MonitorInfo { name: "DP-1".into(), x: 0, y: 0, width: 1920, height: 1080, focused: true, active_workspace: 1 },
+            MonitorInfo { name: "HDMI-1".into(), x: 1920, y: 0, width: 2560, height: 1440, focused: false, active_workspace: 1 },
             MonitorInfo { name: "DP-2".into(), x: -1280, y: 0, width: 1280, height: 1024, focused: false },
         ]
     }

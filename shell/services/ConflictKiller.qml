@@ -12,13 +12,15 @@ Singleton {
     property string killDialogQmlPath: FileUtils.trimFileProtocol(Quickshell.shellPath("killDialog.qml"))
 
     function load() {
-        // dummy to force init
+        // MRX must not terminate tray or notification daemons owned by the user.
+        // Keep the upstream conflict helper limited to its original desktop sessions.
+        if (WM.compositor === "mrx") return;
     }
 
     Connections {
         target: Config
         function onReadyChanged() {
-            if (Config.ready) checkConflictsProc.running = true
+            if (Config.ready && WM.compositor !== "mrx") checkConflictsProc.running = true
         }
     }
 

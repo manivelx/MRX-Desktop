@@ -25,7 +25,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-Xvfb -displayfd 3 -screen 0 2560x1440x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
+Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
 XVFB_PID=$!
 for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
 [[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
@@ -35,7 +35,7 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 xdpyinfo >/dev/null || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
-echo "PASS: Xvfb 2560x1440 X11 server started"
+echo "PASS: Xvfb 1920x1080 X11 server started"
 
 # Extensions needed for later compositing experiments. Their presence does not
 # imply hardware acceleration; Xvfb is a software test server.
@@ -54,31 +54,39 @@ done
 "$CTL" ping >/dev/null || { cat "$RUNTIME/wm.log" >&2; exit 1; }
 echo "PASS: MRX WM IPC responds"
 
-# Exercise the live RandR notification path by resizing the virtual X screen.
-# Unlike xrandr --setmonitor, this changes the active framebuffer geometry and
-# emits a RandR ScreenChangeNotify event that every conforming WM must handle.
-xrandr --fb 2560x1440
-SCREEN_UPDATED=0
+# Exercise the live RandR monitor-object update path. Xvfb can represent
+# independent RandR 1.5 monitor objects over a single virtual output; the WM
+# must expose those objects in its snapshot after the resource notification.
+xrandr --setmonitor MRX-LEFT 960/254x1080/286+0+0 none
+xrandr --setmonitor MRX-RIGHT 960/254x1080/286+960+0 none
+MONITORS_READY=0
 for _ in $(seq 1 30); do
   "$CTL" snapshot >"$RUNTIME/snapshot.json"
   if python3 - "$RUNTIME/snapshot.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
-monitors = data.get('monitors', [])
-raise SystemExit(0 if any(m['width'] == 2560 and m['height'] == 1440 for m in monitors) else 1)
+names = {m['name'] for m in data.get('monitors', [])}
+raise SystemExit(0 if {'MRX-LEFT', 'MRX-RIGHT'} <= names else 1)
 PY
-  then SCREEN_UPDATED=1; break; fi
+  then MONITORS_READY=1; break; fi
   sleep 0.1
 done
-[[ "$SCREEN_UPDATED" == 1 ]] || {
-  echo "FAIL: RandR screen-change notification did not refresh the WM monitor snapshot" >&2
-  xrandr --query >&2 || true
+[[ "$MONITORS_READY" == 1 ]] || {
+  echo "FAIL: RandR monitor objects were not refreshed in the WM snapshot" >&2
+  xrandr --listmonitors >&2 || true
   cat "$RUNTIME/wm.log" >&2
   exit 1
 }
-echo "PASS: live RandR screen-change notification refreshes WM monitor geometry"
-# Restore the standard test geometry for the remaining smoke checks.
-xrandr --fb 1920x1080
+python3 - "$RUNTIME/snapshot.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f: data = json.load(f)
+monitors = {m['name']: m for m in data['monitors']}
+assert (monitors['MRX-LEFT']['x'], monitors['MRX-LEFT']['y'],
+        monitors['MRX-LEFT']['width'], monitors['MRX-LEFT']['height']) == (0, 0, 960, 1080), monitors
+assert (monitors['MRX-RIGHT']['x'], monitors['MRX-RIGHT']['y'],
+        monitors['MRX-RIGHT']['width'], monitors['MRX-RIGHT']['height']) == (960, 0, 960, 1080), monitors
+print('PASS: live RandR resource changes refresh two independent monitor geometries')
+PY
 xprop -root _NET_NUMBER_OF_DESKTOPS _NET_DESKTOP_NAMES _NET_WORKAREA _NET_CLIENT_LIST_STACKING _NET_SUPPORTED >"$RUNTIME/ewmh.txt"
 grep -q '_NET_NUMBER_OF_DESKTOPS' "$RUNTIME/ewmh.txt"
 grep -q '_NET_DESKTOP_NAMES' "$RUNTIME/ewmh.txt"

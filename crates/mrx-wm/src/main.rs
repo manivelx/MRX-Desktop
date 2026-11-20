@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use mrx_core::{Request, Response, Settings, Snapshot, WindowInfo, WorkspaceInfo, MonitorInfo};
 use std::{collections::BTreeMap, io::{BufRead, BufReader, Read, Write}, os::unix::{fs::{FileTypeExt, PermissionsExt}, net::{UnixListener, UnixStream}}, path::PathBuf, sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex, mpsc}, thread, time::Duration};
 use tracing::{info, warn};
-use x11rb::{connection::Connection, properties::WmHints, protocol::{xproto::{self, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt, CURRENT_TIME};
+use x11rb::{connection::Connection, properties::WmHints, protocol::{xproto::{self, ConnectionExt as XprotoConnectionExt, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, EventMask, GrabMode, InputFocus, ModMask, Window}, Event}, rust_connection::RustConnection, wrapper::ConnectionExt as WrapperConnectionExt, CURRENT_TIME};
 
 #[derive(Default)] struct State { active:u32, clients:BTreeMap<u32,WindowInfo>, client_order:Vec<u32>, settings:Settings, monitor:MonitorInfo }
 #[derive(Debug)] enum Action { Switch(u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload }

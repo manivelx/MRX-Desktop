@@ -26,7 +26,7 @@ This roadmap is directional. Items are not complete until code, tests and valida
 ## Phase 2 — Desktop core and live settings
 
 - [x] Version the IPC protocol, add request IDs, correlate responses and reject incompatible clients.
-- [x] Add persistent push-based snapshot subscriptions with change-only events.
+- [x] Add persistent push-based snapshot subscriptions with change-only events and bounded disconnect cleanup.
 - [ ] Add structured asynchronous operation results for queued mutations.
 - [x] Replace normal Quickshell snapshot polling with the IPC event stream; retain a slow reconnect/fallback snapshot path.
 - [x] Make settings typed, validated and transactionally applied (candidate copy, validation and atomic persistence before runtime replacement).

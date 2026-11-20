@@ -89,7 +89,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
-| IPC | Versioned protocol and push subscription lifecycle; structured operations and health reporting remain |
+| IPC | Protocol v3 with request IDs, bounded I/O and server-push subscriptions; structured operations and health reporting remain |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
 | Graphics/animations | Renderer and workspace animations are future phases |
 | Installer | Experimental; isolated temporary-home regression tests only |
@@ -188,7 +188,7 @@ Useful places to start:
 - `shell/services/MRXBackend.qml` — shell-to-WM adapter.
 - `docs/BUILDING.md` — build and dependency guidance.
 
-A complete, validated default keybinding reference is not published yet. Use the current session sources rather than assuming imported end4/Hyprland shortcuts all work under MRX.
+The keybinding viewer is integrated for the MRX/X11 session where the source configuration is available. Imported end4/Hyprland shortcuts should not be assumed to map one-to-one to MRX capabilities.
 
 ## Development and testing
 

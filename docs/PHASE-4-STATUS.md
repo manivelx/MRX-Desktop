@@ -10,6 +10,10 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 - Static wallpaper placement uses the focused MRX monitor and X11 cursor coordinates; video wallpapers are explicitly disabled with a user-facing notice until an X11 video backend exists.
 - Screen recording uses ffmpeg \`x11grab\` and \`slop\` for MRX/BSPWM, and retains \`wf-recorder\`/slurp for Wayland sessions.
 - System cursor changes invoke \`hyprctl setcursor\` only for Hyprland sessions.
+- Hide Hyprland-only anti-flashbang shader and brightness-adjustment controls outside Hyprland; disable MRX night-light controls with an explicit unsupported notice while retaining the supported X11 hardware-brightness control.
+- Filter Hyprland-only anti-flashbang quick toggles from non-Hyprland Android panels and mark MRX night-light quick toggles unavailable with explanatory tooltips.
+- Add an MRX settings capability summary for implemented WM controls and current unsupported features; add source-level regression coverage in both Ubuntu and Arch CI.
+- Correct MRX Game Mode state detection and persist/restore the user's pre-toggle gap/border settings across Quickshell reloads instead of assuming fixed defaults.
 - Shell helper tests cover MRX, BSPWM, Niri and Hyprland detection, MRX monitor enumeration, focused monitor geometry and the no-hyprctl X11 path.
 
 ## Still outstanding

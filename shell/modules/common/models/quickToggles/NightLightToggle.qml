@@ -13,11 +13,12 @@ QuickToggleModel {
     statusText: (auto ? Translation.tr("Auto, ") : "") + (toggled ? Translation.tr("Active") : Translation.tr("Inactive"))
 
     toggled: Hyprsunset.temperatureActive
+    available: WM.compositor !== "mrx"
+    tooltipText: WM.compositor === "mrx" ? Translation.tr("Night Light is not available in MRX yet") : Translation.tr("Night Light | Right-click to configure")
     icon: auto ? "night_sight_auto" : "bedtime"
     mainAction: () => {
         Hyprsunset.toggleTemperature()
     }
     hasMenu: true
 
-    tooltipText: Translation.tr("Night Light | Right-click to configure")
 }

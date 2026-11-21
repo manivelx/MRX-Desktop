@@ -7,6 +7,7 @@ import Quickshell.Io
 QuickToggleButton {
     id: nightLightButton
     toggled: Hyprsunset.temperatureActive
+    enabled: WM.compositor !== "mrx"
     buttonIcon: Config.options.light.night.automatic ? "night_sight_auto" : "bedtime"
     onClicked: {
         Hyprsunset.toggleTemperature()
@@ -21,6 +22,6 @@ QuickToggleButton {
     }
     
     StyledToolTip {
-        text: Translation.tr("Night Light | Right-click to toggle Auto mode")
+        text: WM.compositor === "mrx" ? Translation.tr("Night Light is not available in MRX yet") : Translation.tr("Night Light | Right-click to toggle Auto mode")
     }
 }

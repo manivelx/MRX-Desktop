@@ -28,6 +28,7 @@ jobs:
       - run: bash ./tests/static-check.sh
       - run: bash ./tests/mrx-shell-backend.sh
       - run: bash ./tests/diagnostics.sh
+      - run: bash ./tests/mrx-shell-capabilities.sh
       - run: bash ./tests/installer-sandbox.sh
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh
@@ -59,6 +60,7 @@ jobs:
       - run: bash ./tests/static-check.sh
       - run: bash ./tests/mrx-shell-backend.sh
       - run: bash ./tests/diagnostics.sh
+      - run: bash ./tests/mrx-shell-capabilities.sh
       - run: bash ./tests/installer-sandbox.sh
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh

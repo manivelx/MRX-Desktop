@@ -4,6 +4,8 @@
 
 - Reversible user-scoped install/uninstall scaffolding with isolated temporary-home regression tests.
 - Ubuntu CI and a native \`archlinux:latest\` container job both run Rust formatting, workspace tests, Clippy, debug and release builds, static checks, shell helper tests, installer sandbox, Xvfb and nested Xephyr integration.
+- Reproducible x86_64/aarch64 Linux binary archives include the Rust binaries, MRX session, Quickshell shell, config, installer, scripts, docs and license notices; tar ordering/timestamps/ownership and gzip headers are normalized, with SHA-256 verification and deterministic rebuild tests.
+- A version-tagged GitHub Release workflow checks the tag against the Cargo workspace version and uploads the archive and checksum. No public release is published until a matching version tag is pushed.
 - Arch CI installs the native Arch Rust toolchain and X11/Xephyr packages through pacman, validating the Linux package names and build environment independently of Ubuntu.
 
 ## Still outstanding

@@ -7,7 +7,7 @@ MRX currently targets Arch Linux and CachyOS. Dependencies are provisional until
 - Stable Rust toolchain with Cargo, rustfmt and Clippy.
 - X11 development/runtime libraries.
 - Quickshell and the Qt modules required by the imported QML source.
-- Xvfb, Xephyr, xmessage, xwininfo, xprop, xdpyinfo, xrandr and Python 3 for automated integration tests.
+- Xvfb, Xephyr, xwininfo, xprop, xdpyinfo, xrandr, a C compiler and Python 3 for automated integration tests.
 - XComposite and XDamage server extensions for the graphics prototype test.
 
 On Arch/CachyOS, install the project dependency set with:

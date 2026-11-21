@@ -41,7 +41,7 @@ jobs:
           pacman -Syu --noconfirm --needed \
             base-devel git curl pkgconf jq python \
             libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
-            xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xmessage xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth xorg-fonts-misc
+            xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:

@@ -39,10 +39,13 @@ jobs:
       - name: Install Arch Linux toolchain and X11 test dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            base-devel git rust pkgconf jq python \
+            base-devel git curl pkgconf jq python \
             libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
             xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xmessage xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth xorg-fonts-misc
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - name: Verify Arch Rust toolchain
         run: rustc --version && cargo --version && rustfmt --version && cargo clippy --version
       - run: cargo fmt --all -- --check

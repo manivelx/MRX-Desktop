@@ -1,6 +1,8 @@
 # Phase 4 — Quickshell integration status
 
-## Implemented and CI-covered\n\nThe initial X11 service/fallback audit is recorded in [SHELL_AUDIT.md](SHELL_AUDIT.md). It explicitly distinguishes implemented X11 paths from Hyprland-only features and external fallbacks.
+## Implemented and CI-covered
+
+The initial X11 service/fallback audit is recorded in [SHELL_AUDIT.md](SHELL_AUDIT.md). It explicitly distinguishes implemented X11 paths from Hyprland-only features and external fallbacks.
 
 Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44914024803), commit `73cff5cdd7435f16c7781a106f84bbb2c4ee0a06`.
 
@@ -15,7 +17,8 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 - Add an MRX settings capability summary for implemented WM controls and current unsupported features; add source-level regression coverage in both Ubuntu and Arch CI.
 - Correct MRX Game Mode state detection and persist/restore the user's pre-toggle gap/border settings across Quickshell reloads instead of assuming fixed defaults.
 - Shell helper tests cover MRX, BSPWM, Niri and Hyprland detection, MRX monitor enumeration, focused monitor geometry and the no-hyprctl X11 path.
-- Add an Arch CI live-session smoke test that installs the project into a temporary home, starts Xvfb and a private DBus session, launches the Rust WM and Quickshell frontend, then verifies IPC health and frontend process survival. The same test is optional in the developer build when runtime dependencies are installed.\n- Add `docs/SHELL_AUDIT.md` covering global shortcuts, focus grabs, lock-screen fallback, Picom, tray, idle inhibition, notifications, wallpaper, recording and the automated validation boundary.
+- Add an Arch CI live-session smoke test that installs the project into a temporary home, starts Xvfb and a private DBus session, launches the Rust WM and Quickshell frontend, then verifies IPC health and frontend process survival. The same test is optional in the developer build when runtime dependencies are installed.
+- Add `docs/SHELL_AUDIT.md` covering global shortcuts, focus grabs, lock-screen fallback, Picom, tray, idle inhibition, notifications, wallpaper, recording and the automated validation boundary.
 
 ## Still outstanding
 
@@ -23,7 +26,8 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 - Add complete disabled/unsupported states for every control without an MRX implementation.
 - [x] Implement monitor-targeted window moves through versioned MRX IPC, mrxctl and the Quickshell backend; exercise forward/reverse moves and unknown-monitor errors in Xvfb. PASS — [PR #22 CI run #591](https://github.com/manivelx/MRX-Desktop/actions/runs/44917525244) passed on the exact PR head in Ubuntu and Arch Linux.
 - Validate wallpaper selector, recording UI, settings pages, overview, lock integration and all interactive controls in a complete Quickshell session.
-- Add an X11 focus-dismissal implementation and a documented application keybinding layer.\n- Consolidate visual styling, typography, responsive layouts, focus order and accessibility.
+- Add an X11 focus-dismissal implementation and a documented application keybinding layer.
+- Consolidate visual styling, typography, responsive layouts, focus order and accessibility.
 - Test Quickshell reconnect, shell crash/restart, screen hotplug and long-running session behavior on CachyOS-LTS.
 
 ## Validation boundary

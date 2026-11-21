@@ -68,9 +68,10 @@ Items are marked complete only when implementation and relevant automated valida
 
 - [x] Add reversible user-scoped install/uninstall scaffolding with isolated regression tests.
 - [x] Add Ubuntu and native Arch Linux container CI for formatting, tests, Clippy, debug/release builds, installer sandbox and Xvfb/Xephyr integration coverage.
+- [x] Exercise install/reinstall/uninstall rollback in an isolated sandbox; restore pre-existing binaries, session entries and Quickshell config while preserving user settings.
 - [ ] Test installation, upgrade, rollback and removal in disposable Arch/CachyOS VMs.
 - [ ] Validate coexistence with existing BSPWM/SDDM/lock-screen configuration.
-- [ ] Add recovery and diagnostics for failed session startup.
+- [x] Add privacy-conscious recovery diagnostics for missing WM, failed Quickshell startup and repeated WM crashes.
 - [x] Add reproducible Linux release archives, SHA-256 checksums and tag-triggered GitHub Release automation (first version tag still pending).
 - [x] Add privacy-conscious startup diagnostics and automatic report capture when the MRX WM fails its startup health check.
 - [ ] Complete hardware compatibility matrix before making support claims.

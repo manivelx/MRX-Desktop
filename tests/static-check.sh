@@ -285,6 +285,8 @@ grep -Fq 'DELAY >= 30' session/mrx-wm-supervisor || fail 'WM supervisor restart 
 grep -Fq 'mrx-wm-supervisor &' session/mrx-session || fail 'session launcher does not use the WM supervisor'
 grep -Fq 'mrx-wm-supervisor' install.sh || fail 'installer does not install the WM supervisor'
 grep -Fq 'mrx-wm-supervisor' uninstall.sh || fail 'uninstaller does not remove the WM supervisor'
+grep -Fq 'restore_latest_backup' uninstall.sh || fail 'uninstaller does not restore pre-existing backups'
+grep -Fq 'Preserved user configuration' uninstall.sh || fail 'uninstaller does not preserve user settings'
 grep -Fq 'supervisor restarts crashed WM child' tests/xvfb-smoke.sh || fail 'Xvfb supervisor crash-recovery test is missing'
 
 grep -Fq 'pub subscription_slow_clients_dropped' crates/mrx-core/src/lib.rs || fail 'subscription backpressure health metrics are missing'

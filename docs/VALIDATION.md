@@ -1,20 +1,28 @@
 # Validation record
 
-## Latest successful \`main\` validation
+## Latest successful main validation
 
-PASS — GitHub Actions [run #518](https://github.com/manivelx/MRX-Desktop/actions/runs/44912544584) passed on the merged default-branch commit \`ebbbce695428a284c75e1a8d341a36a7edef487e\` on 2026-11-21.
+PASS — GitHub Actions [run #824](https://github.com/manivelx/MRX-Desktop/actions/runs/44924232987) passed both Ubuntu and Arch Linux jobs on main commit `266db1414426545ca363afb77e0ed8d53da899ac` on 2026-11-21.
 
 | Check | Result |
 |---|---|
-| \`cargo fmt --all -- --check\` | PASS |
-| \`cargo test --workspace\` | PASS |
-| \`cargo clippy --workspace --all-targets -- -D warnings\` | PASS |
-| \`cargo build --workspace\` | PASS |
-| \`bash ./tests/static-check.sh\` | PASS |
-| \`bash ./tests/installer-sandbox.sh\` | PASS |
-| \`bash ./tests/xvfb-server-check.sh\` | PASS |
-| \`bash ./tests/xvfb-smoke.sh\` | PASS |
-| \`bash ./tests/xephyr-smoke.sh\` | PASS |
+| `cargo fmt --all -- --check` | PASS |
+| `cargo test --workspace` | PASS |
+| `cargo clippy --workspace --all-targets -- -D warnings` | PASS |
+| `cargo build --workspace` | PASS |
+| `bash ./tests/static-check.sh` | PASS |
+| `bash ./tests/installer-sandbox.sh` | PASS |
+| `bash ./tests/xvfb-server-check.sh` | PASS |
+| `bash ./tests/xvfb-smoke.sh` | PASS |
+| `bash ./tests/xephyr-smoke.sh` | PASS |
+| `bash ./tests/quickshell-smoke.sh` (Arch) | PASS |
+| `cargo build --release --workspace` | PASS |
+| `bash ./tests/package-release.sh` | PASS |
+
+The Arch Quickshell smoke test installed MRX into a temporary HOME, launched the session under Xvfb and private D-Bus, verified MRX IPC health and Quickshell within the session's descendant process tree, then stopped that process tree before removing temporary files. This is a real configuration-startup/IPC test, not a visual or physical-hardware test.
+
+Run #800 on merge commit `d336326` initially exposed a cleanup race after the Quickshell startup/IPC assertions had passed. The process-tree-scoped cleanup and liveness checks are included in the validated run #824.
+
 
 ## Quickshell MRX X11 action validation
 
@@ -99,7 +107,7 @@ PASS — GitHub Actions [PR #32 run #759](https://github.com/manivelx/MRX-Deskto
 
 ## Not implemented / not validated by CI
 
-- Complete Quickshell/QML runtime or end-to-end desktop session.
+- Complete visual/interactive Quickshell/QML session; current CI proves configuration startup and IPC connectivity only.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.
 - Physical overlapping/multiple dock geometry and mixed-DPI behavior on actual Xorg sessions.
 - NVIDIA 470 / GeForce GT 740 proprietary driver, real GLX acceleration or animation frame pacing.
@@ -109,7 +117,7 @@ PASS — GitHub Actions [PR #32 run #759](https://github.com/manivelx/MRX-Deskto
 
 ## Arch Linux native-container validation
 
-PR #21 adds a dedicated `archlinux:latest` container job alongside Ubuntu. Both jobs are configured to run formatting, workspace tests, Clippy, debug and release builds, static checks, shell helper tests, installer sandbox and Xvfb/Xephyr integration. The Arch job installs its X11/Xephyr dependencies with pacman. This improves distro parity but is not a booted Arch/CachyOS VM test; it does not validate SDDM, logind, kernel modules, NVIDIA drivers or a full desktop session. The PR's corrected head still requires a fresh green Actions run before merge.
+PR #21 adds a dedicated `archlinux:latest` container job alongside Ubuntu. Both jobs are configured to run formatting, workspace tests, Clippy, debug and release builds, static checks, shell helper tests, installer sandbox and Xvfb/Xephyr integration. The Arch job installs its X11/Xephyr dependencies with pacman. This improves distro parity but is not a booted Arch/CachyOS VM test; it does not validate SDDM, logind, kernel modules, NVIDIA drivers or a full desktop session. The merged main baseline is now green on both Ubuntu and Arch in run #824. This remains a native Arch container test, not a booted Arch/CachyOS VM test; it does not validate SDDM, logind, kernel modules, NVIDIA drivers or a full physical desktop session.
 
 ## Local reproduction
 

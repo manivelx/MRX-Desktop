@@ -62,7 +62,7 @@ mkdir -p "$USER_BIN" "$USER_CONFIG" "$QS_CONFIG" "$SESSION_DIR"
 backup_if_different() {
   local source="$1" destination="$2"
   if [[ -e "$destination" ]] && ! cmp -s "$source" "$destination"; then
-    local backup="${destination}.backup.$(date +%Y%m%d-%H%M%S)"
+    local backup="${destination}.backup.$(date +%Y%m%d-%H%M%S-%N)"
     cp -a "$destination" "$backup"
     echo "Backed up existing file: $backup"
   fi
@@ -84,11 +84,11 @@ install -m755 "$ROOT/scripts/mrx-diagnose.sh" "$USER_BIN/mrx-diagnose"
 
 # Preserve only the MRX-specific shell directory if reinstalling it.
 if [[ -d "$QS_CONFIG" ]]; then
-  cp -a "$QS_CONFIG" "${QS_CONFIG}.backup.$(date +%Y%m%d-%H%M%S)"
+  cp -a "$QS_CONFIG" "${QS_CONFIG}.backup.$(date +%Y%m%d-%H%M%S-%N)"
 fi
 cp -a "$ROOT/shell/." "$QS_CONFIG/"
 if [[ -e "$SESSION_DIR/mrx.desktop" ]] && ! cmp -s "$ROOT/session/mrx.desktop" "$SESSION_DIR/mrx.desktop"; then
-  cp -a "$SESSION_DIR/mrx.desktop" "$SESSION_DIR/mrx.desktop.backup.$(date +%Y%m%d-%H%M%S)"
+  cp -a "$SESSION_DIR/mrx.desktop" "$SESSION_DIR/mrx.desktop.backup.$(date +%Y%m%d-%H%M%S-%N)"
 fi
 install -m644 "$ROOT/session/mrx.desktop" "$SESSION_DIR/mrx.desktop"
 

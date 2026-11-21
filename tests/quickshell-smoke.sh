@@ -42,6 +42,7 @@ export XDG_CURRENT_DESKTOP=MRX
 export XDG_SESSION_DESKTOP=mrx
 export XDG_SESSION_TYPE=x11
 export QT_QPA_PLATFORM=xcb
+export QT_QUICK_BACKEND=software
 export QT_AUTO_SCREEN_SCALE_FACTOR=0
 export MRX_SESSION=1
 export PATH="$HOME/.local/bin:$PATH"

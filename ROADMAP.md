@@ -26,7 +26,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Adopt initial EWMH fullscreen/maximize/hidden/ABOVE/BELOW state, ICCCM IconicState and per-window desktop assignment at WM startup; validate pre-existing clients in Xvfb.
 - [x] Reconcile managed-client stacking by BELOW/normal/ABOVE/dock/fullscreen layer, including state removal and map/unmap/destroy/configure transitions.
 - [x] Add ICCCM transient-parent tracking, EWMH modal state adoption and parent-focus redirection for nested modal dialogs; validate startup and IPC focus behavior in Xvfb.
-- [ ] Complete full state restoration semantics and broader dialog focus/withdrawal edge cases.
+- [ ] Complete full state restoration semantics and broader dialog focus/withdrawal edge cases.\n- [ ] Provide documented application-launch keybindings through an X11-friendly `sxhkd` bridge; evaluate a single TOML binding source only after the action API is stable.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
 - [ ] Validate remaining overlapping/multi-panel dock layouts, mixed-DPI behavior and hotplug/disconnect/reconnect on physical Xorg hardware.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.
@@ -48,14 +48,14 @@ Items are marked complete only when implementation and relevant automated valida
 
 - [x] Prototype isolated XComposite named-pixmap capture and XDamage event tracking on Xvfb/Xephyr; production WM redirection remains disabled until a renderer owns the compositor role.
 - [x] Validate off-screen XRender composition of captured pixmaps on Xvfb/Xephyr; managed-client/root overlay rendering remains a separate production milestone.
-- [ ] Build/validate renderer with a no-animation fallback.
+- [x] Start optional Picom from the MRX session when installed, without replacing an existing compositor or changing the preserved user configuration.\n- [ ] Validate Picom GLX and XRender/no-compositor fallback on the target GT 740/470xx hardware.\n- [ ] Build/validate a production renderer with a no-animation fallback.
 - [ ] Add workspace transitions with correct input/focus handoff.
 - [ ] Verify GLX/Present behavior on supported hardware.
 - [ ] Measure frame pacing, CPU/GPU use, memory and recovery from renderer failure.
 
 ## Phase 4 — Quickshell integration and visual system
 
-- [ ] Audit every imported QML service, shell command and compositor-specific API.
+- [x] Add a documented X11 compatibility audit for the major imported shell services and their current fallbacks (`docs/SHELL_AUDIT.md`).\n- [ ] Complete the per-file/per-control audit of every imported QML service, shell command and compositor-specific API.
 - [ ] Route all supported window/workspace/settings actions through MRX APIs.
 - [x] Add explicit MRX X11 paths for static wallpaper application, monitor-aware wallpaper placement and ffmpeg/x11grab screen recording.
 - [x] Route wallpaper-selector search through Quickshell state instead of Hyprland-only compositor IPC.

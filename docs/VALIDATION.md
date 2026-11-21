@@ -70,7 +70,7 @@ This is not a production compositor test: no compositor-manager selection is acq
 
 ## Installer rollback and backup restoration
 
-PASS — GitHub Actions [PR #30 run #711](https://github.com/manivelx/MRX-Desktop/actions/runs/44920981053) passed both Ubuntu and Arch Linux jobs. The installer sandbox verified install/reinstall, restoration of pre-existing `mrx-wm`, `mrx-diagnose`, session desktop and Quickshell config backups, and preservation of user-editable MRX settings and Picom configuration after uninstall.
+PASS — GitHub Actions [PR #30 run #726](https://github.com/manivelx/MRX-Desktop/actions/runs/44921214407) passed both Ubuntu and Arch Linux jobs on the final PR head. The installer sandbox verified install/reinstall, restoration of pre-existing `mrx-wm`, `mrx-diagnose`, session desktop and Quickshell config backups, and preservation of user-editable MRX settings and Picom configuration after uninstall.
 
 This is isolated user-space testing; disposable Arch/CachyOS-LTS VM rollback and SDDM coexistence remain release gates.
 

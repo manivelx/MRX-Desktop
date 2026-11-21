@@ -15,7 +15,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] EWMH desktop metadata and core client messages.
 - [x] RandR 1.5 monitor discovery, event updates and reconciliation.
 - [x] Per-monitor tiling, independent workspaces and monitor-aware shell workspace routing.
-- [ ] Move managed windows between named monitors and monitor-local workspaces through MRX IPC, with Xvfb acceptance coverage.
+- [x] Move managed windows between named monitors and monitor-local workspaces through MRX IPC, with Xvfb acceptance coverage.
 - [x] Initial EWMH dock strut/workarea handling.
 - [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
 - [x] Run the complete compiled-WM integration suite inside nested Xephyr; prefer explicit RandR monitor objects over overlapping automatic fallbacks.

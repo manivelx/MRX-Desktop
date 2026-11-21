@@ -34,8 +34,8 @@ if [[ "${MRX_USE_EXISTING_DISPLAY:-0}" == "1" ]]; then
   xdpyinfo >/dev/null || { echo "Cannot connect to supplied DISPLAY=$DISPLAY" >&2; exit 1; }
   echo "PASS: using supplied nested X11 display $DISPLAY"
 else
-  command -v X11 test server >/dev/null 2>&1 || { echo "Missing test dependency: X11 test server" >&2; exit 2; }
-  X11 test server -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
+  command -v Xvfb >/dev/null 2>&1 || { echo "Missing test dependency: Xvfb" >&2; exit 2; }
+  Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
   XVFB_PID=$!
   for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
   [[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }

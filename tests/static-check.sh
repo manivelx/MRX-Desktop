@@ -13,6 +13,7 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
 [[ -f shell/scripts/lib/mrx-session.sh ]] || fail 'shared MRX shell session helper missing'
 [[ -f tests/mrx-shell-backend.sh ]] || fail 'MRX shell backend test missing'
+[[ -f tests/mrx-shell-capabilities.sh ]] || fail 'MRX shell capability test missing'
 [[ -f scripts/mrx-diagnose.sh ]] || fail 'MRX startup diagnostics script missing'
 [[ -f tests/diagnostics.sh ]] || fail 'MRX startup diagnostics test missing'
 [[ -f scripts/package-release.sh ]] || fail 'release packager missing'
@@ -20,7 +21,7 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f tests/x11-test-client.c ]] || fail 'X11 test client source missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh scripts/package-release.sh tests/package-release.sh scripts/mrx-diagnose.sh tests/diagnostics.sh session/mrx-session session/mrx-wm-supervisor shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh scripts/package-release.sh tests/package-release.sh scripts/mrx-diagnose.sh tests/diagnostics.sh tests/mrx-shell-capabilities.sh session/mrx-session session/mrx-wm-supervisor shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
 for gate in 'bash ./check-deps.sh' 'bash ./tests/mrx-shell-backend.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
@@ -33,6 +34,8 @@ grep -Fq 'bash ./tests/package-release.sh' build.sh || fail 'build.sh omits repr
 grep -Fq 'bash ./tests/package-release.sh' .github/workflows/ci.yml || fail 'CI omits release archive tests'
 grep -Fq 'bash ./tests/diagnostics.sh' build.sh || fail 'build.sh omits startup diagnostics tests'
 grep -Fq 'bash ./tests/diagnostics.sh' .github/workflows/ci.yml || fail 'CI omits startup diagnostics tests'
+grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' build.sh || fail 'build.sh omits MRX shell capability tests'
+grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' .github/workflows/ci.yml || fail 'CI omits MRX shell capability tests'
 grep -Fq 'mrx-diagnose --reason' session/mrx-session || fail 'session startup failure does not capture diagnostics'
 grep -Fq 'Quickshell frontend failed to start' session/mrx-session || fail 'Quickshell startup failure does not capture diagnostics'
 grep -Fq 'FAILURES >= 3' session/mrx-wm-supervisor || fail 'supervisor does not capture diagnostics after repeated WM crashes'

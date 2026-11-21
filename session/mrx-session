@@ -54,4 +54,7 @@ if command -v xss-lock >/dev/null 2>&1 && [[ -x "$LOCK_LAUNCHER" ]] && ! pgrep -
 fi
 
 # Quickshell frontend: same end4-pC QML, MRX Rust backend.
-qs -c mrx
+if ! qs -c mrx; then
+  report_startup_failure "Quickshell frontend failed to start"
+  exit 1
+fi

@@ -52,6 +52,12 @@ The run passed formatting, workspace tests, Clippy with warnings denied, debug b
 
 The suite exercises simultaneous top/vertical dock struts, same-edge maximum reservations and workarea restoration after dock removal. Mixed-resolution monitor strut intersection is covered by Rust unit tests. Xephyr also exposed and verified a fix for RandR servers that report an automatic root/output monitor alongside explicit RandR 1.5 monitor objects.
 
+## Reproducible release archive validation
+
+PASS — GitHub Actions [PR #25 run #627](https://github.com/manivelx/MRX-Desktop/actions/runs/44918737282) passed both Ubuntu and Arch Linux jobs on the release-packaging PR head `6a5bbc9f602335573d55487bb6e00d6f39173baf`.
+
+Both jobs built the optimized workspace and ran the release archive test. The test verified archive contents, SHA-256 checksum validation and byte-for-byte reproducibility across two package builds. The tag-triggered GitHub Release publication workflow is configured but has not been triggered; no public release has been created.
+
 ## Integration coverage
 
 - IPC startup, health, subscriptions, structured operation results and orderly shutdown.

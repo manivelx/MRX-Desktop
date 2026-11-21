@@ -20,7 +20,7 @@ ARCHIVE="$(find "$MRX_RELEASE_OUT_DIR" -maxdepth 1 -name '*.tar.gz' -print -quit
   sha256sum -c "$(basename "$ARCHIVE").sha256"
 )
 tar -tzf "$ARCHIVE" > "$TMP/files.txt"
-for expected in '/bin/mrx-wm' '/bin/mrxctl' '/install.sh' '/uninstall.sh' '/session/mrx-session' '/session/mrx-wm-supervisor' '/shell/' '/LICENSE' '/THIRD_PARTY_NOTICES.md' '/docs/VALIDATION.md'; do
+for expected in '/bin/mrx-wm' '/bin/mrxctl' '/install.sh' '/uninstall.sh' '/session/mrx-session' '/session/mrx-wm-supervisor' '/scripts/mrx-diagnose.sh' '/shell/' '/LICENSE' '/THIRD_PARTY_NOTICES.md' '/docs/VALIDATION.md'; do
   grep -Fq "$expected" "$TMP/files.txt" || { echo "FAIL: release archive omits $expected" >&2; exit 1; }
 done
 FIRST_SUM="$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"

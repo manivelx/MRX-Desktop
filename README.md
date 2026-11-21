@@ -160,6 +160,20 @@ Run the complete developer build and validation suite:
 
 The build helper runs formatting, workspace tests, Clippy, build checks, static checks and Xvfb tests. See [Building](docs/BUILDING.md) for the supported commands and prerequisites.
 
+### Binary release archive
+
+When a versioned GitHub Release is published, download the matching `mrx-desktop-<version>-linux-<arch>.tar.gz` archive and its `.sha256` file from [GitHub Releases](https://github.com/manivelx/MRX-Desktop/releases). Verify the checksum before extracting:
+
+```bash
+sha256sum -c mrx-desktop-<version>-linux-<arch>.tar.gz.sha256
+tar -xzf mrx-desktop-<version>-linux-<arch>.tar.gz
+cd mrx-desktop-<version>-linux-<arch>
+./install.sh --install-deps
+./install.sh
+```
+
+The tag-triggered release workflow publishes archives only when the pushed tag exactly matches the Cargo workspace version. No public binary release is available until that version tag is pushed.
+
 ### Experimental user install
 
 After reviewing the scripts and building successfully:

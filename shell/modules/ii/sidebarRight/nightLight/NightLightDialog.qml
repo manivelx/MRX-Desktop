@@ -31,6 +31,12 @@ WindowDialog {
         Layout.bottomMargin: -10
     }
 
+    NoticeBox {
+        Layout.fillWidth: true
+        visible: WM.compositor === "mrx"
+        text: Translation.tr("Night Light is not implemented in MRX yet. These controls are disabled and will not change display color temperature.")
+    }
+
     GroupedList {
         itemVerticalPadding: 16
         bgcolor: Appearance.colors.colSurfaceContainerHigh  
@@ -39,6 +45,7 @@ WindowDialog {
             iconSize: Appearance.font.pixelSize.larger
             buttonIcon: "check"
             text: Translation.tr("Enable now")
+            enabled: WM.compositor !== "mrx"
             checked: Hyprsunset.temperatureActive
             onCheckedChanged: {
                 Hyprsunset.toggleTemperature(checked)
@@ -50,6 +57,7 @@ WindowDialog {
             iconSize: Appearance.font.pixelSize.larger
             buttonIcon: "night_sight_auto"
             text: Translation.tr("Automatic")
+            enabled: WM.compositor !== "mrx"
             checked: Config.options.light.night.automatic
             onCheckedChanged: {
                 Config.options.light.night.automatic = checked;
@@ -62,6 +70,7 @@ WindowDialog {
             from: 6500
             to: 1200
             stopIndicatorValues: [5000, to]
+            enabled: WM.compositor !== "mrx"
             value: Config.options.light.night.colorTemperature
             onMoved: Config.options.light.night.colorTemperature = value
             tooltipContent: `${Math.round(value)}K`
@@ -70,11 +79,13 @@ WindowDialog {
 
 
     WindowDialogSectionHeader {
+        visible: WM.compositor === "hyprland"
         text: Translation.tr("Anti-flashbang (experimental)")
         Layout.bottomMargin: -10
     }
 
     GroupedList {
+        visible: WM.compositor === "hyprland"
         itemVerticalPadding: 16
         bgcolor: Appearance.colors.colSurfaceContainerHigh
         ConfigSwitch {
@@ -108,11 +119,13 @@ WindowDialog {
     }
 
     WindowDialogSectionHeader {
-        text: Translation.tr("Brightness")
+        visible: WM.compositor === "hyprland"
+        text: Translation.tr("Brightness adjustment")
         Layout.bottomMargin: -10
     }
 
     GroupedList {
+        visible: WM.compositor === "hyprland"
         itemVerticalPadding: 16
         bgcolor: Appearance.colors.colSurfaceContainerHigh  
 

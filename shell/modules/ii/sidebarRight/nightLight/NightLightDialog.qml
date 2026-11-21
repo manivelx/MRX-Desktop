@@ -119,13 +119,11 @@ WindowDialog {
     }
 
     WindowDialogSectionHeader {
-        visible: WM.compositor === "hyprland"
-        text: Translation.tr("Brightness adjustment")
+        text: Translation.tr("Brightness")
         Layout.bottomMargin: -10
     }
 
     GroupedList {
-        visible: WM.compositor === "hyprland"
         itemVerticalPadding: 16
         bgcolor: Appearance.colors.colSurfaceContainerHigh  
 

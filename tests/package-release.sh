@@ -44,8 +44,10 @@ HOME="$TMP/install-home" XDG_CONFIG_HOME="$TMP/install-home/.config" XDG_DATA_HO
 HOME="$TMP/install-home" XDG_CONFIG_HOME="$TMP/install-home/.config" XDG_DATA_HOME="$TMP/install-home/.local/share" "$RELEASE_ROOT/uninstall.sh"
 [[ ! -e "$TMP/install-home/.local/bin/mrx-wm" ]]
 [[ ! -e "$TMP/install-home/.local/bin/mrx-diagnose" ]]
-find "$TMP/install-home/.config" -maxdepth 1 -type d -name 'mrx.removed.*' | grep -q .
-echo "PASS: extracted release archive installs and uninstalls in an isolated user environment"
+[[ -d "$TMP/install-home/.config/mrx" ]]
+[[ -f "$TMP/install-home/.config/mrx/settings.toml" ]]
+find "$TMP/install-home/.config/quickshell" -maxdepth 1 -type d -name 'mrx.removed.*' | grep -q .
+echo "PASS: extracted release archive installs/uninstalls and preserves user settings in an isolated environment"
 FIRST_SUM="$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"
 bash "$ROOT/scripts/package-release.sh"
 SECOND_SUM="$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"

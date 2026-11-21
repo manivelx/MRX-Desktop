@@ -27,7 +27,7 @@ grep -Fq 'mrx-session.sh' shell/scripts/videos/record.sh || fail 'recording scri
 grep -Fq 'mrx_get_focused_monitor_geometry' shell/scripts/colors/switchwall.sh || fail 'MRX wallpaper script omits monitor-aware geometry'
 grep -Fq 'mrx_is_x11_session "$COMPOSITOR"' shell/scripts/videos/record.sh || fail 'recording script omits the MRX X11 capture path'
 grep -Fq 'GlobalStates.wallpaperSelectorOpen = !GlobalStates.wallpaperSelectorOpen' shell/services/LauncherSearch.qml || fail 'wallpaper search action still depends on compositor-only IPC'
-grep -Fq 'desktop == *hyprland*' shell/scripts/system-appearance.sh || fail 'cursor script may invoke hyprctl outside Hyprland'
+grep -Fq '"$desktop" == *hyprland*' shell/scripts/system-appearance.sh || fail 'cursor script may invoke hyprctl outside Hyprland'
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
 grep -Fq 'xwininfo' check-deps.sh || fail 'dependency checker omits the secondary dock fixture lookup'
 grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xwininfo xrandr python3 jq xdotool slop ffmpeg' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'

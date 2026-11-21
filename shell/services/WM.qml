@@ -59,6 +59,9 @@ Singleton {
     }
     function switchWorkspaceRelative(direction) { backend?.switchWorkspaceRelative(direction) }
     function moveWindowToWorkspace(id, wsId) { backend?.moveWindowToWorkspace(id, wsId) }
+    function moveWindowToMonitor(id, monitorName, wsId) {
+        if (root.compositor === "mrx") backend?.moveWindowToMonitor(id, monitorName, wsId)
+    }
     function monitorFor(screen) { return backend?.monitorFor(screen) ?? null }
     function activeWorkspaceForMonitor(name) { return backend?.activeWorkspaceForMonitor(name) ?? null }
     function biggestWindowForWorkspace(id, monitorName) { return backend?.biggestWindowForWorkspace(id, monitorName) ?? null }

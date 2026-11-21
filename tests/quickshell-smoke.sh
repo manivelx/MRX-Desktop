@@ -86,7 +86,7 @@ for _ in $(seq 1 120); do
   if ! kill -0 "$SESSION_PID" 2>/dev/null; then
     fail "MRX session exited before Quickshell became ready"
   fi
-  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && { pgrep -x qs >/dev/null 2>&1 || pgrep -x quickshell >/dev/null 2>&1; }; then
+  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && { pgrep -g "$SESSION_PID" -x qs >/dev/null 2>&1 || pgrep -g "$SESSION_PID" -x quickshell >/dev/null 2>&1; }; then
     READY=1
     break
   fi
@@ -96,7 +96,7 @@ done
 
 sleep 3
 kill -0 "$SESSION_PID" 2>/dev/null || fail "MRX session exited after startup"
-{ pgrep -x qs >/dev/null 2>&1 || pgrep -x quickshell >/dev/null 2>&1; } || fail "Quickshell exited after startup"
+{ pgrep -g "$SESSION_PID" -x qs >/dev/null 2>&1 || pgrep -g "$SESSION_PID" -x quickshell >/dev/null 2>&1; } || fail "Quickshell exited after startup"
 "$HOME/.local/bin/mrxctl" health >/dev/null 2>&1 || fail "MRX IPC health check failed after Quickshell startup"
 
 if grep -Eiq 'QQmlApplicationEngine failed|Failed to load root component|module "[^"]+" is not installed|MRX session startup failed' "$TMP/session.log"; then

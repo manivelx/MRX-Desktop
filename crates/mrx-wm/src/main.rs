@@ -1095,10 +1095,7 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
            } else {
              let source=s.monitors.iter().find(|monitor|monitor.name==source_name).cloned();
              let target=s.monitors.iter().find(|monitor|monitor.name==monitor_name).cloned();
-             let Some(target)=target else {
-               failure=Some(OperationError{code:"monitor_not_found".into(),message:format!("monitor '{monitor_name}' was not found"),retryable:false});
-               continue;
-             };
+             let target=target.expect("target monitor was validated before move");
              let was_focused=s.clients.get(&id).is_some_and(|window|window.focused);
              let minimized=s.clients.get(&id).is_some_and(|window|window.minimized);
              let floating=s.clients.get(&id).is_some_and(|window|window.floating);

@@ -113,7 +113,7 @@ done
 
 sleep 3
 kill -0 "$SESSION_PID" 2>/dev/null || fail "MRX session exited after startup"
-{ pgrep -g "$SESSION_PID" -x qs >/dev/null 2>&1 || pgrep -g "$SESSION_PID" -x quickshell >/dev/null 2>&1; } || fail "Quickshell exited after startup"
+{ process_tree_has_name "$SESSION_PID" qs >/dev/null 2>&1 || process_tree_has_name "$SESSION_PID" quickshell >/dev/null 2>&1; } || fail "Quickshell exited after startup"
 "$HOME/.local/bin/mrxctl" health >/dev/null 2>&1 || fail "MRX IPC health check failed after Quickshell startup"
 
 if grep -Eiq 'QQmlApplicationEngine failed|Failed to load root component|module "[^"]+" is not installed|MRX session startup failed' "$TMP/session.log"; then

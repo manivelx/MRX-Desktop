@@ -46,7 +46,7 @@ jobs:
             base-devel git curl pkgconf jq python \
             libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
             xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth \
-            quickshell dbus procps-ng qt6-5compat
+            quickshell dbus procps-ng qt6-5compat qt6-positioning
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:

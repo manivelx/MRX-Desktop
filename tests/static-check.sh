@@ -11,6 +11,8 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-wm/src/main.rs ]] || fail 'mrx-wm source missing'
 [[ -f crates/mrxctl/src/main.rs ]] || fail 'mrxctl source missing'
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
+grep -Fq '"render"' Cargo.toml || fail 'XRender protocol support is not enabled'
+grep -Fq 'render_composite' crates/mrx-graphics-probe/src/main.rs || fail 'graphics probe omits XRender composition
 [[ -f shell/scripts/lib/mrx-session.sh ]] || fail 'shared MRX shell session helper missing'
 [[ -f tests/mrx-shell-backend.sh ]] || fail 'MRX shell backend test missing'
 [[ -f scripts/mrx-diagnose.sh ]] || fail 'MRX startup diagnostics script missing'

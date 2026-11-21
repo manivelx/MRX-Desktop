@@ -13,8 +13,10 @@ fail() {
   exit 1
 }
 cleanup() {
+  pkill -x qs 2>/dev/null || true
+  pkill -x quickshell 2>/dev/null || true
   if [[ -n "$SESSION_PID" ]]; then
-    kill -- "-$SESSION_PID" 2>/dev/null || true
+    kill -TERM "$SESSION_PID" 2>/dev/null || true
     wait "$SESSION_PID" 2>/dev/null || true
   fi
   if [[ -n "$XVFB_PID" ]]; then
@@ -60,7 +62,7 @@ MRX_BIN_DIR="$ROOT/target/debug" bash "$ROOT/install.sh" >"$TMP/install.log" 2>&
   fail "isolated MRX installation failed"
 }
 
-setsid dbus-run-session -- "$HOME/.local/bin/mrx-session" >"$TMP/session.log" 2>&1 &
+dbus-run-session -- "$HOME/.local/bin/mrx-session" >"$TMP/session.log" 2>&1 &
 SESSION_PID=$!
 
 READY=0
@@ -68,7 +70,7 @@ for _ in $(seq 1 120); do
   if ! kill -0 "$SESSION_PID" 2>/dev/null; then
     fail "MRX session exited before Quickshell became ready"
   fi
-  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && pgrep -x qs >/dev/null 2>&1; then
+  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && { pgrep -x qs >/dev/null 2>&1 || pgrep -x quickshell >/dev/null 2>&1; }; then
     READY=1
     break
   fi
@@ -78,7 +80,7 @@ done
 
 sleep 3
 kill -0 "$SESSION_PID" 2>/dev/null || fail "MRX session exited after startup"
-pgrep -x qs >/dev/null 2>&1 || fail "Quickshell exited after startup"
+{ pgrep -x qs >/dev/null 2>&1 || pgrep -x quickshell >/dev/null 2>&1; } || fail "Quickshell exited after startup"
 "$HOME/.local/bin/mrxctl" health >/dev/null 2>&1 || fail "MRX IPC health check failed after Quickshell startup"
 
 if grep -Eiq 'QQmlApplicationEngine failed|Failed to load root component|module "[^"]+" is not installed|MRX session startup failed' "$TMP/session.log"; then

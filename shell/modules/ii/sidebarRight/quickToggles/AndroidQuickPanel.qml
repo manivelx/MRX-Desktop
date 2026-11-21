@@ -36,7 +36,7 @@ AbstractQuickPanel {
     readonly property list<var> toggles: {
         if (!Config.ready) return []
         const raw = Config.options.sidebar.quickToggles.android.toggles
-        return WM.compositor === "hyprland" ? raw : raw.filter(t => !t || t.type !== "gameMode")
+        return WM.compositor === "hyprland" ? raw : raw.filter(t => !t || (t.type !== "gameMode" && t.type !== "antiFlashbang"))
     }
     readonly property list<var> toggleRows: toggleRowsForList(toggles)
     readonly property list<var> unusedToggles: {

@@ -383,6 +383,13 @@ fn intern(conn:&RustConnection,name:&str)->Result<u32>{Ok(conn.intern_atom(false
 
 /// Query RandR 1.5 monitor objects. Fall back to the X screen geometry when
 /// RandR is unavailable or the server does not expose monitor objects.
+fn include_randr_monitor_object(automatic: bool, has_explicit_monitors: bool) -> bool {
+    // RandR servers may expose an automatic root/output fallback alongside
+    // user-defined monitor objects. Once explicit monitor objects exist, they
+    // define the layout and the overlapping automatic fallback must be ignored.
+    !has_explicit_monitors || !automatic
+}
+
 fn discard_synthetic_screen_monitor(monitors: &mut Vec<MonitorInfo>) {
     // Some RandR servers expose the root framebuffer as a synthetic
     // "screen" monitor alongside explicitly configured output monitors.
@@ -410,7 +417,9 @@ fn discover_monitors(conn: &RustConnection, root: Window, width: u16, height: u1
         match conn.randr_get_monitors(root, false) {
             Ok(cookie) => match cookie.reply() {
             Ok(reply) => {
+                let has_explicit_monitors = reply.monitors.iter().any(|monitor| !monitor.automatic);
                 for monitor in reply.monitors {
+                    if !include_randr_monitor_object(monitor.automatic, has_explicit_monitors) { continue; }
                     if monitor.width == 0 || monitor.height == 0 { continue; }
                     let name = conn.get_atom_name(monitor.name).ok()
                         .and_then(|cookie| cookie.reply().ok())
@@ -1775,6 +1784,13 @@ mod monitor_tests {
         state.clients.insert(5, WindowInfo { id: 5, fullscreen: true, ..Default::default() });
         state.clients.insert(6, WindowInfo { id: 6, ..Default::default() });
         assert_eq!(stacking_order(&state), vec![3, 1, 6, 2, 4, 5]);
+    }
+
+    #[test]
+    fn explicit_randr_monitor_objects_replace_automatic_fallbacks() {
+        assert!(!include_randr_monitor_object(true, true));
+        assert!(include_randr_monitor_object(false, true));
+        assert!(include_randr_monitor_object(true, false));
     }
 
     #[test]

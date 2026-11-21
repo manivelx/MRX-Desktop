@@ -43,7 +43,7 @@ jobs:
       - name: Install Arch Linux toolchain and X11 test dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            base-devel util-linux git curl pkgconf jq python \
+            base-devel git curl pkgconf jq python \
             libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
             xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth \
             quickshell dbus procps-ng qt6-5compat qt6-positioning syntax-highlighting

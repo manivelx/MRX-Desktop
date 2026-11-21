@@ -22,6 +22,17 @@ stop_process_tree() {
   done < <(pgrep -P "$parent" || true)
   kill -"$signal" "$parent" 2>/dev/null || true
 }
+process_tree_has_name() {
+  local parent="$1" wanted="$2" child child_name
+  while IFS= read -r child; do
+    [[ -n "$child" ]] || continue
+    child_name="$(cat "/proc/$child/comm" 2>/dev/null || true)"
+    if [[ "$child_name" == "$wanted" ]] || process_tree_has_name "$child" "$wanted"; then
+      return 0
+    fi
+  done < <(pgrep -P "$parent" || true)
+  return 1
+}
 cleanup() {
   # Stop the session and every descendant before removing the temporary HOME.
   # This avoids killing unrelated Quickshell/Picom processes on the host.
@@ -92,7 +103,7 @@ for _ in $(seq 1 120); do
   if ! kill -0 "$SESSION_PID" 2>/dev/null; then
     fail "MRX session exited before Quickshell became ready"
   fi
-  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && { pgrep -g "$SESSION_PID" -x qs >/dev/null 2>&1 || pgrep -g "$SESSION_PID" -x quickshell >/dev/null 2>&1; }; then
+  if "$HOME/.local/bin/mrxctl" ping >/dev/null 2>&1 && { process_tree_has_name "$SESSION_PID" qs >/dev/null 2>&1 || process_tree_has_name "$SESSION_PID" quickshell >/dev/null 2>&1; }; then
     READY=1
     break
   fi

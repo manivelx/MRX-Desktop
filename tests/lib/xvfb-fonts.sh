@@ -12,9 +12,9 @@ mrx_test_font_path() {
         /usr/share/fonts/X11/100dpi; do
         [[ -d "$path" ]] && font_dirs+=("$path")
     done
-    if (("\${#font_dirs[@]}" > 0)); then
+    if (("${#font_dirs[@]}" > 0)); then
         local IFS=,
-        printf '%s,built-ins\n' "\${font_dirs[*]}"
+        printf '%s,built-ins\n' "${font_dirs[*]}"
     else
         printf 'built-ins\n'
     fi

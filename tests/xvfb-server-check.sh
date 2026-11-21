@@ -20,7 +20,13 @@ grep -qi Composite <<<"$EXTENSIONS" && echo 'PASS: Composite extension advertise
 grep -qi GLX <<<"$EXTENSIONS" && echo 'PASS: GLX extension advertised (software Xvfb only)' || echo 'WARN: GLX extension missing'
 xmessage -title 'MRX X11 probe' -buttons Close:0 'MRX X11 probe' >"$TMP/xmessage.log" 2>&1 & XPID=$!
 for _ in $(seq 1 30); do xwininfo -root -tree 2>/dev/null | grep -q 'MRX X11 probe' && break; sleep 0.1; done
-xwininfo -root -tree | grep 'MRX X11 probe' >/dev/null
+if ! xwininfo -root -tree | grep 'MRX X11 probe' >/dev/null; then
+  echo 'FAIL: X11 probe client did not appear in the root window tree' >&2
+  cat "$TMP/xmessage.log" >&2 || true
+  cat "$TMP/xvfb.log" >&2 || true
+  xwininfo -root -tree >&2 || true
+  exit 1
+fi
 echo 'PASS: X11 client creates a mapped window'
 kill "$XPID" 2>/dev/null || true
 echo 'PASS: virtual X11 server probe complete'

@@ -46,13 +46,10 @@ grep -Fq 'quickshell qt6-base qt6-declarative qt6-svg qt6-5compat qt6-positionin
 grep -Fq 'import QtPositioning' shell/services/Weather.qml || fail 'weather service QtPositioning import changed without dependency audit'
 grep -Fq 'import Qt5Compat.GraphicalEffects' shell/ReloadPopup.qml || fail 'Qt5Compat GraphicalEffects import changed without dependency audit'
 grep -Fq 'command -v pgrep' tests/quickshell-smoke.sh || fail 'Quickshell smoke test omits process inspection prerequisite'
-grep -Fq 'command -v setsid' tests/quickshell-smoke.sh || fail 'Quickshell smoke test omits isolated session process-group prerequisite'
-grep -Fq 'pgrep -g "$SESSION_PID" -x qs' tests/quickshell-smoke.sh || fail 'Quickshell smoke test may mistake another session process for its own frontend'
-grep -Fq 'pgrep -g "$SESSION_PID" -x quickshell' tests/quickshell-smoke.sh || fail 'Quickshell smoke test does not scope alternate frontend process detection'
-grep -Fq 'kill -TERM -- "-$SESSION_PID"' tests/quickshell-smoke.sh || fail 'Quickshell smoke cleanup does not stop its isolated process group'
-if grep -Eq 'pgrep -x (qs|quickshell)|pkill -x (qs|quickshell)' tests/quickshell-smoke.sh; then fail 'Quickshell smoke test must not inspect or terminate unrelated user sessions'; fi
-grep -Fq 'setsid' check-deps.sh || fail 'dependency checker omits util-linux setsid for isolated Quickshell cleanup'
-grep -Fq 'util-linux' scripts/install-deps-arch.sh || fail 'Arch dependency installer omits util-linux for isolated Quickshell cleanup'
+grep -Fq 'process_tree_has_name "$SESSION_PID" qs' tests/quickshell-smoke.sh || fail 'Quickshell smoke test may mistake another session process for its own frontend'
+grep -Fq 'process_tree_has_name "$SESSION_PID" quickshell' tests/quickshell-smoke.sh || fail 'Quickshell smoke test does not scope alternate frontend process detection'
+grep -Fq 'stop_process_tree TERM "$SESSION_PID"' tests/quickshell-smoke.sh || fail 'Quickshell smoke cleanup does not stop its own process descendants'
+if grep -Eq 'pgrep -g|pkill -x' tests/quickshell-smoke.sh; then fail 'Quickshell smoke test must not inspect or terminate unrelated user sessions'; fi
 grep -Fq 'mrx-diagnose --reason' session/mrx-session || fail 'session startup failure does not capture diagnostics'
 grep -Fq 'Quickshell frontend failed to start' session/mrx-session || fail 'Quickshell startup failure does not capture diagnostics'
 grep -Fq 'FAILURES >= 3' session/mrx-wm-supervisor || fail 'supervisor does not capture diagnostics after repeated WM crashes'

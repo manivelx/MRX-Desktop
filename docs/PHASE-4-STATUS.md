@@ -15,6 +15,7 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 - Add an MRX settings capability summary for implemented WM controls and current unsupported features; add source-level regression coverage in both Ubuntu and Arch CI.
 - Correct MRX Game Mode state detection and persist/restore the user's pre-toggle gap/border settings across Quickshell reloads instead of assuming fixed defaults.
 - Shell helper tests cover MRX, BSPWM, Niri and Hyprland detection, MRX monitor enumeration, focused monitor geometry and the no-hyprctl X11 path.
+- Add an Arch CI live-session smoke test that installs the project into a temporary home, starts Xvfb and a private DBus session, launches the Rust WM and Quickshell frontend, then verifies IPC health and frontend process survival. The same test is optional in the developer build when runtime dependencies are installed.
 
 ## Still outstanding
 

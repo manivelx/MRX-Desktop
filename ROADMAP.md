@@ -70,7 +70,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [ ] Test installation, upgrade, rollback and removal in disposable Arch/CachyOS VMs.
 - [ ] Validate coexistence with existing BSPWM/SDDM/lock-screen configuration.
 - [ ] Add recovery and diagnostics for failed session startup.
-- [ ] Publish reproducible release artifacts, checksums and release notes.
+- [x] Add reproducible Linux release archives, SHA-256 checksums and tag-triggered GitHub Release automation (first version tag still pending).
 - [ ] Complete hardware compatibility matrix before making support claims.
 
 ## Release gates

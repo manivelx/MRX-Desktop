@@ -18,17 +18,7 @@ Scope {
     PanelWindow {
         aboveWindows: true
         focusable: visible
-        property bool x11HadFocus: false
-        onActiveChanged: {
-            if (WM.isX11) {
-                if (active) x11HadFocus = true
-                else if (x11HadFocus && visible) {
-                    x11HadFocus = false
-                    GlobalStates.sidebarRightOpen = false
-                }
-            }
-        }
-        id: panelWindow
+                id: panelWindow
 
         readonly property bool animatedEntrance: WM.compositor !== "hyprland"
         property bool reallyVisible: false

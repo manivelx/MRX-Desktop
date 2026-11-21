@@ -59,6 +59,9 @@ Singleton {
     }
     function switchWorkspaceRelative(direction) { backend?.switchWorkspaceRelative(direction) }
     function moveWindowToWorkspace(id, wsId) { backend?.moveWindowToWorkspace(id, wsId) }
+    function moveWindowToMonitor(id, monitorName, wsId) {
+        if (root.compositor === "mrx") backend?.moveWindowToMonitor(id, monitorName, wsId)
+    }
     function monitorFor(screen) { return backend?.monitorFor(screen) ?? null }
     function activeWorkspaceForMonitor(name) { return backend?.activeWorkspaceForMonitor(name) ?? null }
     function biggestWindowForWorkspace(id, monitorName) { return backend?.biggestWindowForWorkspace(id, monitorName) ?? null }
@@ -110,7 +113,13 @@ Singleton {
             let am = s.match(/address:([0-9]+)/)
             if (am && /close/.test(s)) { root.closeWindow(am[1]); return }
             if (am && /focus|activate/.test(s)) { root.focusWindow(am[1]); return }
-            if (am && /(moveToWorkspace|window\.move)/.test(s)) { const target = s.match(/workspace\s*=\s*["\']?(-?\d+)/); if (target) root.moveWindowToWorkspace(am[1], Number(target[1])); return }
+            if (am && /(moveToWorkspace|window\.move)/.test(s)) {
+                const target = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
+                const monitor = s.match(/monitor\s*=\s*["']([^"']+)["']/)
+                if (target && monitor) root.moveWindowToMonitor(am[1], monitor[1], Number(target[1]))
+                else if (target) root.moveWindowToWorkspace(am[1], Number(target[1]))
+                return
+            }
             am = s.match(/workspace\s*=\s*["\']?(-?\d+)/)
             if (am) root.switchWorkspace(Number(am[1]))
             return

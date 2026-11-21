@@ -461,6 +461,46 @@ assert window['monitor'] in {m['name'] for m in data['monitors']}, data
 print('PASS: managed window has a live monitor assignment')
 PY
 
+# Move a live client between independent monitor-local workspaces. The move
+# must update both the monitor identity and workspace assignment, and the
+# reverse move must restore visibility on the original output.
+MOVE_RESULT="$(run_operation move-monitor "$WINDOW_ID" MRX-RIGHT 3)"
+MOVE_APPLIED=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json, sys
+data=json.load(open(sys.argv[1],encoding='utf-8'))
+window=next(w for w in data['windows'] if str(w['id'])==sys.argv[2])
+raise SystemExit(0 if window['monitor']=='MRX-RIGHT' and window['workspace']==3 else 1)
+PY
+  then MOVE_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$MOVE_APPLIED" == 1 ]] || { echo "FAIL: cross-monitor move did not update monitor/workspace state" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+BAD_MOVE_ID="$(queue_operation move-monitor "$WINDOW_ID" MRX-MISSING 1)"
+BAD_MOVE_RESULT="$(await_operation "$BAD_MOVE_ID" failed)"
+python3 - "$BAD_MOVE_RESULT" <<'PY'
+import json,sys
+operation=json.loads(sys.argv[1])['operation']
+assert operation['error']['code']=='monitor_not_found', operation
+PY
+run_operation move-monitor "$WINDOW_ID" MRX-LEFT 1 >/dev/null
+MOVED_BACK=0
+for _ in $(seq 1 30); do
+  "$CTL" snapshot >"$RUNTIME/snapshot.json"
+  if python3 - "$RUNTIME/snapshot.json" "$WINDOW_ID" <<'PY'
+import json,sys
+data=json.load(open(sys.argv[1],encoding='utf-8'))
+window=next(w for w in data['windows'] if str(w['id'])==sys.argv[2])
+raise SystemExit(0 if window['monitor']=='MRX-LEFT' and window['workspace']==1 else 1)
+PY
+  then MOVED_BACK=1; break; fi
+  sleep 0.1
+done
+[[ "$MOVED_BACK" == 1 ]] || { echo "FAIL: cross-monitor reverse move did not restore assignment" >&2; cat "$RUNTIME/wm.log" >&2; exit 1; }
+echo "PASS: IPC moves clients across monitors/workspaces and rejects unknown monitor targets"
+
 # Exercise EWMH horizontal+vertical maximize and restoration through real
 # ClientMessage requests. The snapshot must reflect both state atoms and
 # restore the pre-maximize geometry when both axes are removed.

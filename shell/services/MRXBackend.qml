@@ -57,6 +57,9 @@ Scope {
     function focusWindow(id) { run(["focus", Number(id)]) }
     function closeWindow(id) { run(["close", Number(id)]) }
     function moveWindowToWorkspace(id, ws) { run(["move", Number(id), Number(ws)]) }
+    function moveWindowToMonitor(id, monitorName, ws) {
+        run(["move-monitor", Number(id), String(monitorName), Number(ws)])
+    }
     function monitorFor(screen) { return root.monitors.find(m=>m.name===screen?.name)??root.focusedMonitor }
     function activeWorkspaceForMonitor(name) { return root.workspaces.find(w => w.output === name && w.is_active) ?? root.activeWorkspace }
     function biggestWindowForWorkspace(id, monitorName) { const a=root.windowList.filter(w=>w.workspaceId===Number(id) && (!monitorName || w.monitorName===monitorName));return a.sort((x,y)=>y.width*y.height-x.width*x.height)[0]??null }

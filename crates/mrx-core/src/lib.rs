@@ -366,6 +366,7 @@ pub enum Request {
     FocusWindow { id: u32 },
     CloseWindow { id: u32 },
     MoveWindow { id: u32, workspace: u32 },
+    MoveWindowToMonitor { id: u32, monitor: String, workspace: u32 },
     SetSetting { key: String, value: serde_json::Value },
     ReloadSettings,
     Ping,
@@ -636,6 +637,21 @@ mod tests {
         let encoded = serde_json::to_string(&request).unwrap();
         let decoded: Request = serde_json::from_str(&encoded).unwrap();
         assert!(matches!(decoded, Request::SwitchWorkspaceOnMonitor { monitor, id: 3 } if monitor == "HDMI-1"));
+    }
+
+    #[test]
+    fn monitor_targeted_window_move_request_round_trips() {
+        let request = Request::MoveWindowToMonitor {
+            id: 42,
+            monitor: "DP-2".into(),
+            workspace: 3,
+        };
+        let encoded = serde_json::to_string(&request).unwrap();
+        let decoded: Request = serde_json::from_str(&encoded).unwrap();
+        assert!(matches!(
+            decoded,
+            Request::MoveWindowToMonitor { id: 42, monitor, workspace: 3 } if monitor == "DP-2"
+        ));
     }
 
     #[test]

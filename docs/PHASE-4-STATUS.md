@@ -16,7 +16,7 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 
 - Audit all imported QML services, shell commands and compositor-specific APIs.
 - Add complete disabled/unsupported states for every control without an MRX implementation.
-- Verify move-window-to-monitor and cross-monitor workspace actions through MRX IPC.
+- [x] Implement monitor-targeted window moves through versioned MRX IPC, mrxctl and the Quickshell backend; exercise forward/reverse moves and unknown-monitor errors in Xvfb. PASS — [PR #22 CI run #591](https://github.com/manivelx/MRX-Desktop/actions/runs/44917525244) passed on the exact PR head in Ubuntu and Arch Linux.
 - Validate wallpaper selector, recording UI, settings pages, overview, lock integration and all interactive controls in a complete Quickshell session.
 - Consolidate visual styling, typography, responsive layouts, focus order and accessibility.
 - Test Quickshell reconnect, shell crash/restart, screen hotplug and long-running session behavior on CachyOS-LTS.

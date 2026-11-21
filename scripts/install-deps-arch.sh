@@ -16,7 +16,7 @@ packages=(
   xorg-xwininfo xorg-xinput xorg-xdpyinfo xorg-xset xorg-xsetroot
   xdotool xsettingsd xterm xorg-xmessage xorg-fonts-misc
   # Quickshell / Qt QML frontend (X11/XCB)
-  quickshell qt6-base qt6-declarative qt6-svg qt6-5compat qt6-positioning gtk4 libadwaita
+  quickshell qt6-base qt6-declarative qt6-svg qt6-5compat qt6-positioning syntax-highlighting gtk4 libadwaita
   libsoup3 libportal-gtk4 gobject-introspection cairo dbus dconf pkgconf
   # Compositing and session utilities
   picom xss-lock libnotify xdg-utils xdg-user-dirs xdg-desktop-portal

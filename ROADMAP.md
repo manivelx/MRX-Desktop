@@ -58,7 +58,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [ ] Route all supported window/workspace/settings actions through MRX APIs.
 - [x] Add explicit MRX X11 paths for static wallpaper application, monitor-aware wallpaper placement and ffmpeg/x11grab screen recording.
 - [x] Route wallpaper-selector search through Quickshell state instead of Hyprland-only compositor IPC.
-- [ ] Add honest disabled/unsupported states for unavailable features.
+- [x] Add explicit disabled/unsupported states for MRX night-light and Hyprland-only shader quick toggles; continue the full imported-QML control audit.
 - [ ] Consolidate theme, typography, spacing, responsive layouts and accessibility.
 - [ ] Validate each QML page and interactive control in a complete session.
 - [x] Replace normal Quickshell snapshot polling with the IPC event stream and retain reconnect/fallback snapshots.

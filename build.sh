@@ -16,5 +16,6 @@ bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh
 bash ./tests/xephyr-smoke.sh
 cargo build --release --workspace
+bash ./tests/package-release.sh
 
-echo "PASS: MRX validation suite and release build completed."
+echo "PASS: MRX validation suite, release archive and release build completed."

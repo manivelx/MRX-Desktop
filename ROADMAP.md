@@ -18,6 +18,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Initial EWMH dock strut/workarea handling.
 - [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
 - [x] Run the complete compiled-WM integration suite inside nested Xephyr; prefer explicit RandR monitor objects over overlapping automatic fallbacks.
+- [x] Validate simultaneous top/vertical docks, same-edge maximum reservations, dock-removal workarea restoration and mixed-resolution monitor strut intersection in Xvfb/Xephyr and unit tests.
 - [x] Implement horizontal/vertical EWMH maximize and restore with original-geometry preservation and Xvfb coverage.
 - [x] Implement EWMH hidden/minimize and ICCCM WM_CHANGE_STATE with managed-client retention and Xvfb coverage.
 - [x] Implement mutually exclusive EWMH ABOVE/BELOW state requests with Xvfb snapshot coverage.
@@ -26,7 +27,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Add ICCCM transient-parent tracking, EWMH modal state adoption and parent-focus redirection for nested modal dialogs; validate startup and IPC focus behavior in Xvfb.
 - [ ] Complete full state restoration semantics and broader dialog focus/withdrawal edge cases.
 - [ ] Validate complex ICCCM hints/dialog/focus edge cases in Xephyr/Xorg.
-- [ ] Validate multiple/overlapping/vertical docks and mixed-resolution layouts.
+- [ ] Validate remaining overlapping/multi-panel dock layouts, mixed-DPI behavior and hotplug/disconnect/reconnect on physical Xorg hardware.
 - [ ] Validate physical monitor hotplug, EDID, reconnect and migration behavior.
 
 ## Phase 2 — Desktop core and IPC

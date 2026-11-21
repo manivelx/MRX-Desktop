@@ -7,7 +7,7 @@ MRX currently targets Arch Linux and CachyOS. Dependencies are provisional until
 - Stable Rust toolchain with Cargo, rustfmt and Clippy.
 - X11 development/runtime libraries.
 - Quickshell and the Qt modules required by the imported QML source.
-- Xvfb, Xephyr, xmessage, xprop, xdpyinfo, xrandr and Python 3 for automated integration tests.
+- Xvfb, Xephyr, xmessage, xwininfo, xprop, xdpyinfo, xrandr and Python 3 for automated integration tests.
 
 On Arch/CachyOS, install the project dependency set with:
 
@@ -39,7 +39,7 @@ This runs the complete local validation suite and release build, in order:
 10. Complete compiled-WM smoke suite inside nested Xephyr.
 11. Release workspace build.
 
-The Xvfb and Xephyr tests are isolated software-server tests. They do not validate Quickshell rendering, physical multi-monitor hotplug, NVIDIA 470, GT 740 acceleration or animation performance.
+The Xvfb and Xephyr tests are isolated software-server tests. They cover virtual dock topology and workarea changes but do not validate Quickshell rendering, physical multi-monitor hotplug, NVIDIA 470, GT 740 acceleration or animation performance.
 
 Individual commands:
 

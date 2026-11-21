@@ -205,11 +205,11 @@ bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh
 ```
 
-The compiled-WM integration suite exercises virtual RandR monitors, monitor-local workspaces, EWMH dock workareas, dock focus, ICCCM urgency, transient/modal dialogs, client lifecycle, IPC subscriptions and supervisor recovery. CI runs it on both Xvfb and nested Xephyr.
+The compiled-WM integration suite exercises virtual RandR monitors, monitor-local workspaces, simultaneous top/vertical docks, dock-removal workarea restoration, ICCCM urgency, transient/modal dialogs, client lifecycle, IPC subscriptions and supervisor recovery. CI runs it on both Xvfb and nested Xephyr; mixed-resolution dock geometry also has unit coverage.
 
 ### Latest CI baseline
 
-The latest merged `main` baseline passed [GitHub Actions run #502](https://github.com/manivelx/MRX-Desktop/actions/runs/44834724872) on commit `f55352e408e43613082d1e7bb1f916bb3b3b2f0e`. The expanded development branch also passed [PR #17 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44911498714) on commit `7d11ddb864d067c05fdf59a7f424d9f68cdde377`, including the complete nested Xephyr smoke suite.
+The latest merged `main` baseline passed [GitHub Actions run #517](https://github.com/manivelx/MRX-Desktop/actions/runs/44911973355) on commit `9f6755d30ba5eeafe4d88d111e2b437fde9c41d1`. The dock-geometry development branch also passed [PR #18 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912263933) on commit `f908e9bd9eb66448340f1b6bc643aa073cbeba55`, including simultaneous vertical/top dock tests and the full nested Xephyr suite.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

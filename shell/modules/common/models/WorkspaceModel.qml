@@ -9,7 +9,7 @@ NestableObject {
     id: root
 
     required property var screen
-    readonly property string monitorName: screen?.name ?? ""
+    readonly property string monitorName: WM.monitorFor(screen)?.name ?? screen?.name ?? ""
 
     readonly property var hyprMonitor: WM.compositor === "hyprland" ? WM.monitorFor(screen) : null
     readonly property var liveMonitorData: WM.compositor === "hyprland"

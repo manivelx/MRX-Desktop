@@ -27,6 +27,9 @@ esac
 
 # MRX_BIN_DIR is primarily useful for isolated installer tests and packagers.
 BIN="${MRX_BIN_DIR:-$ROOT/target/release}"
+if [[ -z "${MRX_BIN_DIR:-}" && ! -x "$BIN/mrx-wm" && -x "$ROOT/bin/mrx-wm" ]]; then
+  BIN="$ROOT/bin"
+fi
 USER_BIN="${HOME}/.local/bin"
 USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/mrx"
 QS_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/mrx"

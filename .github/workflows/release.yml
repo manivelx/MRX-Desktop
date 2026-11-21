@@ -22,8 +22,6 @@ jobs:
       - run: cargo build --release --workspace
       - name: Package reproducible release archive
         run: bash ./scripts/package-release.sh
-        env:
-          SOURCE_DATE_EPOCH: ${{ github.event.repository.pushed_at }}
       - uses: softprops/action-gh-release@v2
         with:
           files: |

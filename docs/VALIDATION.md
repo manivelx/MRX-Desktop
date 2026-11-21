@@ -81,6 +81,10 @@ The suite exercises simultaneous top/vertical dock struts, same-edge maximum res
 - Suspend/resume, power management and long-running session stability.
 - Install/upgrade/removal in a disposable Arch/CachyOS VM; current installer test is a temporary-home sandbox.
 
+## Arch Linux native-container validation
+
+PR #21 adds a dedicated `archlinux:latest` container job alongside Ubuntu. Both jobs are configured to run formatting, workspace tests, Clippy, debug and release builds, static checks, shell helper tests, installer sandbox and Xvfb/Xephyr integration. The Arch job installs its X11/Xephyr dependencies with pacman. This improves distro parity but is not a booted Arch/CachyOS VM test; it does not validate SDDM, logind, kernel modules, NVIDIA drivers or a full desktop session. The PR's corrected head still requires a fresh green Actions run before merge.
+
 ## Local reproduction
 
 On an Arch/CachyOS development machine with Rust, Quickshell and X11 test dependencies installed:

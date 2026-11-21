@@ -10,8 +10,8 @@ for c in cargo rustc qs; do
   fi
 done
 
-# Required by the isolated Xvfb integration smoke test.
-for c in Xvfb Xephyr xdpyinfo xprop xmessage xwininfo xrandr python3 jq xdotool slop ffmpeg; do
+# Required by the isolated Xvfb/Xephyr integration and Xlib fixture tests.
+for c in Xvfb Xephyr xdpyinfo xprop xwininfo xrandr python3 jq xdotool slop ffmpeg cc; do
   if command -v "$c" >/dev/null 2>&1; then
     printf 'OK   %-14s %s\n' "$c" "$(command -v "$c")"
   else

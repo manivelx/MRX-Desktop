@@ -9,7 +9,7 @@ SUPERVISOR="$ROOT/session/mrx-wm-supervisor"
 for f in "$WM" "$CTL" "$GRAPHICS_PROBE" "$SUPERVISOR"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
-for c in xdpyinfo xprop xmessage xwininfo xrandr python3; do
+for c in xdpyinfo xprop xwininfo xrandr python3 cc; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 
@@ -18,6 +18,7 @@ export XDG_RUNTIME_DIR="$RUNTIME/runtime"
 export MRX_CONFIG_HOME="$RUNTIME/config"
 mkdir -p "$XDG_RUNTIME_DIR" "$MRX_CONFIG_HOME"
 chmod 700 "$XDG_RUNTIME_DIR"
+cc "$ROOT/tests/x11-test-client.c" -o "$RUNTIME/x11-test-client" -lX11
 XVFB_PID=""; WM_PID=""; XTERM_PID=""; DOCK_PID=""; SUB_PID=""; FIXTURE_PID=""
 cleanup() {
   [[ -n "$SUB_PID" ]] && kill "$SUB_PID" 2>/dev/null || true
@@ -430,7 +431,7 @@ echo "PASS: live setting update and persistence"
 
 # Start a client on the currently active workspace after the WM has completed
 # workspace and settings operations. Keep it alive so ICCCM close can be tested.
-xmessage -title 'MRX X11 test server test client' -buttons Close:0 -default Close 'MRX smoke test' >"$RUNTIME/xterm.log" 2>&1 &
+"$RUNTIME/x11-test-client" "MRX X11 test server test client" >"$RUNTIME/xterm-window-id" 2>"$RUNTIME/xterm.log" &
 XTERM_PID=$!
 sleep 0.5
 
@@ -644,11 +645,11 @@ PY
 # Add a second, vertical dock while the first top dock is active. The
 # resulting workarea must reserve both edges without summing same-edge
 # struts or allowing a dock to steal focus.
-xmessage -title 'MRX secondary dock' -buttons Close:0 -default Close 'secondary dock fixture' >"$RUNTIME/secondary-dock.log" 2>&1 &
+"$RUNTIME/x11-test-client" "MRX secondary dock" >"$RUNTIME/secondary-dock-id" 2>"$RUNTIME/secondary-dock.log" &
 DOCK_PID=$!
 SECOND_DOCK_ID=""
 for _ in $(seq 1 40); do
-  SECOND_DOCK_ID="$(xwininfo -root -tree | awk '/"MRX secondary dock"/ {print $1; exit}')"
+  SECOND_DOCK_ID="$(cat "$RUNTIME/secondary-dock-id" 2>/dev/null || true)"
   [[ -n "$SECOND_DOCK_ID" ]] && break
   sleep 0.1
 done

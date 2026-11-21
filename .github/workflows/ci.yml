@@ -31,3 +31,33 @@ jobs:
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh
       - run: bash ./tests/xephyr-smoke.sh
+      - run: cargo build --release --workspace
+
+  archlinux:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install Arch Linux toolchain and X11 test dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            base-devel git curl pkgconf jq python \
+            libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
+            xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify Arch Rust toolchain
+        run: rustc --version && cargo --version && rustfmt --version && cargo clippy --version
+      - run: cargo fmt --all
+      - run: cargo fmt --all -- --check
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo build --workspace
+      - run: bash ./tests/static-check.sh
+      - run: bash ./tests/mrx-shell-backend.sh
+      - run: bash ./tests/installer-sandbox.sh
+      - run: bash ./tests/xvfb-server-check.sh
+      - run: bash ./tests/xvfb-smoke.sh
+      - run: bash ./tests/xephyr-smoke.sh
+      - run: cargo build --release --workspace

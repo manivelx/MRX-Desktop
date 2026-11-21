@@ -209,7 +209,7 @@ The compiled-WM integration suite exercises virtual RandR monitors, monitor-loca
 
 ### Latest CI baseline
 
-The latest merged `main` baseline passed [GitHub Actions run #529](https://github.com/manivelx/MRX-Desktop/actions/runs/44913109742) on commit `68d40d08304c728aaa154aea2134b958b03e2bc8`. The Quickshell X11 backend branch passed [PR #20 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44914024803) on commit `73cff5cdd7435f16c7781a106f84bbb2c4ee0a06`, including mocked MRX monitor/session helper tests, shell syntax/static checks and the existing Xvfb/Xephyr suites.
+The latest merged `main` baseline passed [GitHub Actions run #543](https://github.com/manivelx/MRX-Desktop/actions/runs/44914295250) on commit `d728246aed93a03c78cda65bba2a91216020a72b`. The next CI update adds a native Arch Linux container job alongside Ubuntu to validate the pacman build environment and Xvfb/Xephyr suite.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

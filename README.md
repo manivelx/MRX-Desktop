@@ -91,7 +91,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
 | IPC | Protocol v3 request/reply, persistent change-only snapshot subscriptions, structured async operation results, health reporting and subscriber backpressure metrics |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
-| Graphics/animations | Renderer and workspace animations are future phases |
+| Graphics/animations | Isolated XComposite/XDamage capture prototype passes Xvfb/Xephyr; production renderer and workspace animations remain future work |
 | Installer | Experimental; isolated temporary-home regression tests only |
 | NVIDIA 470 / GT 740 | Not tested |
 
@@ -209,7 +209,7 @@ The compiled-WM integration suite exercises virtual RandR monitors, monitor-loca
 
 ### Latest CI baseline
 
-The latest merged `main` baseline passed [GitHub Actions run #517](https://github.com/manivelx/MRX-Desktop/actions/runs/44911973355) on commit `9f6755d30ba5eeafe4d88d111e2b437fde9c41d1`. The dock-geometry development branch also passed [PR #18 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912263933) on commit `f908e9bd9eb66448340f1b6bc643aa073cbeba55`, including simultaneous vertical/top dock tests and the full nested Xephyr suite.
+The latest merged `main` baseline passed [GitHub Actions run #518](https://github.com/manivelx/MRX-Desktop/actions/runs/44912544584) on commit `ebbbce695428a284c75e1a8d341a36a7edef487e`. The Phase 3 prototype branch passed [PR #19 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912799891) on commit `b63a00f4ed1e4c9558922dca809ec3bf845438f8`; XComposite 0.4 named a 64×64 pixmap and XDamage 1.1 delivered a non-empty damage event on both Xvfb and nested Xephyr.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

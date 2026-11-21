@@ -48,6 +48,7 @@ jobs:
           components: rustfmt, clippy
       - name: Verify Arch Rust toolchain
         run: rustc --version && cargo --version && rustfmt --version && cargo clippy --version
+      - run: cargo fmt --all
       - run: cargo fmt --all -- --check
       - run: cargo test --workspace
       - run: cargo clippy --workspace --all-targets -- -D warnings

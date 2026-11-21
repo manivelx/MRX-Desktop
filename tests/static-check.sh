@@ -147,7 +147,7 @@ grep -Fq 'pub urgent: bool' crates/mrx-core/src/lib.rs || fail 'shared window sn
 grep -Fq 'read_urgent_hint' crates/mrx-wm/src/main.rs || fail 'WM does not read ICCCM urgency hints'
 grep -Fq 'Some(Event::PropertyNotify(e))' crates/mrx-wm/src/main.rs || fail 'WM does not refresh urgency when WM_HINTS changes'
 grep -Fq 'set-wm-hints' tests/xvfb-smoke.sh && grep -Fq 'XSetWMHints' tests/set-wm-hints.c || fail 'Xvfb smoke test does not exercise ICCCM urgency hint updates'
-grep -Eq 'urgent:(w\\.urgent \\?\\? false|Boolean\\(w\\.urgent\\))' shell/services/MRXBackend.qml || fail 'Quickshell adapter discards window urgency'
+grep -Eq 'urgent:[[:space:]]*(w\.urgent[[:space:]]*\?\?[[:space:]]*false|Boolean\(w\.urgent\))' shell/services/MRXBackend.qml || fail 'Quickshell adapter discards window urgency'
 grep -Fq 'hasUrgentWindows' shell/modules/ii/bar/ActiveWindow.qml || fail 'Quickshell active-window widget omits urgency indicator'
 
 grep -Fq 'WmSizeHints::get_normal_hints' crates/mrx-wm/src/main.rs || fail 'WM does not parse WM_NORMAL_HINTS'

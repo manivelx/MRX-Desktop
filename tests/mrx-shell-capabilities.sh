@@ -21,6 +21,10 @@ grep -Fq 'text: Translation.tr("Brightness")' shell/modules/ii/sidebarRight/nigh
 
 grep -Fq 'root.currentWindowGaps = Number(appearance.gaps ?? 8)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not preserve the previous window gap'
 grep -Fq 'root.currentBorderWidth = Number(appearance.border_width ?? 2)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not preserve the previous border width'
+grep -Fq 'root.savedWindowGaps = root.currentWindowGaps' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not snapshot the original gap'
+grep -Fq 'root.savedBorderWidth = root.currentBorderWidth' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not snapshot the original border width'
+grep -Fq 'if (!root.mrxSnapshotLoaded || !root.mrxRestoreStateLoaded) return' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not wait for both startup state sources'
+
 grep -Fq 'root.currentWindowGaps === 0 && root.currentBorderWidth === 1' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode initial state is inverted or misdetected'
 grep -Fq 'String(root.savedWindowGaps)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous gap'
 grep -Fq 'String(root.savedBorderWidth)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous border width'

@@ -14,7 +14,7 @@ struct WorkspaceAtoms {
     net_active_window: u32,
 }
 
-#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), Set(String,serde_json::Value), Reload, UndoSettings, ResetSettings, ExportProfile(String), ImportProfile(String), Shutdown, Operation(u64,Box<Action>) }
+#[derive(Debug)] enum Action { Switch(u32), SwitchMonitor(String,u32), Relative(i32), Focus(u32), Close(u32), Move(u32,u32), MoveMonitor(u32,String,u32), Set(String,serde_json::Value), Reload, UndoSettings, ResetSettings, ExportProfile(String), ImportProfile(String), Shutdown, Operation(u64,Box<Action>) }
 fn runtime_dir()->PathBuf { std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(||PathBuf::from(format!("/tmp/mrx-{}",std::env::var("USER").unwrap_or_else(|_|"user".into())))) }
 
 /// Queue an asynchronous WM operation and return its stable operation ID.
@@ -298,6 +298,9 @@ fn handle_ipc_connection(mut stream: UnixStream, state: &Arc<Mutex<State>>, tx: 
                     }
                     Request::MoveWindow { id, workspace } => {
                         enqueue_operation(state,tx,"move_window",Action::Move(id,workspace))
+                    }
+                    Request::MoveWindowToMonitor { id, monitor, workspace } => {
+                        enqueue_operation(state,tx,"move_window_to_monitor",Action::MoveMonitor(id,monitor,workspace))
                     }
                 }
             };
@@ -1055,6 +1058,88 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
                let _=conn.unmap_window(id);
                let _=set_wm_state(&conn,id,wm_state,1);
                let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             }
+           }
+           arrange(&conn,root,&s);
+         }
+       },
+       Action::MoveMonitor(id,monitor_name,workspace)=>{
+         if workspace==0 || workspace>s.settings.workspace.count as u32 {
+           failure=Some(OperationError{code:"invalid_workspace".into(),message:format!("workspace {workspace} is outside the configured range"),retryable:false});
+         } else if !s.monitors.iter().any(|monitor|monitor.name==monitor_name) {
+           failure=Some(OperationError{code:"monitor_not_found".into(),message:format!("monitor '{monitor_name}' was not found"),retryable:false});
+         } else if !s.clients.contains_key(&id) {
+           failure=Some(OperationError{code:"window_not_found".into(),message:format!("window {id} is not managed"),retryable:false});
+         } else if s.clients.get(&id).is_some_and(|window|window.dock) {
+           failure=Some(OperationError{code:"window_is_sticky".into(),message:"dock clients are sticky and cannot be moved between monitors".into(),retryable:false});
+         } else {
+           let source_name=s.clients.get(&id).map(|window|window.monitor.clone()).unwrap_or_default();
+           if source_name==monitor_name {
+             // The same-monitor case intentionally shares the established move semantics.
+             let minimized=s.clients.get(&id).is_some_and(|window|window.minimized);
+             let visible=s.clients.get(&id).is_some_and(|window|!window.minimized && workspace==active_workspace_for(&s,&monitor_name));
+             if let Some(window)=s.clients.get_mut(&id) { window.workspace=workspace; }
+             let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[workspace-1]);
+             if minimized {
+               let _=set_wm_state(&conn,id,wm_state,3);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             } else if visible {
+               let _=conn.map_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);
+             } else {
+               let _=conn.unmap_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             }
+           } else {
+             let source=s.monitors.iter().find(|monitor|monitor.name==source_name).cloned();
+             let target=s.monitors.iter().find(|monitor|monitor.name==monitor_name).cloned();
+             let Some(target)=target else {
+               failure=Some(OperationError{code:"monitor_not_found".into(),message:format!("monitor '{monitor_name}' was not found"),retryable:false});
+               continue;
+             };
+             let was_focused=s.clients.get(&id).is_some_and(|window|window.focused);
+             let minimized=s.clients.get(&id).is_some_and(|window|window.minimized);
+             let floating=s.clients.get(&id).is_some_and(|window|window.floating);
+             if floating {
+               if let (Some(source),Some(window))=(source.as_ref(),s.clients.get_mut(&id)) {
+                 let max_x=(target.x+target.width as i32-window.width as i32).max(target.x);
+                 let max_y=(target.y+target.height as i32-window.height as i32).max(target.y);
+                 window.x=(window.x+target.x-source.x).clamp(target.x,max_x);
+                 window.y=(window.y+target.y-source.y).clamp(target.y,max_y);
+                 let _=conn.configure_window(id,&ConfigureWindowAux::new().x(window.x).y(window.y));
+               }
+             }
+             if let Some(window)=s.clients.get_mut(&id) {
+               window.monitor=monitor_name.clone();
+               window.workspace=workspace;
+               window.focused=false;
+             }
+             let _=conn.change_property32(xproto::PropMode::REPLACE,id,desktop,AtomEnum::CARDINAL,&[workspace-1]);
+             let visible=!minimized && workspace==active_workspace_for(&s,&monitor_name);
+             if minimized {
+               let _=set_wm_state(&conn,id,wm_state,3);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             } else if visible {
+               let _=conn.map_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,false);
+             } else {
+               let _=conn.unmap_window(id);
+               let _=set_wm_state(&conn,id,wm_state,1);
+               let _=set_atom_state(&conn,id,net_wm_state,net_wm_state_hidden,true);
+             }
+             if was_focused && visible {
+               set_focused_monitor(&mut s,&monitor_name);
+               if let Some(window)=s.clients.get_mut(&id) { window.focused=true; }
+               if let Err(error)=focus_client(&conn,id,wm_protocols,wm_take_focus) {
+                 failure=Some(OperationError{code:"focus_failed".into(),message:error.to_string(),retryable:true});
+               } else {
+                 let _=conn.change_property32(xproto::PropMode::REPLACE,root,net_active_window,AtomEnum::WINDOW,&[id]);
+               }
+             } else if was_focused {
+               focus_most_recent(&conn,root,&mut s,wm_protocols,wm_take_focus,net_active_window);
              }
            }
            arrange(&conn,root,&s);

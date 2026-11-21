@@ -142,6 +142,11 @@ fn main() -> Result<()> {
             id: args.next().context("window XID required")?.parse()?,
             workspace: args.next().context("workspace required")?.parse()?,
         },
+        "move-monitor" => Request::MoveWindowToMonitor {
+            id: args.next().context("window XID required")?.parse()?,
+            monitor: args.next().context("monitor name required")?,
+            workspace: args.next().context("workspace required")?.parse()?,
+        },
         "set" => Request::SetSetting {
             key: args.next().context("setting key required")?,
             value: serde_json::from_str(&args.next().context("JSON value required")?)?,
@@ -160,7 +165,7 @@ fn main() -> Result<()> {
         },
         _ => {
             println!(
-                "mrxctl snapshot|subscribe|ping|health|shutdown|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|set <key> <json-value>|reload|undo|reset|profile import|export <name>"
+                "mrxctl snapshot|subscribe|ping|health|shutdown|operation <id>|workspace <1-9|next|previous> [monitor]|focus <xid>|close <xid>|move <xid> <workspace>|move-monitor <xid> <monitor> <workspace>|set <key> <json-value>|reload|undo|reset|profile import|export <name>"
             );
             return Ok(());
         }

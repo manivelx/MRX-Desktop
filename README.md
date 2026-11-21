@@ -2,7 +2,7 @@
 
 # MRX Desktop
 
-**A keyboard-driven Linux desktop environment built around a Rust X11 window manager and Quickshell.**
+**An experimental X11 desktop environment under active development, built with a Rust window manager and Quickshell.**
 
 [![CI](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml)
 [![Licenses: MIT + GPL-3.0](https://img.shields.io/badge/licenses-MIT%20%2B%20GPL--3.0-blue)](THIRD_PARTY_NOTICES.md)
@@ -10,18 +10,18 @@
 [![Rust](https://img.shields.io/badge/core-Rust-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![X11](https://img.shields.io/badge/display-X11-blue)](#architecture)
 
-[Overview](#overview) · [Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Configuration](#configuration) · [Roadmap](#roadmap) · [Shell X11 audit](docs/SHELL_AUDIT.md) · [Manual test checklist](docs/MANUAL_TEST_CHECKLIST.md) · [Validation](docs/VALIDATION.md)
+[Overview](#overview) · [Features](#features) · [Development status](#development-status) · [Installation](#installation) · [Configuration](#configuration) · [Roadmap](#roadmap) · [Shell X11 audit](docs/SHELL_AUDIT.md) · [Manual test checklist](docs/MANUAL_TEST_CHECKLIST.md) · [Validation](docs/VALIDATION.md)
 
 </div>
 
 > [!WARNING]
-> **MRX is experimental and is not ready for daily use.** The Rust window manager has an automated Xvfb and nested Xephyr integration baselines, but a complete Quickshell session, physical multi-monitor setups, NVIDIA 470 / GT 740 and graphics performance have not been validated. Do not replace your current desktop session with MRX.
+ > **MRX is an unfinished project in active development. It is not a complete desktop environment and is not ready for daily use.** Automated tests cover parts of the Rust/X11 window manager and shell startup, but the complete desktop has not passed visual and interactive validation. Physical multi-monitor behavior, NVIDIA 470 / GT 740 compatibility, graphics performance, session reliability and installation on a disposable CachyOS system remain unverified. Keep your existing desktop session and recovery path intact.
 
 ---
 
 ## Overview
 
-MRX is an independent X11 desktop environment project for Arch Linux and CachyOS. It combines a purpose-built **Rust window manager** with a **Quickshell/QML desktop shell** based on the supplied end4-pC X11 adaptation.
+MRX is an experimental desktop-environment project for Arch Linux and CachyOS, currently targeting X11. It is under active development: its window manager, shell integration, graphics path, installer and session behavior are incomplete. The current implementation combines a purpose-built **Rust X11 window manager** with a **Quickshell/QML desktop shell** adapted from end4-pC for X11.
 
 The goal is a keyboard-first desktop with predictable window management, monitor-local workspaces, configurable behavior and a coherent shell experience.
 
@@ -31,18 +31,9 @@ The goal is a keyboard-first desktop with predictable window management, monitor
 
 The project is developed in public and in phases. Features listed below distinguish implementation from release readiness.
 
-## Screenshots
+## Development status
 
-The repository contains shell screenshots showing the imported/adapted visual direction. They are design references, not proof that the complete MRX session is runtime-validated.
-
-<div align="center">
-  <img src="shell/screenshots/1.png" alt="MRX desktop shell overview" width="48%">
-  <img src="shell/screenshots/2.png" alt="MRX desktop shell panel" width="48%">
-  <img src="shell/screenshots/3.png" alt="MRX desktop shell controls" width="48%">
-  <img src="shell/screenshots/4.png" alt="MRX desktop shell workspace view" width="48%">
-  <img src="shell/screenshots/5.png" alt="MRX desktop shell widgets" width="48%">
-  <img src="shell/screenshots/6.png" alt="MRX desktop shell settings" width="48%">
-</div>
+MRX is being developed in public, phase by phase. The repository includes implementation work, experiments and automated test coverage; these are not evidence that a complete desktop session is finished. Screenshots are intentionally omitted from this README until they can be captured from a real, working MRX session. Do not interpret design references or imported shell assets as proof of runtime functionality.
 
 ## Features
 

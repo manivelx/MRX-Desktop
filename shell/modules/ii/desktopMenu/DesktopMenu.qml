@@ -77,7 +77,7 @@ Scope {
         sourceComponent: PanelWindow {
         aboveWindows: true
         focusable: visible
-                    id: menuWindow
+            id: menuWindow
 
             screen: GlobalStates.desktopMenuScreen ?? Quickshell.screens[0]
 

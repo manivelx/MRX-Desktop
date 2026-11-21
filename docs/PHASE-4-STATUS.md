@@ -13,6 +13,7 @@ Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions
 - Hide Hyprland-only anti-flashbang shader and brightness-adjustment controls outside Hyprland; disable MRX night-light controls with an explicit unsupported notice while retaining the supported X11 hardware-brightness control.
 - Filter Hyprland-only anti-flashbang quick toggles from non-Hyprland Android panels and mark MRX night-light quick toggles unavailable with explanatory tooltips.
 - Add an MRX settings capability summary for implemented WM controls and current unsupported features; add source-level regression coverage in both Ubuntu and Arch CI.
+- Correct MRX Game Mode state detection and restore the user's pre-toggle gap/border settings instead of assuming fixed defaults.
 - Shell helper tests cover MRX, BSPWM, Niri and Hyprland detection, MRX monitor enumeration, focused monitor geometry and the no-hyprctl X11 path.
 
 ## Still outstanding

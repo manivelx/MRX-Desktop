@@ -63,14 +63,15 @@ read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN STARTUP_OFFDESKTOP STARTUP_PA
 # Extensions needed for later compositing experiments. Their presence does not
 # imply hardware acceleration; X11 test server is a software test server.
 EXTENSIONS="$(xdpyinfo -queryExtensions)"
-for ext in Composite DAMAGE RANDR XFIXES GLX; do
+for ext in Composite DAMAGE RANDR XFIXES GLX RENDER; do
   if grep -qi "$ext" <<<"$EXTENSIONS"; then echo "PASS: X11 extension advertised: $ext";
   else echo "WARN: X11 extension unavailable in X11 test server: $ext"; fi
 done
 
-# Exercise Composite named-pixmap capture and Damage notifications against an
-# isolated override-redirect test window before the WM claims root ownership.
-"$GRAPHICS_PROBE"
+# Exercise Composite capture, Damage tracking and off-screen XRender composition
+# against one disposable override-redirect test window. No managed clients are redirected.
+"$GRAPHICS_PROBE" | tee "$RUNTIME/graphics-probe.log"
+grep -Fq "PASS: XRender" "$RUNTIME/graphics-probe.log" || { echo "FAIL: XRender composition probe did not pass" >&2; exit 1; }
 
 MRX_WM_BIN="$WM" MRX_CTL_BIN="$CTL" MRX_WM_LOG="$RUNTIME/wm.log" "$SUPERVISOR" >"$RUNTIME/supervisor.log" 2>&1 &
 WM_PID=$!

@@ -31,6 +31,8 @@ jobs:
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh
       - run: bash ./tests/xephyr-smoke.sh
+      - run: cargo build --release --workspace
+      - run: cargo build --release --workspace
 
   archlinux:
     runs-on: ubuntu-latest

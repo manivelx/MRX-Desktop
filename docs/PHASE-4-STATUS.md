@@ -4,7 +4,7 @@
 
 The initial X11 service/fallback audit is recorded in [SHELL_AUDIT.md](SHELL_AUDIT.md). It explicitly distinguishes implemented X11 paths from Hyprland-only features and external fallbacks.
 
-Latest main CI evidence: [run #824](https://github.com/manivelx/MRX-Desktop/actions/runs/44924232987), commit `266db1414426545ca363afb77e0ed8d53da899ac`. Both Ubuntu and Arch jobs passed; Arch now launches the Quickshell frontend under Xvfb/private D-Bus and verifies MRX IPC health plus descendant-scoped cleanup.
+Latest main CI evidence: [run #827](https://github.com/manivelx/MRX-Desktop/actions/runs/44924513931), commit `075465c53bd1b143f1c3711d783bba6111f9f6ef`. Both Ubuntu and Arch jobs passed; Arch now launches the Quickshell frontend under Xvfb/private D-Bus and verifies MRX IPC health plus descendant-scoped cleanup.
 
 - MRXBackend obtains state from \`mrxctl\` and consumes the IPC snapshot stream with reconnect/fallback behavior.
 - Wallpaper-selector search toggles Quickshell state directly; it no longer sends a Hyprland-only compositor IPC command.

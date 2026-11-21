@@ -5,7 +5,7 @@
 **A keyboard-driven Linux desktop environment built around a Rust X11 window manager and Quickshell.**
 
 [![CI](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/manivelx/MRX-Desktop/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Licenses: MIT + GPL-3.0](https://img.shields.io/badge/licenses-MIT%20%2B%20GPL--3.0-blue)](THIRD_PARTY_NOTICES.md)
 [![Platform](https://img.shields.io/badge/platform-Arch%20%7C%20CachyOS-1793D1?logo=arch-linux&logoColor=white)](#platform)
 [![Rust](https://img.shields.io/badge/core-Rust-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![X11](https://img.shields.io/badge/display-X11-blue)](#architecture)
@@ -239,7 +239,7 @@ The compiled-WM integration suite exercises virtual RandR monitors, monitor-loca
 
 ### Latest CI baseline
 
-The latest merged `main` baseline passed [GitHub Actions run #543](https://github.com/manivelx/MRX-Desktop/actions/runs/44914295250) on commit `d728246aed93a03c78cda65bba2a91216020a72b`. The next CI update adds a native Arch Linux container job alongside Ubuntu to validate the pacman build environment and Xvfb/Xephyr suite.
+The CI badge above tracks the default-branch workflow. Exact validation evidence, the tested commit and known limitations are maintained in [Validation](docs/VALIDATION.md). A green CI run does not establish physical hardware compatibility.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 
@@ -282,4 +282,4 @@ Contributions are welcome in Rust/X11 protocol correctness, IPC, testing, access
 
 ## License
 
-MRX's own repository license is MIT, subject to the licenses and notices retained with upstream-derived code and assets. See [LICENSE](LICENSE) and the retained upstream notices.
+Original MRX code outside `shell/` is licensed under MIT. The `shell/` subtree retains the upstream GPL-3.0 terms for end4-pC-derived QML and its modifications. See [LICENSE](LICENSE), [Third-party notices](THIRD_PARTY_NOTICES.md) and [shell/LICENSE](shell/LICENSE).

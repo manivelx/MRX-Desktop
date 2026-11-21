@@ -10,6 +10,16 @@ for c in cargo rustc qs; do
   fi
 done
 
+# Required by the Quickshell AI code-block component (org.kde.syntaxhighlighting).
+if command -v pacman >/dev/null 2>&1; then
+  if pacman -Qq syntax-highlighting >/dev/null 2>&1; then
+    echo "OK   syntax-highlighting"
+  else
+    echo "MISS syntax-highlighting (install with: sudo pacman -S syntax-highlighting)"
+    missing=1
+  fi
+fi
+
 # Required by the isolated Xvfb/Xephyr integration and Xlib fixture tests.
 for c in Xvfb Xephyr xdpyinfo xprop xwininfo xrandr python3 jq xdotool slop ffmpeg cc; do
   if command -v "$c" >/dev/null 2>&1; then

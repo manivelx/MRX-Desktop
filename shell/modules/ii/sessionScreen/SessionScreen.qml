@@ -41,16 +41,6 @@ Scope {
         sourceComponent: PanelWindow {
         aboveWindows: true // Session menu
         focusable: visible
-        property bool x11HadFocus: false
-        onActiveChanged: {
-            if (WM.isX11) {
-                if (active) x11HadFocus = true
-                else if (x11HadFocus && visible) {
-                    x11HadFocus = false
-                    GlobalStates.sessionOpen = false
-                }
-            }
-        }
             id: sessionRoot
             screen: root.focusedScreen
             visible: sessionLoader.active

@@ -45,7 +45,8 @@ jobs:
           pacman -Syu --noconfirm --needed \
             base-devel git curl pkgconf jq python \
             libx11 libxcb libxrandr libxfixes libxcomposite libxdamage libxrender libxext libxinerama libxpresent \
-            xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth
+            xorg-server-xvfb xorg-server-xephyr xorg-xdpyinfo xorg-xprop xorg-xrandr xorg-xwininfo xorg-xauth \
+            quickshell dbus procps-ng qt6-5compat qt6-positioning syntax-highlighting
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -65,5 +66,6 @@ jobs:
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh
       - run: bash ./tests/xephyr-smoke.sh
+      - run: bash ./tests/quickshell-smoke.sh
       - run: cargo build --release --workspace
       - run: bash ./tests/package-release.sh

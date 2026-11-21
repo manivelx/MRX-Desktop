@@ -29,16 +29,6 @@ Scope {
     PanelWindow {
         aboveWindows: true
         focusable: visible
-        property bool x11HadFocus: false
-        onActiveChanged: {
-            if (WM.isX11 || WM.compositor === "mrx") {
-                if (active) x11HadFocus = true
-                else if (x11HadFocus && visible) {
-                    x11HadFocus = false
-                    GlobalStates.settingsOpen = false
-                }
-            }
-        }
         id: panelWindow
         visible: GlobalStates.settingsOpen && Config.options.settings.style !== "dashboard"
 

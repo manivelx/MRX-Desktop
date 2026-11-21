@@ -18,16 +18,6 @@ Scope {
     PanelWindow {
         aboveWindows: true
         focusable: visible
-        property bool x11HadFocus: false
-        onActiveChanged: {
-            if (WM.isX11) {
-                if (active) x11HadFocus = true
-                else if (x11HadFocus && visible) {
-                    x11HadFocus = false
-                    GlobalStates.overviewOpen = false
-                }
-            }
-        }
         id: panelWindow
         property string searchingText: ""
         readonly property var monitor: WM.monitorFor(panelWindow.screen)

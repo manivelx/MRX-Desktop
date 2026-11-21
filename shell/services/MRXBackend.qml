@@ -66,9 +66,21 @@ Scope {
         })
         const byAddr={}; for (const w of root.windowList) byAddr[w.address]=w
         root.windowByAddress=byAddr; root.addresses=root.windowList.map(w=>w.address)
-        root.focusedMonitor=primaryMonitor ? {...primaryMonitor, activeWorkspace:root.activeWorkspace} : null
+        if (primaryMonitor) {
+            const focused = {}
+            for (const key in primaryMonitor) focused[key] = primaryMonitor[key]
+            focused.activeWorkspace = root.activeWorkspace
+            root.focusedMonitor = focused
+        } else {
+            root.focusedMonitor = null
+        }
     }
-    function run(args) { action.command = ["mrxctl", ...args.map(String)]; action.running = true }
+    function run(args) {
+        const command = ["mrxctl"]
+        for (const arg of args) command.push(String(arg))
+        action.command = command
+        action.running = true
+    }
     function switchWorkspace(id) { run(["workspace", id]) }
     function switchWorkspaceOnMonitor(id, monitorName) { run(["workspace", id, monitorName]) }
     function switchWorkspaceRelative(direction) { run(["workspace", direction]) }

@@ -74,6 +74,10 @@ PASS — GitHub Actions [PR #30 run #726](https://github.com/manivelx/MRX-Deskto
 
 This is isolated user-space testing; disposable Arch/CachyOS-LTS VM rollback and SDDM coexistence remain release gates.
 
+## Extracted release install/uninstall validation
+
+PASS — GitHub Actions [PR #32 run #759](https://github.com/manivelx/MRX-Desktop/actions/runs/44921817724) passed both Ubuntu and Arch Linux jobs. The release test extracted the generated archive, installed it into an isolated HOME/XDG environment, verified binaries/config/session files, ran uninstall and confirmed that pre-existing files were restored and user settings preserved.
+
 ## Integration coverage
 
 - IPC startup, health, subscriptions, structured operation results and orderly shutdown.

@@ -21,7 +21,7 @@ if command -v pacman >/dev/null 2>&1; then
 fi
 
 # Required by the isolated Xvfb/Xephyr integration and Xlib fixture tests.
-for c in Xvfb Xephyr xdpyinfo xprop xwininfo xrandr python3 jq xdotool slop ffmpeg cc; do
+for c in Xvfb Xephyr xdpyinfo xprop xwininfo xrandr python3 jq xdotool slop ffmpeg cc setsid; do
   if command -v "$c" >/dev/null 2>&1; then
     printf 'OK   %-14s %s\n' "$c" "$(command -v "$c")"
   else

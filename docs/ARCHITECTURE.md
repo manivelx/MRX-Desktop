@@ -33,7 +33,7 @@ Xvfb virtual-monitor coverage does not replace physical EDID, hotplug, mixed-res
 
 ## Graphics and animations
 
-Workspace animation is a future renderer project. The renderer must capture/retain window content with XComposite and track damage with XDamage before presenting frames through a validated GLX/Present path. No animation renderer is shipped as a validated production feature. GT 740/NVIDIA 470 testing is mandatory before enabling one by default.
+The isolated graphics probe now validates XComposite named-pixmap capture, XDamage notifications and off-screen XRender composition of the captured pixmap on Xvfb/Xephyr. This is a renderer building block only: it does not acquire the compositor-manager selection, redirect managed clients, paint the Composite overlay, present frames or implement workspace transitions. Production root redirection remains disabled. The production renderer must add a recoverable no-animation fallback and a validated GLX/Present or XRender presentation path. GT 740/NVIDIA 470 testing is mandatory before enabling one by default.
 
 ## Session safety
 

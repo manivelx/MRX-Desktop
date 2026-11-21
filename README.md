@@ -15,7 +15,7 @@
 </div>
 
 > [!WARNING]
-> **MRX is experimental and is not ready for daily use.** The Rust window manager has an automated Xvfb integration baseline, but a complete Quickshell session, physical multi-monitor setups, NVIDIA 470 / GT 740 and graphics performance have not been validated. Do not replace your current desktop session with MRX.
+> **MRX is experimental and is not ready for daily use.** The Rust window manager has an automated Xvfb and nested Xephyr integration baselines, but a complete Quickshell session, physical multi-monitor setups, NVIDIA 470 / GT 740 and graphics performance have not been validated. Do not replace your current desktop session with MRX.
 
 ---
 
@@ -85,11 +85,11 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 |---|---|
 | Rust workspace | Builds and passes tests in the recorded CI baseline |
 | X11 window manager | Core path implemented; experimental |
-| ICCCM/EWMH | Partial; maximize, minimize/restore and ABOVE/BELOW requests implemented; initial-state adoption remains |
+| ICCCM/EWMH | Partial; maximize, minimize/restore, initial-state adoption, ABOVE/BELOW stacking and transient/modal focus handling implemented; advanced withdrawal and state-restoration edge cases remain |
 | RandR | Discovery, topology refresh and virtual-monitor Xvfb coverage |
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
-| IPC | Protocol v3 request/reply plus persistent change-only snapshot subscriptions; async operation results and health reporting remain |
+| IPC | Protocol v3 request/reply, persistent change-only snapshot subscriptions, structured async operation results, health reporting and subscriber backpressure metrics |
 | Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
 | Graphics/animations | Renderer and workspace animations are future phases |
 | Installer | Experimental; isolated temporary-home regression tests only |
@@ -205,11 +205,11 @@ bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh
 ```
 
-The compiled-WM Xvfb smoke test exercises virtual RandR monitors, monitor-local workspace switching, EWMH dock workareas, dock focus behavior, ICCCM urgency and client lifecycle behavior.
+The compiled-WM integration suite exercises virtual RandR monitors, monitor-local workspaces, EWMH dock workareas, dock focus, ICCCM urgency, transient/modal dialogs, client lifecycle, IPC subscriptions and supervisor recovery. CI runs it on both Xvfb and nested Xephyr.
 
 ### Latest CI baseline
 
-The merged `main` commit passed [GitHub Actions run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) on commit `579dacb6f099726621583fa034b88d9d9df40b28`. The full workflow passed formatting, workspace tests, Clippy with warnings denied, build, static checks, installer sandbox and the compiled-WM Xvfb smoke test.
+The latest merged `main` baseline passed [GitHub Actions run #502](https://github.com/manivelx/MRX-Desktop/actions/runs/44834724872) on commit `f55352e408e43613082d1e7bb1f916bb3b3b2f0e`. The expanded development branch also passed [PR #17 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44911498714) on commit `7d11ddb864d067c05fdf59a7f424d9f68cdde377`, including the complete nested Xephyr smoke suite.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

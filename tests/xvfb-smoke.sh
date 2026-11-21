@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Isolated X11 smoke test. Requires built MRX binaries and Xvfb utilities.
+# Isolated X11 smoke test. Requires built MRX binaries and X11 test server utilities.
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 WM="$ROOT/target/debug/mrx-wm"
@@ -8,7 +8,7 @@ SUPERVISOR="$ROOT/session/mrx-wm-supervisor"
 for f in "$WM" "$CTL" "$SUPERVISOR"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
-for c in Xvfb xdpyinfo xprop xmessage xrandr python3; do
+for c in xdpyinfo xprop xmessage xrandr python3; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 
@@ -29,17 +29,24 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
-XVFB_PID=$!
-for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
-[[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
-export DISPLAY=":$(cat "$RUNTIME/display-number")"
-for _ in $(seq 1 50); do
-  if xdpyinfo >/dev/null 2>&1; then break; fi
-  sleep 0.1
-done
-xdpyinfo >/dev/null || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
-echo "PASS: Xvfb 1920x1080 X11 server started"
+if [[ "${MRX_USE_EXISTING_DISPLAY:-0}" == "1" ]]; then
+  [[ -n "${DISPLAY:-}" ]] || { echo "MRX_USE_EXISTING_DISPLAY requires DISPLAY" >&2; exit 2; }
+  xdpyinfo >/dev/null || { echo "Cannot connect to supplied DISPLAY=$DISPLAY" >&2; exit 1; }
+  echo "PASS: using supplied nested X11 display $DISPLAY"
+else
+  command -v Xvfb >/dev/null 2>&1 || { echo "Missing test dependency: Xvfb" >&2; exit 2; }
+  Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
+  XVFB_PID=$!
+  for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
+  [[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
+  export DISPLAY=":$(cat "$RUNTIME/display-number")"
+  for _ in $(seq 1 50); do
+    if xdpyinfo >/dev/null 2>&1; then break; fi
+    sleep 0.1
+  done
+  xdpyinfo >/dev/null || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }
+  echo "PASS: X11 test server 1920x1080 X11 server started"
+fi
 
 # Create clients before the WM claims SubstructureRedirect. Startup adoption
 # must retain EWMH ABOVE/BELOW layers and an unmapped ICCCM Iconic client.
@@ -51,11 +58,11 @@ for _ in $(seq 1 30); do [[ -s "$RUNTIME/preexisting-clients.txt" ]] && break; s
 read -r STARTUP_ABOVE STARTUP_BELOW STARTUP_HIDDEN STARTUP_OFFDESKTOP STARTUP_PARENT STARTUP_MODAL <"$RUNTIME/preexisting-clients.txt"
 
 # Extensions needed for later compositing experiments. Their presence does not
-# imply hardware acceleration; Xvfb is a software test server.
+# imply hardware acceleration; X11 test server is a software test server.
 EXTENSIONS="$(xdpyinfo -queryExtensions)"
 for ext in Composite DAMAGE RANDR XFIXES GLX; do
   if grep -qi "$ext" <<<"$EXTENSIONS"; then echo "PASS: X11 extension advertised: $ext";
-  else echo "WARN: X11 extension unavailable in Xvfb: $ext"; fi
+  else echo "WARN: X11 extension unavailable in X11 test server: $ext"; fi
 done
 
 MRX_WM_BIN="$WM" MRX_CTL_BIN="$CTL" MRX_WM_LOG="$RUNTIME/wm.log" "$SUPERVISOR" >"$RUNTIME/supervisor.log" 2>&1 &
@@ -247,7 +254,7 @@ xprop -root _NET_ACTIVE_WINDOW | grep -qi "$MODAL_HEX" || { echo "FAIL: startup 
 xprop -root _NET_ACTIVE_WINDOW | grep -qi "$MODAL_HEX" || { echo "FAIL: parent focus request escaped modal dialog" >&2; exit 1; }
 echo "PASS: startup adopts ICCCM transient/modal dialogs and redirects parent focus"
 
-# Exercise the live RandR monitor-object update path. Xvfb can represent
+# Exercise the live RandR monitor-object update path. X11 test server can represent
 # independent RandR 1.5 monitor objects over a single virtual output; the WM
 # must expose those objects in its snapshot after the resource notification.
 xrandr --setmonitor MRX-LEFT 960/254x1080/286+0+0 none
@@ -417,7 +424,7 @@ echo "PASS: live setting update and persistence"
 
 # Start a client on the currently active workspace after the WM has completed
 # workspace and settings operations. Keep it alive so ICCCM close can be tested.
-xmessage -title 'MRX Xvfb test client' -buttons Close:0 -default Close 'MRX smoke test' >"$RUNTIME/xterm.log" 2>&1 &
+xmessage -title 'MRX X11 test server test client' -buttons Close:0 -default Close 'MRX smoke test' >"$RUNTIME/xterm.log" 2>&1 &
 XTERM_PID=$!
 sleep 0.5
 
@@ -687,5 +694,5 @@ grep -q '_NET_SUPPORTED(ATOM)' <<<"$ROOT_SUPPORTED" && { echo "FAIL: _NET_SUPPOR
 grep -q 'window id' <<<"$ROOT_CHECK" && { echo "FAIL: _NET_SUPPORTING_WM_CHECK survived shutdown" >&2; exit 1; }
 echo "PASS: IPC shutdown exits cleanly, removes socket and clears WM-owned root properties"
 
-echo "PASS: isolated Xvfb smoke test complete"
+echo "PASS: isolated X11 test server smoke test complete"
 echo "NOTE: this does not validate Quickshell rendering, GLX acceleration or NVIDIA hardware."

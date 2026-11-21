@@ -11,7 +11,7 @@ for c in cargo rustc qs; do
 done
 
 # Required by the isolated Xvfb integration smoke test.
-for c in Xvfb xdpyinfo xprop xmessage xrandr python3; do
+for c in Xvfb Xephyr xdpyinfo xprop xmessage xrandr python3; do
   if command -v "$c" >/dev/null 2>&1; then
     printf 'OK   %-14s %s\n' "$c" "$(command -v "$c")"
   else
@@ -20,7 +20,7 @@ for c in Xvfb xdpyinfo xprop xmessage xrandr python3; do
   fi
 done
 
-for c in picom notify-send loginctl Xephyr; do
+for c in picom notify-send loginctl; do
   if command -v "$c" >/dev/null 2>&1; then
     printf 'OPTIONAL %-10s %s\n' "$c" "$(command -v "$c")"
   else

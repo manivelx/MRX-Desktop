@@ -2,6 +2,8 @@
 # Isolated X11 smoke test. Requires built MRX binaries and X11 test server utilities.
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/tests/lib/xvfb-fonts.sh"
+FONT_PATH="$(mrx_test_font_path)"
 WM="$ROOT/target/debug/mrx-wm"
 CTL="$ROOT/target/debug/mrxctl"
 GRAPHICS_PROBE="$ROOT/target/debug/mrx-graphics-probe"
@@ -37,7 +39,7 @@ if [[ "${MRX_USE_EXISTING_DISPLAY:-0}" == "1" ]]; then
   echo "PASS: using supplied nested X11 display $DISPLAY"
 else
   command -v Xvfb >/dev/null 2>&1 || { echo "Missing test dependency: Xvfb" >&2; exit 2; }
-  Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
+  Xvfb -displayfd 3 -screen 0 1920x1080x24 -fp "$FONT_PATH" -nolisten tcp -ac >"$RUNTIME/xvfb.log" 2>&1 3>"$RUNTIME/display-number" &
   XVFB_PID=$!
   for _ in $(seq 1 50); do [[ -s "$RUNTIME/display-number" ]] && break; sleep 0.1; done
   [[ -s "$RUNTIME/display-number" ]] || { cat "$RUNTIME/xvfb.log" >&2; exit 1; }

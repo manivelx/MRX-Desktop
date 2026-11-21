@@ -4,6 +4,8 @@
 # the MRX WM connect to the nested X server.
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/tests/lib/xvfb-fonts.sh"
+FONT_PATH="$(mrx_test_font_path)"
 for c in Xvfb Xephyr xdpyinfo; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
@@ -19,7 +21,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-Xvfb -displayfd 3 -screen 0 1920x1080x24 -nolisten tcp -ac >"$RUNTIME/host-xvfb.log" 2>&1 3>"$RUNTIME/host-display" &
+Xvfb -displayfd 3 -screen 0 1920x1080x24 -fp "$FONT_PATH" -nolisten tcp -ac >"$RUNTIME/host-xvfb.log" 2>&1 3>"$RUNTIME/host-display" &
 HOST_PID=$!
 for _ in $(seq 1 50); do [[ -s "$RUNTIME/host-display" ]] && break; sleep 0.1; done
 [[ -s "$RUNTIME/host-display" ]] || { cat "$RUNTIME/host-xvfb.log" >&2; exit 1; }
@@ -35,7 +37,7 @@ for candidate in $(seq 100 199); do
   fi
 done
 [[ -n "$NESTED_DISPLAY" ]] || { echo "No free nested X display found" >&2; exit 1; }
-Xephyr "$NESTED_DISPLAY" -screen 1920x1080 -nolisten tcp -ac +extension RANDR +extension Composite +extension DAMAGE >"$RUNTIME/xephyr.log" 2>&1 &
+Xephyr "$NESTED_DISPLAY" -screen 1920x1080 -fp "$FONT_PATH" -nolisten tcp -ac +extension RANDR +extension Composite +extension DAMAGE >"$RUNTIME/xephyr.log" 2>&1 &
 NESTED_PID=$!
 READY=0
 for _ in $(seq 1 100); do

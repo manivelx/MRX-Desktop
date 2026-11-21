@@ -13,9 +13,10 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
 [[ -f shell/scripts/lib/mrx-session.sh ]] || fail 'shared MRX shell session helper missing'
 [[ -f tests/mrx-shell-backend.sh ]] || fail 'MRX shell backend test missing'
+[[ -f tests/lib/xvfb-fonts.sh ]] || fail 'Xvfb font-path helper missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh tests/lib/xvfb-fonts.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
 for gate in 'bash ./check-deps.sh' 'bash ./tests/mrx-shell-backend.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do

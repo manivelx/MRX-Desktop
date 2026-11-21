@@ -4,7 +4,7 @@
 
 mrx_detect_compositor() {
     local combined
-    combined="$(printf '%s %s' "\${XDG_CURRENT_DESKTOP:-}" "\${XDG_SESSION_DESKTOP:-}" | tr '[:upper:]' '[:lower:]')"
+    combined="$(printf '%s %s' "${XDG_CURRENT_DESKTOP:-}" "${XDG_SESSION_DESKTOP:-}" | tr '[:upper:]' '[:lower:]')"
     case "$combined" in
         *mrx*) printf 'mrx\n' ;;
         *bspwm*) printf 'bspwm\n' ;;

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")/.." && pwd)"
-TMP="$(mktemp -d "\${TMPDIR:-/tmp}/mrx-shell-backend.XXXXXX")"
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/mrx-shell-backend.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin"
 
@@ -25,7 +25,7 @@ esac
 SH
 cat >"$TMP/bin/hyprctl" <<'SH'
 #!/usr/bin/env bash
-echo called >>"\${MRX_TEST_HYPRCTL_LOG:?}"
+echo called >>"${MRX_TEST_HYPRCTL_LOG:?}"
 exit 99
 SH
 cat >"$TMP/bin/bspc" <<'SH'

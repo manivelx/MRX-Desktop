@@ -17,6 +17,11 @@ bash ./tests/installer-sandbox.sh
 bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh
 bash ./tests/xephyr-smoke.sh
+if command -v qs >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1 && command -v Xvfb >/dev/null 2>&1 && command -v xdpyinfo >/dev/null 2>&1; then
+  bash ./tests/quickshell-smoke.sh
+else
+  echo "SKIP: live Quickshell smoke test requires qs, dbus-run-session, Xvfb and xdpyinfo."
+fi
 cargo build --release --workspace
 bash ./tests/package-release.sh
 

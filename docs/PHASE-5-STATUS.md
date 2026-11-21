@@ -13,7 +13,7 @@
 - Test installation, upgrade, rollback and removal in disposable Arch and CachyOS-LTS VMs.
 - Validate session registration and coexistence with existing BSPWM, SDDM, Orbital theme and Quickshell lock-screen configuration.
 - Add startup recovery, diagnostics and safe rollback after failed session startup.
-- Produce reproducible release artifacts, checksums, signatures and release notes.
+- Push the first matching version tag to publish the release; add signing/provenance once the release-signing policy is defined.
 - Complete the real-hardware compatibility matrix, including the legacy NVIDIA 470/GT 740 path.
 
 ## Validation boundary

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/mrx-session.sh"
 CONFIG_FILE="$HOME/.config/mrx/config.json"
 [[ -f "$CONFIG_FILE" ]] || CONFIG_FILE="$HOME/.config/mrx/config.json"
 JSON_PATH=".screenRecord.savePath"
@@ -86,27 +88,8 @@ toggle_microphone() {
     fi
 }
 
-detect_compositor() {
-    local combined
-    combined="$(echo "${XDG_CURRENT_DESKTOP:-} ${XDG_SESSION_DESKTOP:-}" | tr '[:upper:]' '[:lower:]')"
-    if [[ "$combined" == *"bspwm"* ]]; then
-        echo "bspwm"
-    elif [[ "$combined" == *"niri"* ]]; then
-        echo "niri"
-    elif [[ "$combined" == *"hyprland"* ]]; then
-        echo "hyprland"
-    else
-        echo "unknown"
-    fi
-}
-
-getactivemonitor() {
-    case "$(detect_compositor)" in
-        bspwm) bspc query -M -m focused --names ;;
-        niri) niri msg -j workspaces | jq -r '.[] | select(.is_focused == true) | .output' ;;
-        *) hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name' ;;
-    esac
-}
+detect_compositor() { mrx_detect_compositor; }
+getactivemonitor() { mrx_get_active_monitor; }
 
 mkdir -p "$RECORDING_DIR"
 cd "$RECORDING_DIR" || exit
@@ -136,28 +119,25 @@ for ((i=0;i<${#ARGS[@]};i++)); do
     fi
 done
 
-if pgrep wf-recorder > /dev/null || ( [[ "$(detect_compositor)" == "bspwm" ]] && pgrep -f 'ffmpeg.*x11grab' > /dev/null ); then
+COMPOSITOR="$(detect_compositor)"
+if { ! mrx_is_x11_session "$COMPOSITOR" && pgrep -x wf-recorder >/dev/null; } || { mrx_is_x11_session "$COMPOSITOR" && pgrep -f 'ffmpeg.*x11grab' >/dev/null; }; then
     notify-send "Recording Stopped" "Stopped" -a 'Recorder' &
-    if [[ "$(detect_compositor)" == "bspwm" ]]; then pkill -f 'ffmpeg.*x11grab' || true; else pkill wf-recorder || true; fi
+    if mrx_is_x11_session "$COMPOSITOR"; then pkill -f 'ffmpeg.*x11grab' || true; else pkill wf-recorder || true; fi
     set_recording_state false
 else
-    if [[ $FULLSCREEN_FLAG -eq 0 ]]; then
-        if [[ -n "$MANUAL_REGION" ]]; then
-            region="$MANUAL_REGION"
-        else
-            if ! region="$(slurp 2>&1)"; then
-                notify-send "Recording cancelled" "Selection was cancelled" -a 'Recorder' & disown
-                exit 1
-            fi
+    if [[ $FULLSCREEN_FLAG -eq 0 && -z "$MANUAL_REGION" ]] && ! mrx_is_x11_session "$COMPOSITOR"; then
+        if ! region="$(slurp 2>&1)"; then
+            notify-send "Recording cancelled" "Selection was cancelled" -a 'Recorder' & disown
+            exit 1
         fi
     fi
 
     trap cleanup_audio EXIT
     build_audio_source "$SOUND_FLAG" "$MIC_FLAG"
     OUTPUT_FILE="./recording_$(getdate).mp4"
-    if [[ "$(detect_compositor)" == "bspwm" ]]; then
+    if mrx_is_x11_session "$COMPOSITOR"; then
         if [[ $FULLSCREEN_FLAG -eq 1 ]]; then
-            read -r width height < <(xdotool getdisplaygeometry | awk '{print $1, $2}')
+            read -r width height < <(mrx_get_display_geometry)
             x=0; y=0
         elif [[ -n "$MANUAL_REGION" ]]; then
             read -r x y width height < <(printf '%s\n' "$MANUAL_REGION" | sed -E 's/,/ /; s/([0-9]+)x([0-9]+)/\1 \2/')

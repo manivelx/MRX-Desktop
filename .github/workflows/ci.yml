@@ -16,7 +16,7 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Install X11 build dependencies
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxcb1-dev libxcb-randr0-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcb-damage0-dev libxcb-present-dev libxcb-glx0-dev pkg-config xvfb x11-utils x11-xserver-utils xfonts-base xserver-xephyr
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxcb1-dev libxcb-randr0-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcb-damage0-dev libxcb-present-dev libxcb-glx0-dev pkg-config xvfb x11-utils x11-xserver-utils xfonts-base xserver-xephyr jq
       - uses: Swatinem/rust-cache@v2
       - name: Format and check Rust workspace
         run: |
@@ -26,6 +26,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo build --workspace
       - run: bash ./tests/static-check.sh
+      - run: bash ./tests/mrx-shell-backend.sh
       - run: bash ./tests/installer-sandbox.sh
       - run: bash ./tests/xvfb-server-check.sh
       - run: bash ./tests/xvfb-smoke.sh

@@ -30,7 +30,9 @@ read_cursor() {
 }
 
 apply_cursor() {
-    if [[ "${XDG_CURRENT_DESKTOP:-}" != *bspwm* ]]; then
+    local desktop
+    desktop="$(printf '%s %s' "${XDG_CURRENT_DESKTOP:-}" "${XDG_SESSION_DESKTOP:-}" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$desktop" == *hyprland* ]]; then
         hyprctl setcursor "$1" "$2" >/dev/null 2>&1
     fi
     gsettings set org.gnome.desktop.interface cursor-theme "$1" 2>/dev/null

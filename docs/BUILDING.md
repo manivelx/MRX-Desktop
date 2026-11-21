@@ -34,11 +34,12 @@ This runs the complete local validation suite and release build, in order:
 4. Clippy with warnings denied.
 5. Debug workspace build.
 6. Static shell/TOML/session-safety checks.
-7. Installer/reinstaller/uninstaller sandbox.
-8. Xvfb server probe.
-9. Compiled-WM Xvfb integration smoke test.
-10. Complete compiled-WM smoke suite inside nested Xephyr, including isolated Composite/Damage probe.
-11. Release workspace build.
+7. MRX shell backend helper tests.
+8. Installer/reinstaller/uninstaller sandbox.
+9. Xvfb server probe.
+10. Compiled-WM Xvfb integration smoke test.
+11. Complete compiled-WM smoke suite inside nested Xephyr, including Composite/Damage probe.
+12. Release workspace build.
 
 The Xvfb and Xephyr tests are isolated software-server tests. They cover virtual dock topology and workarea changes but do not validate Quickshell rendering, physical multi-monitor hotplug, NVIDIA 470, GT 740 acceleration or animation performance.
 

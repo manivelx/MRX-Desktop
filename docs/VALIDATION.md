@@ -16,6 +16,20 @@ PASS — GitHub Actions [run #518](https://github.com/manivelx/MRX-Desktop/actio
 | \`bash ./tests/xvfb-smoke.sh\` | PASS |
 | \`bash ./tests/xephyr-smoke.sh\` | PASS |
 
+## Quickshell MRX X11 action validation
+
+PASS — GitHub Actions [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44914024803) passed on branch commit `73cff5cdd7435f16c7781a106f84bbb2c4ee0a06`.
+
+The run passed formatting, workspace tests, Clippy, build, static shell/QML checks, the mocked MRX shell backend test, installer sandbox and both Xvfb/Xephyr integration suites.
+
+The mocked helper test verifies:
+- MRX, BSPWM, Niri and Hyprland session detection.
+- MRX monitor names, focused monitor and monitor geometry through `mrxctl snapshot`.
+- X11 root geometry via xdotool.
+- X11 session classification without invoking `hyprctl`.
+
+The shell scripts now use the MRX/X11 path for static wallpaper placement and screen recording. Video wallpapers are explicitly unsupported in the current X11 backend. This does not replace a live Quickshell test: visual rendering, interactive controls, actual recording, wallpaper application and full session stability remain to be tested on CachyOS-LTS.
+
 ## XComposite and XDamage prototype branch validation
 
 PASS — GitHub Actions [PR #19 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912799891) passed on branch commit \`b63a00f4ed1e4c9558922dca809ec3bf845438f8\` on 2026-11-21.
@@ -78,6 +92,7 @@ cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 cargo build --workspace
 bash ./tests/static-check.sh
+bash ./tests/mrx-shell-backend.sh
 bash ./tests/installer-sandbox.sh
 bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh

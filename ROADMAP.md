@@ -54,7 +54,9 @@ Items are marked complete only when implementation and relevant automated valida
 ## Phase 4 — Quickshell integration and visual system
 
 - [ ] Audit every imported QML service, shell command and compositor-specific API.
-- [ ] Route supported window/workspace/settings actions through MRX APIs.
+- [ ] Route all supported window/workspace/settings actions through MRX APIs.
+- [x] Add explicit MRX X11 paths for static wallpaper application, monitor-aware wallpaper placement and ffmpeg/x11grab screen recording.
+- [x] Route wallpaper-selector search through Quickshell state instead of Hyprland-only compositor IPC.
 - [ ] Add honest disabled/unsupported states for unavailable features.
 - [ ] Consolidate theme, typography, spacing, responsive layouts and accessibility.
 - [ ] Validate each QML page and interactive control in a complete session.

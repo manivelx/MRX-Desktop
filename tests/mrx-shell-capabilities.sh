@@ -24,6 +24,11 @@ grep -Fq 'root.savedBorderWidth = Number(appearance.border_width ?? 2)' shell/mo
 grep -Fq 'root.savedWindowGaps === 0 && root.savedBorderWidth === 1' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode initial state is inverted or misdetected'
 grep -Fq 'String(root.savedWindowGaps)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous gap'
 grep -Fq 'String(root.savedBorderWidth)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous border width'
+grep -Fq 'property string mrxRestorePath:' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode restore state is not persisted'
+grep -Fq 'command: ["cat", root.mrxRestorePath]' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not reload its restore state'
+grep -Fq 'mrxctl set appearance.border_width 1' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not apply its temporary border setting'
+grep -Fq 'rm -f "$1"' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not clear its restore state after reverting'
+
 grep -Fq 'active: WM.compositor === "hyprland"' shell/services/CompositorGlobalShortcut.qml || fail 'global shortcuts are not scoped to Hyprland'
 grep -Fq 'global shell shortcuts managed by MRX' shell/modules/ii/settings/pages/MRXConfig.qml || fail 'MRX settings page does not disclose global shortcut limitation'
 grep -Fq 'Hyprland-only shader and compositor controls are hidden' shell/modules/ii/settings/pages/MRXConfig.qml || fail 'MRX settings page does not disclose compositor-only control boundary'

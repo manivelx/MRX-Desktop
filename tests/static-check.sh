@@ -164,7 +164,7 @@ grep -Fq 'Action::MoveMonitor' crates/mrx-wm/src/main.rs || fail 'WM does not ha
 grep -Fq '"move-monitor" => Request::MoveWindowToMonitor' crates/mrxctl/src/main.rs || fail 'mrxctl does not expose monitor-targeted window moves'
 grep -Fq 'function moveWindowToMonitor' shell/services/MRXBackend.qml || fail 'MRX shell backend omits monitor-targeted window moves'
 grep -Fq 'function moveWindowToMonitor' shell/services/WM.qml || fail 'WM facade omits monitor-targeted window moves'
-grep -Fq 'monitor\\s*=\\s*' shell/services/WM.qml || fail 'MRX command dispatcher cannot parse monitor-targeted moves'
+grep -Fq 'monitor\s*=\s*' shell/services/WM.qml || fail 'MRX command dispatcher cannot parse monitor-targeted moves'
 grep -Fq 'IPC moves clients across monitors/workspaces and rejects unknown monitor targets' tests/xvfb-smoke.sh || fail 'Xvfb test omits cross-monitor window move coverage'
 grep -Fq 'MoveWindowToMonitor' crates/mrx-core/src/lib.rs || fail 'monitor-targeted window move IPC request missing'
 grep -Fq 'Action::MoveMonitor' crates/mrx-wm/src/main.rs || fail 'WM does not handle monitor-targeted window moves'

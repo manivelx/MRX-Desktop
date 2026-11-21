@@ -1499,10 +1499,16 @@ fn main()->Result<()> { tracing_subscriber::fmt().with_env_filter("info").init()
    }
    conn.flush()?; }
  // Remove WM-owned root properties before releasing SubstructureRedirect.
- for atom in [supported,wmcheck,current,count,clientlist,clientlist_stacking,net_active_window,net_workarea,net_desktop_names,net_viewport,net_geometry] {
-     let _=conn.delete_property(root,atom);
+ // Check each request synchronously so the session supervisor cannot observe
+ // a clean exit while the EWMH ownership marker is still queued on the server.
+ for atom in [supported,current,count,clientlist,clientlist_stacking,net_active_window,net_workarea,net_desktop_names,net_viewport,net_geometry] {
+     conn.delete_property(root,atom)?.check()?;
  }
- let _=conn.destroy_window(check);
+ conn.destroy_window(check)?.check()?;
+ // Delete the root marker after destroying its companion check window. This
+ // ordering is important on nested X servers which may retain the old marker
+ // while processing the window destruction and connection teardown.
+ conn.delete_property(root,wmcheck)?.check()?;
  conn.flush()?;
  let _=std::fs::remove_file(runtime_dir().join("mrx.sock"));
  info!("MRX X11 window manager stopped cleanly");

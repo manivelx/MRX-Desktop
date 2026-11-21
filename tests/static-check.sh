@@ -19,7 +19,8 @@ for gate in 'bash ./check-deps.sh' 'cargo fmt --all -- --check' 'cargo test --wo
   grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
 done
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
-grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'
+grep -Fq 'xwininfo' check-deps.sh || fail 'dependency checker omits the secondary dock fixture lookup'
+grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xwininfo xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'
 grep -Fq 'xrandr --setmonitor MRX-LEFT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the first virtual RandR monitor'
 grep -Fq 'xrandr --setmonitor MRX-RIGHT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the second virtual RandR monitor'
 grep -Fq 'MONITORS_READY' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not assert monitor snapshot refresh'
@@ -158,6 +159,8 @@ grep -Fq 'pub dock: bool' crates/mrx-core/src/lib.rs && grep -Fq 'is_dock_window
 grep -Fq 'w.monitor == monitor && !w.dock' crates/mrx-wm/src/main.rs || fail 'dock clients are hidden when switching workspaces'
 grep -Fq 'filter(w => !w.dock)' shell/services/MRXBackend.qml || fail 'Quickshell exposes dock clients as ordinary workspace windows'
 grep -Fq 'dock clients remain sticky and do not steal keyboard focus' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock focus and stickiness validation'
+grep -Fq 'simultaneous top and vertical dock struts reserve intersecting edges' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits simultaneous vertical/top dock workarea coverage'
+grep -Fq 'removing a dock restores the remaining top-only workarea' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock-removal workarea restoration'
 grep -Fq 'name: "root-workarea"' crates/mrx-wm/src/main.rs || fail 'EWMH workarea is not computed against the root screen'
 grep -Fq 'EWMH dock partial strut reduces usable workarea' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits dock strut reservation validation'
 grep -Fq 'right_and_bottom_struts_use_root_edge_distances' crates/mrx-wm/src/main.rs || fail 'dock strut root-edge geometry tests missing'

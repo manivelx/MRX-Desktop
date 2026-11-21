@@ -1860,6 +1860,32 @@ mod monitor_tests {
     }
 
     #[test]
+    fn multiple_docks_on_same_and_intersecting_edges_use_maximum_reservations() {
+        let monitor=MonitorInfo{name:"DP-1".into(),x:0,y:0,width:1920,height:1080,focused:true,active_workspace:1};
+        let docks=BTreeMap::from([
+            (1,DockStrut{top:48,top_start_x:0,top_end_x:1919,..Default::default()}),
+            (2,DockStrut{top:64,top_start_x:0,top_end_x:1919,..Default::default()}),
+            (3,DockStrut{left:72,left_start_y:0,left_end_y:1079,..Default::default()}),
+            (4,DockStrut{left:56,left_start_y:0,left_end_y:1079,..Default::default()}),
+        ]);
+        let area=monitor_workarea(&monitor,&docks,1920,1080);
+        assert_eq!((area.x,area.y,area.width,area.height),(72,64,1848,1016));
+    }
+
+    #[test]
+    fn mixed_resolution_monitor_applies_only_intersecting_edge_struts() {
+        let monitor=MonitorInfo{name:"HDMI-1".into(),x:1920,y:0,width:1280,height:1080,focused:false,active_workspace:1};
+        let docks=BTreeMap::from([
+            (1,DockStrut{top:48,top_start_x:0,top_end_x:3199,..Default::default()}),
+            (2,DockStrut{bottom:40,bottom_start_x:1920,bottom_end_x:3199,..Default::default()}),
+            (3,DockStrut{left:72,left_start_y:0,left_end_y:1079,..Default::default()}),
+            (4,DockStrut{right:80,right_start_y:0,right_end_y:1079,..Default::default()}),
+        ]);
+        let area=monitor_workarea(&monitor,&docks,3200,1080);
+        assert_eq!((area.x,area.y,area.width,area.height),(1920,48,1200,992));
+    }
+
+    #[test]
     fn right_and_bottom_struts_use_root_edge_distances() {
         let monitor=MonitorInfo{name:"DP-2".into(),x:1280,y:0,width:640,height:1080,focused:false,active_workspace:1};
         let strut=DockStrut{right:100,bottom:80,right_start_y:0,right_end_y:1079,bottom_start_x:0,bottom_end_x:1919,..Default::default()};

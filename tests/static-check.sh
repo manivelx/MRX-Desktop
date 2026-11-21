@@ -41,7 +41,7 @@ grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' build.sh || fail 'build.sh omi
 grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' .github/workflows/ci.yml || fail 'CI omits MRX shell capability tests'
 grep -Fq 'tests/quickshell-smoke.sh' build.sh || fail 'build.sh omits optional live Quickshell smoke test'
 grep -Fq 'bash ./tests/quickshell-smoke.sh' .github/workflows/ci.yml || fail 'Arch CI omits live Quickshell runtime smoke test'
-grep -Fq 'quickshell dbus procps-ng' .github/workflows/ci.yml || fail 'Arch CI omits Quickshell runtime dependencies'
+grep -Fq 'quickshell dbus procps-ng qt6-5compat' .github/workflows/ci.yml || fail 'Arch CI omits Quickshell runtime dependencies'
 grep -Fq 'mrx-diagnose --reason' session/mrx-session || fail 'session startup failure does not capture diagnostics'
 grep -Fq 'Quickshell frontend failed to start' session/mrx-session || fail 'Quickshell startup failure does not capture diagnostics'
 grep -Fq 'FAILURES >= 3' session/mrx-wm-supervisor || fail 'supervisor does not capture diagnostics after repeated WM crashes'

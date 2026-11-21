@@ -40,7 +40,6 @@ grep -Fq 'bash ./tests/diagnostics.sh' .github/workflows/ci.yml || fail 'CI omit
 grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' build.sh || fail 'build.sh omits MRX shell capability tests'
 grep -Fq 'bash ./tests/mrx-shell-capabilities.sh' .github/workflows/ci.yml || fail 'CI omits MRX shell capability tests'
 grep -Fq 'tests/quickshell-smoke.sh' build.sh || fail 'build.sh omits optional live Quickshell smoke test'
-grep -Fq 'bash ./tests/quickshell-smoke.sh' .github/workflows/ci.yml || fail 'CI omits live Quickshell runtime smoke test'
 grep -Fq 'bash ./tests/quickshell-smoke.sh' .github/workflows/ci.yml || fail 'Arch CI omits live Quickshell runtime smoke test'
 grep -Fq 'quickshell dbus procps-ng' .github/workflows/ci.yml || fail 'Arch CI omits Quickshell runtime dependencies'
 grep -Fq 'mrx-diagnose --reason' session/mrx-session || fail 'session startup failure does not capture diagnostics'

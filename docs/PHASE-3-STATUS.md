@@ -8,7 +8,11 @@
 - The probe creates XRender pictures for the captured pixmap and an off-screen destination, clears the destination, composites with `PictOp::OVER`, reads the destination pixels back and rejects an empty render.
 - Ubuntu and native Arch Linux CI run the probe under Xvfb and nested Xephyr. Latest evidence: [PR #27 run #672](https://github.com/manivelx/MRX-Desktop/actions/runs/44920294014).
 
-## X11 compositor strategy\n\nThe MRX session starts Picom only when it is installed and no compositor is already running. The installer preserves the existing Picom configuration. This is the accepted first graphics path for shadows, transparency and rounded corners; it does not make MRX a compositor and it does not prove the GT 740 GLX backend is stable. The desktop must remain usable with Picom disabled.\n\n## Not implemented — production renderer
+## X11 compositor strategy
+
+The MRX session starts Picom only when it is installed and no compositor is already running. The installer preserves the existing Picom configuration. This is the accepted first graphics path for shadows, transparency and rounded corners; it does not make MRX a compositor and it does not prove the GT 740 GLX backend is stable. The desktop must remain usable with Picom disabled.
+
+## Not implemented — production renderer
 
 - No compositor-manager selection (`_NET_WM_CM_Sn`) ownership.
 - No root `Subwindows` redirection or capture of managed application windows.

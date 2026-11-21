@@ -53,8 +53,26 @@ if grep -Fq "private-window-title" "$REPORT"; then
   exit 1
 fi
 
+# Exercise the actual session-launcher failure path with mrx-wm absent.
+mkdir -p "$HOME/.local/bin"
+cp "$ROOT/scripts/mrx-diagnose.sh" "$HOME/.local/bin/mrx-diagnose"
+chmod 755 "$HOME/.local/bin/mrx-diagnose"
+cat > "$TMP/mock/notify-send" <<'MOCK'
+#!/usr/bin/env bash
+exit 0
+MOCK
+chmod +x "$TMP/mock/notify-send"
+if bash "$ROOT/session/mrx-session"; then
+  echo "FAIL: session launcher continued without mrx-wm" >&2
+  exit 1
+fi
+AUTO_REPORT="$(find "$XDG_CACHE_HOME/mrx" -maxdepth 1 -name 'startup-diagnostics-*.txt' -print -quit)"
+[[ -n "$AUTO_REPORT" && -s "$AUTO_REPORT" ]]
+grep -Fq "mrx-wm is missing" "$AUTO_REPORT"
+grep -Fq "MRX IPC: pong" "$AUTO_REPORT"
+
 export MRX_DIAG_MOCK_FAILURE=1
 bash "$ROOT/scripts/mrx-diagnose.sh" --output "$TMP/failure-report.txt"
 grep -Fq "MRX IPC: unavailable" "$TMP/failure-report.txt"
 grep -Fq "MRX snapshot: unavailable" "$TMP/failure-report.txt"
-echo "PASS: startup diagnostics collect safe health data, redact titles and handle unavailable IPC"
+echo "PASS: startup diagnostics collect safe health data, redact titles, handle unavailable IPC and run automatically on failed session startup"

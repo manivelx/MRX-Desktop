@@ -12,6 +12,7 @@ cargo build --workspace
 bash ./tests/static-check.sh
 bash ./tests/mrx-shell-backend.sh
 bash ./tests/diagnostics.sh
+bash ./tests/mrx-shell-capabilities.sh
 bash ./tests/installer-sandbox.sh
 bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh

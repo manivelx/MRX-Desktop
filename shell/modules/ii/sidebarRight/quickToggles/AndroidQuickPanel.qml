@@ -30,7 +30,7 @@ AbstractQuickPanel {
 
     readonly property list<string> availableToggleTypes: {
         const base = ["network", "bluetooth", "idleInhibitor", "easyEffects", "nightLight", "darkMode", "cloudflareWarp", "gameMode", "screenSnip", "colorPicker", "onScreenKeyboard", "mic", "audio", "notifications", "powerProfile","musicRecognition", "antiFlashbang", "vpn"]
-        return WM.compositor === "hyprland" ? base : base.filter(t => t !== "gameMode")
+        return WM.compositor === "hyprland" ? base : base.filter(t => t !== "gameMode" && t !== "antiFlashbang")
     }
     readonly property int columns: Config.options.sidebar.quickToggles.android.columns
     readonly property list<var> toggles: {

@@ -70,7 +70,7 @@ grep -q 'mrx-wm' session/mrx-session || fail 'session does not launch MRX WM'
 grep -q 'mrxctl' shell/services/MRXBackend.qml || fail 'QML adapter does not use MRX IPC client'
 grep -q 'xorg-server-xvfb' scripts/install-deps-arch.sh || fail 'Arch dependency installer omits Xvfb'
 grep -q 'xorg-server-xephyr' scripts/install-deps-arch.sh || fail 'Arch dependency installer omits Xephyr'
-grep -q 'xmessage -title' tests/xvfb-smoke.sh || fail 'Xvfb smoke test has no minimal X11 client'
+grep -Fq '"$RUNTIME/x11-test-client" "MRX X11 test server test client"' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not launch the compiled minimal X11 client'
 if grep -Eiq 'nvidia-470|nvidia-utils|linux-cachyos|grub-install|mkinitcpio' scripts/install-deps-arch.sh; then fail 'dependency installer must not mutate GPU driver/kernel/bootloader'; fi
 pass 'session and QML adapter reference MRX services; test dependencies are declared; GPU and bootloader remain untouched'
 grep -q 'WM_DELETE_WINDOW' crates/mrx-wm/src/main.rs || fail 'ICCCM polite close protocol missing'

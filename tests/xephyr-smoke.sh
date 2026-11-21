@@ -35,7 +35,7 @@ for candidate in $(seq 100 199); do
   fi
 done
 [[ -n "$NESTED_DISPLAY" ]] || { echo "No free nested X display found" >&2; exit 1; }
-Xephyr "$NESTED_DISPLAY" -screen 1920x1080 -fp "$FONT_PATH" -nolisten tcp -ac +extension RANDR +extension Composite +extension DAMAGE >"$RUNTIME/xephyr.log" 2>&1 &
+Xephyr "$NESTED_DISPLAY" -screen 1920x1080 -nolisten tcp -ac +extension RANDR +extension Composite +extension DAMAGE >"$RUNTIME/xephyr.log" 2>&1 &
 NESTED_PID=$!
 READY=0
 for _ in $(seq 1 100); do

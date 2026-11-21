@@ -10,6 +10,9 @@ XVFB_PID=""
 fail() {
   echo "FAIL: $*" >&2
   [[ -f "$TMP/session.log" ]] && tail -n 100 "$TMP/session.log" >&2 || true
+  if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR/quickshell" ]]; then
+    find "$XDG_RUNTIME_DIR/quickshell" -type f -name 'log.qslog' -exec sh -c 'echo "--- Quickshell log: $1"; tail -n 100 "$1"' _ {} \; >&2 || true
+  fi
   exit 1
 }
 cleanup() {

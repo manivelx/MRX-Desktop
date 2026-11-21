@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/mrx-core", "crates/mrx-wm", "crates/mrxctl"]
+members = ["crates/mrx-core", "crates/mrx-wm", "crates/mrxctl", "crates/mrx-graphics-probe"]
 
 [workspace.package]
 version = "0.1.0-alpha.12"

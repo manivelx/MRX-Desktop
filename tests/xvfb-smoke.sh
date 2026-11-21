@@ -4,8 +4,9 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 WM="$ROOT/target/debug/mrx-wm"
 CTL="$ROOT/target/debug/mrxctl"
+GRAPHICS_PROBE="$ROOT/target/debug/mrx-graphics-probe"
 SUPERVISOR="$ROOT/session/mrx-wm-supervisor"
-for f in "$WM" "$CTL" "$SUPERVISOR"; do
+for f in "$WM" "$CTL" "$GRAPHICS_PROBE" "$SUPERVISOR"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
 for c in xdpyinfo xprop xmessage xwininfo xrandr python3; do
@@ -65,6 +66,10 @@ for ext in Composite DAMAGE RANDR XFIXES GLX; do
   if grep -qi "$ext" <<<"$EXTENSIONS"; then echo "PASS: X11 extension advertised: $ext";
   else echo "WARN: X11 extension unavailable in X11 test server: $ext"; fi
 done
+
+# Exercise Composite named-pixmap capture and Damage notifications against an
+# isolated override-redirect test window before the WM claims root ownership.
+"$GRAPHICS_PROBE"
 
 MRX_WM_BIN="$WM" MRX_CTL_BIN="$CTL" MRX_WM_LOG="$RUNTIME/wm.log" "$SUPERVISOR" >"$RUNTIME/supervisor.log" 2>&1 &
 WM_PID=$!

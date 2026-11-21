@@ -111,7 +111,7 @@ Singleton {
         {
             action: "wallpaper",
             execute: () => {
-                WM.dispatch(`hl.dsp.global("quickshell:wallpaperSelectorToggle")`)
+                GlobalStates.wallpaperSelectorOpen = !GlobalStates.wallpaperSelectorOpen
             }
         },
         {

@@ -14,30 +14,21 @@ terminalscheme="$SCRIPT_DIR/terminal/scheme-base.json"
 
 # shellcheck source=../lib/config.sh
 source "$SCRIPT_DIR/../lib/config.sh"
+source "$SCRIPT_DIR/../lib/mrx-session.sh"
 
-detect_compositor() {
-    local combined="$(echo "${XDG_CURRENT_DESKTOP:-} ${XDG_SESSION_DESKTOP:-}" | tr '[:upper:]' '[:lower:]')"
-    [[ "$combined" == *bspwm* ]] && { echo bspwm; return; }
-    [[ "$combined" == *niri* ]] && { echo niri; return; }
-    [[ "$combined" == *hyprland* ]] && { echo hyprland; return; }
-    echo unknown
-}
+detect_compositor() { mrx_detect_compositor; }
 
 get_display_size() {
-    if [[ "$(detect_compositor)" == "bspwm" ]] && command -v xdotool >/dev/null; then
-        xdotool getdisplaygeometry
+    local compositor
+    compositor="$(detect_compositor)"
+    if mrx_is_x11_session "$compositor"; then
+        mrx_get_display_geometry
     else
         hyprctl monitors -j | jq -r '[.[].width] | max, ([.[].height] | max)' | xargs
     fi
 }
 
-get_monitor_names() {
-    if [[ "$(detect_compositor)" == "bspwm" ]]; then
-        bspc query -M --names
-    else
-        hyprctl monitors -j | jq -r '.[] | .name'
-    fi
-}
+get_monitor_names() { mrx_get_monitor_names; }
 
 handle_kde_material_you_colors() {
     [[ "$(detect_compositor)" == "bspwm" ]] && return 0
@@ -305,13 +296,23 @@ switch() {
         categorize_wallpaper "$imgpath" &
     fi
 
-    if [[ "$(detect_compositor)" == "bspwm" ]]; then
+    compositor="$(detect_compositor)"
+    if [[ "$compositor" == "bspwm" ]]; then
         read -r screen_width screensizey < <(get_display_size)
         scale=1; screenx=0; screeny=0
-        cursorposx=$(xdotool getmouselocation --shell | awk -F= '$1=="X"{print $2}')
-        cursorposy=$(xdotool getmouselocation --shell | awk -F= '$1=="Y"{print $2}')
+        cursor_location="$(xdotool getmouselocation --shell)"
+        cursorposx=$(awk -F= '$1=="X"{print $2}' <<<"$cursor_location")
+        cursorposy=$(awk -F= '$1=="Y"{print $2}' <<<"$cursor_location")
+    elif [[ "$compositor" == "mrx" ]]; then
+        if ! read -r scale screenx screeny screen_width screensizey < <(mrx_get_focused_monitor_geometry); then
+            read -r screen_width screensizey < <(get_display_size)
+            scale=1; screenx=0; screeny=0
+        fi
+        cursor_location="$(xdotool getmouselocation --shell)"
+        cursorposx=$(awk -F= '$1=="X"{print $2}' <<<"$cursor_location")
+        cursorposy=$(awk -F= '$1=="Y"{print $2}' <<<"$cursor_location")
     else
-        read scale screenx screeny screensizey < <(hyprctl monitors -j | jq '.[] | select(.focused) | .scale, .x, .y, .height' | xargs)
+        read scale screenx screeny screen_width screensizey < <(hyprctl monitors -j | jq -r '.[] | select(.focused) | [.scale, .x, .y, .width, .height] | @tsv')
         cursorposx=$(hyprctl cursorpos -j | jq '.x' 2>/dev/null) || cursorposx=960
         cursorposy=$(hyprctl cursorpos -j | jq '.y' 2>/dev/null) || cursorposy=540
     fi
@@ -337,8 +338,8 @@ switch() {
         fi
 
         if is_video "$imgpath"; then
-            if [[ "$(detect_compositor)" == "bspwm" ]]; then
-                notify-send "Video wallpaper unavailable" "The BSPWM/X11 port currently supports static image wallpapers; video wallpaper requires a separate X11 backend." -a "Wallpaper switcher"
+            if mrx_is_x11_session "$(detect_compositor)"; then
+                notify-send "Video wallpaper unavailable" "The MRX/BSPWM X11 backend currently supports static image wallpapers; video wallpaper needs a separate X11 renderer." -a "Wallpaper switcher"
                 exit 1
             fi
             mkdir -p "$THUMBNAIL_DIR"
@@ -406,10 +407,10 @@ switch() {
             if [[ -z "$colors_only_flag" ]]; then
                 set_wallpaper_path "$imgpath"
                 remove_restore
-                if [[ "$(detect_compositor)" == "bspwm" ]]; then
+                if mrx_is_x11_session "$(detect_compositor)"; then
                     if command -v feh >/dev/null; then feh --no-fehbg --bg-fill "$imgpath"
                     elif command -v nitrogen >/dev/null; then nitrogen --set-zoom-fill "$imgpath"
-                    else notify-send "Wallpaper" "Install feh or nitrogen to set wallpapers in BSPWM." -a "Wallpaper switcher"; fi
+                    else notify-send "Wallpaper" "Install feh or nitrogen to set wallpapers in this X11 session." -a "Wallpaper switcher"; fi
                 fi
             fi
         fi
@@ -587,7 +588,7 @@ main() {
                     set_accent_color ""
                     shift 2
                 else
-                    if [[ "$(detect_compositor)" == "bspwm" ]]; then set_accent_color "$(xcolor -s 2>/dev/null || echo "#c6a15b")"; else set_accent_color "$(hyprpicker --no-fancy)"; fi
+                    if mrx_is_x11_session "$(detect_compositor)"; then set_accent_color "$(xcolor -s 2>/dev/null || echo "#c6a15b")"; else set_accent_color "$(hyprpicker --no-fancy)"; fi
                     shift
                 fi
                 ;;

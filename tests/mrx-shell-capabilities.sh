@@ -19,6 +19,11 @@ grep -Fq 'enabled: WM.compositor !== "mrx"' shell/modules/ii/sidebarRight/nightL
 grep -Fq 'visible: WM.compositor === "hyprland"' shell/modules/ii/sidebarRight/nightLight/NightLightDialog.qml || fail 'Hyprland-only anti-flashbang controls are not gated'
 grep -Fq 'text: Translation.tr("Brightness")' shell/modules/ii/sidebarRight/nightLight/NightLightDialog.qml || fail 'supported X11 hardware brightness control was removed'
 
+grep -Fq 'root.savedWindowGaps = Number(appearance.gaps ?? 8)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not preserve the previous window gap'
+grep -Fq 'root.savedBorderWidth = Number(appearance.border_width ?? 2)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not preserve the previous border width'
+grep -Fq 'root.savedWindowGaps === 0 && root.savedBorderWidth === 1' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode initial state is inverted or misdetected'
+grep -Fq 'String(root.savedWindowGaps)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous gap'
+grep -Fq 'String(root.savedBorderWidth)' shell/modules/ii/sidebarRight/quickToggles/classicStyle/GameMode.qml || fail 'MRX game mode does not restore the previous border width'
 grep -Fq 'active: WM.compositor === "hyprland"' shell/services/CompositorGlobalShortcut.qml || fail 'global shortcuts are not scoped to Hyprland'
 grep -Fq 'global shell shortcuts managed by MRX' shell/modules/ii/settings/pages/MRXConfig.qml || fail 'MRX settings page does not disclose global shortcut limitation'
 grep -Fq 'Hyprland-only shader and compositor controls are hidden' shell/modules/ii/settings/pages/MRXConfig.qml || fail 'MRX settings page does not disclose compositor-only control boundary'

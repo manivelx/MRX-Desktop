@@ -71,6 +71,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [ ] Validate coexistence with existing BSPWM/SDDM/lock-screen configuration.
 - [ ] Add recovery and diagnostics for failed session startup.
 - [x] Add reproducible Linux release archives, SHA-256 checksums and tag-triggered GitHub Release automation (first version tag still pending).
+- [x] Add privacy-conscious startup diagnostics and automatic report capture when the MRX WM fails its startup health check.
 - [ ] Complete hardware compatibility matrix before making support claims.
 
 ## Release gates

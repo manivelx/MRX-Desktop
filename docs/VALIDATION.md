@@ -58,6 +58,10 @@ PASS — GitHub Actions [PR #25 run #627](https://github.com/manivelx/MRX-Deskto
 
 Both jobs built the optimized workspace and ran the release archive test. The test verified archive contents, SHA-256 checksum validation and byte-for-byte reproducibility across two package builds. The tag-triggered GitHub Release publication workflow is configured but has not been triggered; no public release has been created.
 
+## Startup diagnostics validation
+
+PASS — GitHub Actions [PR #26 run #658](https://github.com/manivelx/MRX-Desktop/actions/runs/44919566237) passed both Ubuntu and Arch Linux jobs. The mocked diagnostic tests verified IPC health reporting, monitor/workspace summaries, window-title redaction, mode-0600 output, unavailable-IPC handling and automatic report generation when the session launcher cannot find `mrx-wm`.
+
 ## Integration coverage
 
 - IPC startup, health, subscriptions, structured operation results and orderly shutdown.

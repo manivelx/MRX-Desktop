@@ -72,10 +72,12 @@ for pair in mrx-wm mrxctl; do
 done
 backup_if_different "$ROOT/session/mrx-session" "$USER_BIN/mrx-session"
 backup_if_different "$ROOT/session/mrx-wm-supervisor" "$USER_BIN/mrx-wm-supervisor"
+backup_if_different "$ROOT/scripts/mrx-diagnose.sh" "$USER_BIN/mrx-diagnose"
 install -m755 "$BIN/mrx-wm" "$USER_BIN/mrx-wm"
 install -m755 "$BIN/mrxctl" "$USER_BIN/mrxctl"
 install -m755 "$ROOT/session/mrx-session" "$USER_BIN/mrx-session"
 install -m755 "$ROOT/session/mrx-wm-supervisor" "$USER_BIN/mrx-wm-supervisor"
+install -m755 "$ROOT/scripts/mrx-diagnose.sh" "$USER_BIN/mrx-diagnose"
 [[ -e "$USER_CONFIG/settings.toml" ]] || install -m644 "$ROOT/config/settings.toml" "$USER_CONFIG/settings.toml"
 # The Picom config is user-editable; never replace an existing one on reinstall.
 [[ -e "$USER_CONFIG/picom.conf" ]] || install -m644 "$ROOT/config/picom.conf" "$USER_CONFIG/picom.conf"

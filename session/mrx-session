@@ -11,9 +11,21 @@ export MRX_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/mrx"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 mkdir -p "$MRX_CONFIG_HOME" "$XDG_CACHE_HOME/mrx"
 
+# Diagnostics never use sudo and never modify the user's session.
+report_startup_failure() {
+  local reason="$1"
+  local report="$XDG_CACHE_HOME/mrx/startup-diagnostics-$(date +%Y%m%d-%H%M%S).txt"
+  if command -v mrx-diagnose >/dev/null 2>&1; then
+    mrx-diagnose --reason "$reason" --output "$report" || true
+  else
+    printf 'MRX startup failure: %s\n' "$reason" >&2
+  fi
+  notify-send "MRX session startup failed" "$reason. Diagnostics: $report" 2>/dev/null || true
+}
+
 # Do not terminate or reconfigure any process belonging to another session.
 if ! command -v mrx-wm >/dev/null 2>&1; then
-  notify-send "MRX" "mrx-wm is missing. Run the installer again." 2>/dev/null || true
+  report_startup_failure "mrx-wm is missing; reinstall the user-scoped MRX files"
   exit 1
 fi
 
@@ -27,7 +39,7 @@ for _ in $(seq 1 60); do
   if mrxctl ping >/dev/null 2>&1; then break; fi
   sleep 0.1
 done
-mrxctl ping >/dev/null 2>&1 || { echo "MRX WM failed to start" >&2; exit 1; }
+mrxctl ping >/dev/null 2>&1 || { report_startup_failure "MRX window manager did not become healthy"; exit 1; }
 
 # Picom is optional. Never kill an existing compositor; the session is responsible
 # for ensuring only one compositor is active before selecting this session.
@@ -42,4 +54,7 @@ if command -v xss-lock >/dev/null 2>&1 && [[ -x "$LOCK_LAUNCHER" ]] && ! pgrep -
 fi
 
 # Quickshell frontend: same end4-pC QML, MRX Rust backend.
-qs -c mrx
+if ! qs -c mrx; then
+  report_startup_failure "Quickshell frontend failed to start"
+  exit 1
+fi

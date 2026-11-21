@@ -68,6 +68,12 @@ while [[ "$STOPPING" == 0 ]]; do
   UPTIME=$((NOW-STARTED_AT))
   if (( UPTIME >= 60 )); then FAILURES=0; fi
   FAILURES=$((FAILURES+1))
+  if (( FAILURES >= 3 )) && command -v mrx-diagnose >/dev/null 2>&1; then
+    DIAG_HOME="${XDG_CACHE_HOME:-$HOME/.cache}/mrx"
+    DIAG_REPORT="$DIAG_HOME/restart-diagnostics-$(date +%Y%m%d-%H%M%S).txt"
+    mkdir -p "$DIAG_HOME"
+    mrx-diagnose --reason "MRX WM has failed to start or restart $FAILURES times" --output "$DIAG_REPORT" || true
+  fi
   DELAY=1
   for ((attempt=1; attempt<FAILURES; attempt++)); do
     DELAY=$((DELAY*2))

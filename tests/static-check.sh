@@ -13,12 +13,14 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
 [[ -f shell/scripts/lib/mrx-session.sh ]] || fail 'shared MRX shell session helper missing'
 [[ -f tests/mrx-shell-backend.sh ]] || fail 'MRX shell backend test missing'
+[[ -f scripts/mrx-diagnose.sh ]] || fail 'MRX startup diagnostics script missing'
+[[ -f tests/diagnostics.sh ]] || fail 'MRX startup diagnostics test missing'
 [[ -f scripts/package-release.sh ]] || fail 'release packager missing'
 [[ -f tests/package-release.sh ]] || fail 'release archive test missing'
 [[ -f tests/x11-test-client.c ]] || fail 'X11 test client source missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh scripts/package-release.sh tests/package-release.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh scripts/package-release.sh tests/package-release.sh scripts/mrx-diagnose.sh tests/diagnostics.sh session/mrx-session session/mrx-wm-supervisor shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh shell/scripts/lib/mrx-session.sh shell/scripts/colors/switchwall.sh shell/scripts/videos/record.sh shell/scripts/system-appearance.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
 for gate in 'bash ./check-deps.sh' 'bash ./tests/mrx-shell-backend.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
@@ -29,6 +31,13 @@ grep -Fq 'name: Install Arch Linux toolchain and X11 test dependencies' .github/
 grep -Fq 'cargo build --release --workspace' .github/workflows/ci.yml || fail 'CI omits the release-mode workspace build'
 grep -Fq 'bash ./tests/package-release.sh' build.sh || fail 'build.sh omits reproducible release archive tests'
 grep -Fq 'bash ./tests/package-release.sh' .github/workflows/ci.yml || fail 'CI omits release archive tests'
+grep -Fq 'bash ./tests/diagnostics.sh' build.sh || fail 'build.sh omits startup diagnostics tests'
+grep -Fq 'bash ./tests/diagnostics.sh' .github/workflows/ci.yml || fail 'CI omits startup diagnostics tests'
+grep -Fq 'mrx-diagnose --reason' session/mrx-session || fail 'session startup failure does not capture diagnostics'
+grep -Fq 'Quickshell frontend failed to start' session/mrx-session || fail 'Quickshell startup failure does not capture diagnostics'
+grep -Fq 'FAILURES >= 3' session/mrx-wm-supervisor || fail 'supervisor does not capture diagnostics after repeated WM crashes'
+grep -Fq 'startup-diagnostics-*.txt' tests/diagnostics.sh || fail 'diagnostics test omits automatic session startup capture'
+grep -Fq 'mrx-diagnose' install.sh || fail 'installer does not install the diagnostics command'
 grep -Fq 'softprops/action-gh-release@v2' .github/workflows/release.yml || fail 'tagged release workflow does not publish GitHub releases'
 grep -Fq 'mrx-graphics-probe' tests/xvfb-smoke.sh || fail 'X11 smoke test omits the Composite/Damage probe'
 grep -Fq 'mrx-session.sh' shell/scripts/colors/switchwall.sh || fail 'wallpaper script omits the shared MRX/X11 session helper'

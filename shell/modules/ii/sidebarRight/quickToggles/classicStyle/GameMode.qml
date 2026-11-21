@@ -14,6 +14,19 @@ QuickToggleButton {
     property bool mrxRestoreStateLoaded: false
     property bool mrxRestoreStatePresent: false
     property bool mrxSnapshotLoaded: false
+    property int currentWindowGaps: 8
+    property int currentBorderWidth: 2
+    function updateMrxSettingsState() {
+        if (!root.mrxSnapshotLoaded || !root.mrxRestoreStateLoaded) return
+        if (root.mrxRestoreStatePresent) {
+            root.toggled = root.currentWindowGaps === 0 && root.currentBorderWidth === 1
+        } else {
+            root.savedWindowGaps = root.currentWindowGaps
+            root.savedBorderWidth = root.currentBorderWidth
+            root.toggled = false
+        }
+        root.mrxSettingsLoaded = true
+    }
     property string mrxRestorePath: `${Quickshell.env("XDG_CONFIG_HOME") ?? (Quickshell.env("HOME") + "/.config")}/mrx/game-mode-restore.json`
     enabled: WM.compositor !== "mrx" || root.mrxSettingsLoaded
 
@@ -50,7 +63,7 @@ QuickToggleButton {
                     root.mrxRestoreStatePresent = false
                 }
                 root.mrxRestoreStateLoaded = true
-                root.mrxSettingsLoaded = root.mrxSnapshotLoaded
+                root.updateMrxSettingsState()
             }
         }
     }
@@ -65,13 +78,10 @@ QuickToggleButton {
                 if (WM.compositor === "mrx") {
                     try {
                         const appearance = JSON.parse(text).settings.appearance ?? ({})
-                        if (!root.mrxRestoreStatePresent) {
-                            root.savedWindowGaps = Number(appearance.gaps ?? 8)
-                            root.savedBorderWidth = Number(appearance.border_width ?? 2)
-                        }
-                        root.toggled = root.mrxRestoreStatePresent && Number(appearance.gaps ?? 8) === 0 && Number(appearance.border_width ?? 2) === 1
+                        root.currentWindowGaps = Number(appearance.gaps ?? 8)
+                        root.currentBorderWidth = Number(appearance.border_width ?? 2)
                         root.mrxSnapshotLoaded = true
-                        root.mrxSettingsLoaded = root.mrxRestoreStateLoaded
+                        root.updateMrxSettingsState()
                     } catch (e) {
                         console.warn("[MRX] game-mode state unavailable", e)
                     }

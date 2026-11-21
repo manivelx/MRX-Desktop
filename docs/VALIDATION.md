@@ -62,6 +62,12 @@ Both jobs built the optimized workspace and ran the release archive test. The te
 
 PASS — GitHub Actions [PR #26 run #658](https://github.com/manivelx/MRX-Desktop/actions/runs/44919566237) passed both Ubuntu and Arch Linux jobs. The mocked diagnostic tests verified IPC health reporting, monitor/workspace summaries, window-title redaction, mode-0600 output, unavailable-IPC handling and automatic report generation when the session launcher cannot find `mrx-wm`.
 
+## XRender capture-probe validation
+
+PASS — GitHub Actions [PR #27 run #672](https://github.com/manivelx/MRX-Desktop/actions/runs/44920294014) passed both Ubuntu and Arch Linux jobs on the graphics-probe PR head. The Xvfb and nested Xephyr smoke tests verified XComposite named-pixmap capture, XDamage notification delivery, off-screen XRender composition and non-empty destination pixel readback.
+
+This is not a production compositor test: no compositor-manager selection is acquired, managed clients are not redirected, and the Composite overlay is not presented to the desktop.
+
 ## Integration coverage
 
 - IPC startup, health, subscriptions, structured operation results and orderly shutdown.

@@ -18,7 +18,7 @@ Scope {
     PanelWindow {
         aboveWindows: true
         focusable: visible
-                id: panelWindow
+        id: panelWindow
 
         readonly property bool animatedEntrance: WM.compositor !== "hyprland"
         property bool reallyVisible: false

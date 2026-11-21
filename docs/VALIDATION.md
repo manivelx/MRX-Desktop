@@ -2,7 +2,7 @@
 
 ## Latest successful main validation
 
-PASS — GitHub Actions [run #824](https://github.com/manivelx/MRX-Desktop/actions/runs/44924232987) passed both Ubuntu and Arch Linux jobs on main commit `266db1414426545ca363afb77e0ed8d53da899ac` on 2026-11-21.
+PASS — GitHub Actions [run #827](https://github.com/manivelx/MRX-Desktop/actions/runs/44924513931) passed both Ubuntu and Arch Linux jobs on main commit `075465c53bd1b143f1c3711d783bba6111f9f6ef` on 2026-11-21.
 
 | Check | Result |
 |---|---|
@@ -21,7 +21,7 @@ PASS — GitHub Actions [run #824](https://github.com/manivelx/MRX-Desktop/actio
 
 The Arch Quickshell smoke test installed MRX into a temporary HOME, launched the session under Xvfb and private D-Bus, verified MRX IPC health and Quickshell within the session's descendant process tree, then stopped that process tree before removing temporary files. This is a real configuration-startup/IPC test, not a visual or physical-hardware test.
 
-Run #800 on merge commit `d336326` initially exposed a cleanup race after the Quickshell startup/IPC assertions had passed. The process-tree-scoped cleanup and liveness checks are included in the validated run #824.
+Run #800 on merge commit `d336326` initially exposed a cleanup race after the Quickshell startup/IPC assertions had passed. The process-tree-scoped cleanup and liveness checks were verified by green main run #824 and revalidated by run #827.
 
 
 ## Quickshell MRX X11 action validation

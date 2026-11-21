@@ -8,7 +8,7 @@ SUPERVISOR="$ROOT/session/mrx-wm-supervisor"
 for f in "$WM" "$CTL" "$SUPERVISOR"; do
   [[ -x "$f" ]] || { echo "Missing $f; run cargo build --workspace first." >&2; exit 2; }
 done
-for c in xdpyinfo xprop xmessage xrandr python3; do
+for c in xdpyinfo xprop xmessage xwininfo xrandr python3; do
   command -v "$c" >/dev/null 2>&1 || { echo "Missing test dependency: $c" >&2; exit 2; }
 done
 
@@ -17,10 +17,11 @@ export XDG_RUNTIME_DIR="$RUNTIME/runtime"
 export MRX_CONFIG_HOME="$RUNTIME/config"
 mkdir -p "$XDG_RUNTIME_DIR" "$MRX_CONFIG_HOME"
 chmod 700 "$XDG_RUNTIME_DIR"
-XVFB_PID=""; WM_PID=""; XTERM_PID=""; SUB_PID=""; FIXTURE_PID=""
+XVFB_PID=""; WM_PID=""; XTERM_PID=""; DOCK_PID=""; SUB_PID=""; FIXTURE_PID=""
 cleanup() {
   [[ -n "$SUB_PID" ]] && kill "$SUB_PID" 2>/dev/null || true
   [[ -n "$FIXTURE_PID" ]] && kill "$FIXTURE_PID" 2>/dev/null || true
+  [[ -n "$DOCK_PID" ]] && kill "$DOCK_PID" 2>/dev/null || true
   [[ -n "$XTERM_PID" ]] && kill "$XTERM_PID" 2>/dev/null || true
   [[ -n "$WM_PID" ]] && kill "$WM_PID" 2>/dev/null || true
   [[ -n "$WM_PID" ]] && wait "$WM_PID" 2>/dev/null || true
@@ -634,6 +635,59 @@ assert window.get('dock') is True, window
 assert window.get('focused') is False, window
 print('PASS: dock clients remain sticky and do not steal keyboard focus')
 PY
+
+# Add a second, vertical dock while the first top dock is active. The
+# resulting workarea must reserve both edges without summing same-edge
+# struts or allowing a dock to steal focus.
+xmessage -title 'MRX secondary dock' -buttons Close:0 -default Close 'secondary dock fixture' >"$RUNTIME/secondary-dock.log" 2>&1 &
+DOCK_PID=$!
+SECOND_DOCK_ID=""
+for _ in $(seq 1 40); do
+  SECOND_DOCK_ID="$(xwininfo -root -tree | awk '/"MRX secondary dock"/ {print $1; exit}')"
+  [[ -n "$SECOND_DOCK_ID" ]] && break
+  sleep 0.1
+done
+[[ -n "$SECOND_DOCK_ID" ]] || { echo "FAIL: secondary dock test client did not map" >&2; cat "$RUNTIME/secondary-dock.log" >&2; exit 1; }
+xprop -id "$SECOND_DOCK_ID" -f _NET_WM_WINDOW_TYPE 32a -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DOCK
+xprop -id "$SECOND_DOCK_ID" -f _NET_WM_STRUT_PARTIAL 32c -set _NET_WM_STRUT_PARTIAL '72, 0, 0, 0, 0, 1079, 0, 0, 0, 0, 0, 0'
+MULTI_DOCK_APPLIED=0
+for _ in $(seq 1 40); do
+  xprop -root _NET_WORKAREA >"$RUNTIME/multi-dock-workarea.txt"
+  if python3 - "$RUNTIME/multi-dock-workarea.txt" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+values = [int(v) for v in re.findall(r"\d+", text.split("=", 1)[-1])]
+raise SystemExit(0 if len(values) >= 4 and values[:4] == [72, 48, 1848, 1032] else 1)
+PY
+  then MULTI_DOCK_APPLIED=1; break; fi
+  sleep 0.1
+done
+[[ "$MULTI_DOCK_APPLIED" == 1 ]] || {
+  echo "FAIL: combined top/left dock workarea was incorrect" >&2
+  xprop -root _NET_WORKAREA >&2 || true
+  xprop -id "$SECOND_DOCK_ID" _NET_WM_WINDOW_TYPE _NET_WM_STRUT_PARTIAL >&2 || true
+  cat "$RUNTIME/wm.log" >&2
+  exit 1
+}
+echo "PASS: simultaneous top and vertical dock struts reserve intersecting edges"
+
+kill "$DOCK_PID" 2>/dev/null || true
+wait "$DOCK_PID" 2>/dev/null || true
+DOCK_PID=""
+SINGLE_DOCK_RESTORED=0
+for _ in $(seq 1 40); do
+  xprop -root _NET_WORKAREA >"$RUNTIME/restored-dock-workarea.txt"
+  if python3 - "$RUNTIME/restored-dock-workarea.txt" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+values = [int(v) for v in re.findall(r"\d+", text.split("=", 1)[-1])]
+raise SystemExit(0 if len(values) >= 4 and values[:4] == [0, 48, 1920, 1032] else 1)
+PY
+  then SINGLE_DOCK_RESTORED=1; break; fi
+  sleep 0.1
+done
+[[ "$SINGLE_DOCK_RESTORED" == 1 ]] || { echo "FAIL: workarea did not recover after vertical dock removal" >&2; xprop -root _NET_WORKAREA >&2 || true; exit 1; }
+echo "PASS: removing a dock restores the remaining top-only workarea"
 
 # Set the ICCCM urgency flag on the live client and verify PropertyNotify
 # refreshes the shared snapshot rather than leaving a stale initial value.

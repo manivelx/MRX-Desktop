@@ -2,7 +2,7 @@
 
 ## Latest successful `main` validation
 
-PASS — GitHub Actions [run #502](https://github.com/manivelx/MRX-Desktop/actions/runs/44834724872) passed on the merged default-branch commit `f55352e408e43613082d1e7bb1f916bb3b3b2f0e` on 2026-11-20.
+PASS — GitHub Actions [run #517](https://github.com/manivelx/MRX-Desktop/actions/runs/44911973355) passed on the merged default-branch commit `9f6755d30ba5eeafe4d88d111e2b437fde9c41d1` on 2026-11-21.
 
 | Check | Result |
 |---|---|
@@ -15,13 +15,15 @@ PASS — GitHub Actions [run #502](https://github.com/manivelx/MRX-Desktop/actio
 | `bash ./tests/xvfb-server-check.sh` | PASS |
 | `bash ./tests/xvfb-smoke.sh` | PASS |
 
-## Nested Xephyr integration branch validation
+## Nested Xephyr and dock geometry branch validation
 
-PASS — GitHub Actions [PR #17 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44911498714) passed on branch commit `7d11ddb864d067c05fdf59a7f424d9f68cdde377` on 2026-11-21.
+PASS — GitHub Actions [PR #18 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912263933) passed on branch commit `f908e9bd9eb66448340f1b6bc643aa073cbeba55` on 2026-11-21.
 
 The run passed formatting, workspace tests, Clippy with warnings denied, debug build, static checks, installer sandbox, Xvfb server probe, the compiled-WM Xvfb smoke suite and the complete compiled-WM smoke suite inside nested Xephyr.
 
 The nested Xephyr run exposed and verified a fix for RandR servers that report an automatic root/output monitor alongside explicit RandR 1.5 monitor objects. MRX now prefers the explicit monitor objects when they exist, avoiding an overlapping synthetic full-screen monitor in the workspace topology.
+
+The integration suite additionally exercises simultaneous top/vertical dock struts, same-edge maximum reservations and workarea restoration after dock removal. Mixed-resolution monitor strut intersection is covered by Rust unit tests.
 
 The integration suite exercises:
 - IPC startup, health, subscriptions, structured operation results and orderly shutdown.
@@ -38,7 +40,7 @@ This is nested-X software validation. It does not validate physical monitor hotp
 - GitHub-hosted Ubuntu runner.
 - Xvfb at 1920x1080x24.
 - Nested Xephyr at 1920x1080, backed by a separate host Xvfb display.
-- X11 test clients and RandR utilities.
+- X11 test clients, xwininfo and RandR utilities.
 - Rust stable with rustfmt and Clippy.
 - X11 development libraries, Xvfb and Xephyr installed by CI.
 
@@ -46,7 +48,7 @@ This is nested-X software validation. It does not validate physical monitor hotp
 
 - Complete Quickshell/QML runtime or end-to-end desktop session.
 - Real physical multi-monitor hotplug, reconnect, EDID, mixed DPI or mixed resolutions.
-- Dedicated overlapping/vertical/multiple dock geometry validation on physical Xorg sessions.
+- Physical overlapping/multiple dock geometry and mixed-DPI behavior on actual Xorg sessions.
 - NVIDIA 470 / GeForce GT 740 proprietary driver, real GLX acceleration or animation frame pacing.
 - XComposite capture lifecycle, XDamage-driven redraw, renderer recovery and workspace animation performance.
 - Suspend/resume, power management and long-running session stability.

@@ -30,6 +30,7 @@ trap cleanup EXIT INT TERM
 command -v qs >/dev/null 2>&1 || fail "Quickshell (qs) is required for this runtime smoke test"
 command -v Xvfb >/dev/null 2>&1 || fail "Xvfb is required for this runtime smoke test"
 command -v dbus-run-session >/dev/null 2>&1 || fail "dbus-run-session is required for this runtime smoke test"
+command -v pgrep >/dev/null 2>&1 || fail "procps-ng is required for this runtime smoke test"
 [[ -x "$ROOT/target/debug/mrx-wm" && -x "$ROOT/target/debug/mrxctl" ]] || fail "debug MRX binaries are missing; run cargo build --workspace first"
 
 export HOME="$TMP/home"

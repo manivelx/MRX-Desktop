@@ -16,17 +16,27 @@ fail() {
   exit 1
 }
 cleanup() {
-  pkill -x qs 2>/dev/null || true
-  pkill -x quickshell 2>/dev/null || true
+  # The session is isolated in its own process group. Stop the supervisor,
+  # Quickshell, Picom and DBus children together before removing their HOME.
   if [[ -n "$SESSION_PID" ]]; then
-    kill -TERM "$SESSION_PID" 2>/dev/null || true
+    kill -TERM -- "-$SESSION_PID" 2>/dev/null || true
+    for _ in $(seq 1 30); do
+      kill -0 -- "-$SESSION_PID" 2>/dev/null || break
+      sleep 0.1
+    done
+    kill -KILL -- "-$SESSION_PID" 2>/dev/null || true
     wait "$SESSION_PID" 2>/dev/null || true
   fi
   if [[ -n "$XVFB_PID" ]]; then
     kill "$XVFB_PID" 2>/dev/null || true
     wait "$XVFB_PID" 2>/dev/null || true
   fi
-  rm -rf "$TMP"
+  # A late child may briefly flush a cache file during shutdown; cleanup
+  # must remain idempotent and must not turn a successful smoke test red.
+  rm -rf "$TMP" 2>/dev/null || {
+    sleep 0.2
+    rm -rf "$TMP" 2>/dev/null || true
+  }
 }
 trap cleanup EXIT INT TERM
 
@@ -34,6 +44,7 @@ command -v qs >/dev/null 2>&1 || fail "Quickshell (qs) is required for this runt
 command -v Xvfb >/dev/null 2>&1 || fail "Xvfb is required for this runtime smoke test"
 command -v dbus-run-session >/dev/null 2>&1 || fail "dbus-run-session is required for this runtime smoke test"
 command -v pgrep >/dev/null 2>&1 || fail "procps-ng is required for this runtime smoke test"
+command -v setsid >/dev/null 2>&1 || fail "util-linux (setsid) is required for isolated session cleanup"
 [[ -x "$ROOT/target/debug/mrx-wm" && -x "$ROOT/target/debug/mrxctl" ]] || fail "debug MRX binaries are missing; run cargo build --workspace first"
 
 export HOME="$TMP/home"
@@ -67,7 +78,7 @@ MRX_BIN_DIR="$ROOT/target/debug" bash "$ROOT/install.sh" >"$TMP/install.log" 2>&
   fail "isolated MRX installation failed"
 }
 
-dbus-run-session -- "$HOME/.local/bin/mrx-session" >"$TMP/session.log" 2>&1 &
+setsid dbus-run-session -- "$HOME/.local/bin/mrx-session" >"$TMP/session.log" 2>&1 &
 SESSION_PID=$!
 
 READY=0

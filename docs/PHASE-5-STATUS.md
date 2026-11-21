@@ -3,7 +3,7 @@
 ## Implemented and CI-covered
 
 - Reversible user-scoped install/uninstall scaffolding with isolated temporary-home regression tests.
-- Ubuntu CI and a native \`archlinux:latest\` container job both run Rust formatting, workspace tests, Clippy, build, static checks, shell helper tests, installer sandbox, Xvfb and nested Xephyr integration.
+- Ubuntu CI and a native \`archlinux:latest\` container job both run Rust formatting, workspace tests, Clippy, debug and release builds, static checks, shell helper tests, installer sandbox, Xvfb and nested Xephyr integration.
 - Arch CI installs the native Arch Rust toolchain and X11/Xephyr packages through pacman, validating the Linux package names and build environment independently of Ubuntu.
 
 ## Still outstanding

@@ -11,6 +11,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo build --workspace
 bash ./tests/static-check.sh
 bash ./tests/mrx-shell-backend.sh
+bash ./tests/diagnostics.sh
 bash ./tests/installer-sandbox.sh
 bash ./tests/xvfb-server-check.sh
 bash ./tests/xvfb-smoke.sh

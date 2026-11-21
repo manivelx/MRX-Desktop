@@ -13,16 +13,22 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh tests/installer-sandbox.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh tests/mrx-shell-backend.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
-for gate in 'bash ./check-deps.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
+for gate in 'bash ./check-deps.sh' 'bash ./tests/mrx-shell-backend.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
   grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
 done
 grep -Fq 'mrx-graphics-probe' tests/xvfb-smoke.sh || fail 'X11 smoke test omits the Composite/Damage probe'
+grep -Fq 'mrx-session.sh' shell/scripts/colors/switchwall.sh || fail 'wallpaper script omits the shared MRX/X11 session helper'
+grep -Fq 'mrx-session.sh' shell/scripts/videos/record.sh || fail 'recording script omits the shared MRX/X11 session helper'
+grep -Fq 'mrx_get_focused_monitor_geometry' shell/scripts/colors/switchwall.sh || fail 'MRX wallpaper script omits monitor-aware geometry'
+grep -Fq 'mrx_is_x11_session "$COMPOSITOR"' shell/scripts/videos/record.sh || fail 'recording script omits the MRX X11 capture path'
+grep -Fq 'GlobalStates.wallpaperSelectorOpen = !GlobalStates.wallpaperSelectorOpen' shell/services/LauncherSearch.qml || fail 'wallpaper search action still depends on compositor-only IPC'
+grep -Fq 'desktop == *hyprland*' shell/scripts/system-appearance.sh || fail 'cursor script may invoke hyprctl outside Hyprland'
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
 grep -Fq 'xwininfo' check-deps.sh || fail 'dependency checker omits the secondary dock fixture lookup'
-grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xwininfo xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'
+grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xwininfo xrandr python3 jq xdotool slop ffmpeg' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'
 grep -Fq 'xrandr --setmonitor MRX-LEFT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the first virtual RandR monitor'
 grep -Fq 'xrandr --setmonitor MRX-RIGHT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the second virtual RandR monitor'
 grep -Fq 'MONITORS_READY' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not assert monitor snapshot refresh'

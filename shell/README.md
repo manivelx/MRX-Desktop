@@ -22,6 +22,13 @@ but MRX must use the `mrx` backend at runtime. Any control that has no
 MRX implementation must be hidden or explicitly disabled; it must not fall
 through to `hyprctl` or `bspc`.
 
+MRX now has an explicit X11 session helper shared by wallpaper and recording
+scripts. Static wallpaper application and monitor-aware wallpaper placement use
+`mrxctl` plus X11 geometry; X11 screen recording uses `ffmpeg`/`x11grab` and
+`slop`, while video wallpapers are explicitly disabled until an X11 video
+backend exists. The wallpaper search action toggles shell state directly rather
+than sending a Hyprland-only compositor IPC message.
+
 Some upstream widgets still need a complete command audit. The presence of a
 QML page or control is not proof that its action is implemented by the Rust WM.
 See the root `ROADMAP.md` and `docs/TESTING-MATRIX.md` for feature status.

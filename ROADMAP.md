@@ -17,6 +17,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Per-monitor tiling, independent workspaces and monitor-aware shell workspace routing.
 - [x] Initial EWMH dock strut/workarea handling.
 - [x] Automated Xvfb virtual-monitor, workspace, dock, urgency and lifecycle coverage.
+- [x] Run the complete compiled-WM integration suite inside nested Xephyr; prefer explicit RandR monitor objects over overlapping automatic fallbacks.
 - [x] Implement horizontal/vertical EWMH maximize and restore with original-geometry preservation and Xvfb coverage.
 - [x] Implement EWMH hidden/minimize and ICCCM WM_CHANGE_STATE with managed-client retention and Xvfb coverage.
 - [x] Implement mutually exclusive EWMH ABOVE/BELOW state requests with Xvfb snapshot coverage.

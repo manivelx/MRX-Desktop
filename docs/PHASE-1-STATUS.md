@@ -15,22 +15,22 @@ Status: **IN PROGRESS — experimental, not a daily-driver release**
 - Independent monitor-local workspaces, visibility, per-monitor snapshots and monitor-targeted IPC. Quickshell workspace bars route to the matching monitor.
 - Window monitor identity, per-monitor tiling, client migration after monitor removal and floating-window clamping.
 - IPC protocol v3 with request IDs/correlated responses, bounded socket framing/timeouts, persistent change-only snapshot subscriptions and disconnect cleanup; typed setting application and atomic writes. Quickshell consumes subscription events with reconnect and a slow snapshot fallback.
-- Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox and Xvfb server/WM smoke tests.
+- Isolated installer/reinstaller/uninstaller sandbox coverage. CI exercises formatting, tests, Clippy, build, static guards, installer sandbox, Xvfb server/WM smoke tests and the complete WM smoke suite inside nested Xephyr.
 
 ## Latest CI validation
 
-The merged `main` baseline [run #403](https://github.com/manivelx/MRX-Desktop/actions/runs/44765939899) passed on commit `579dacb6f099726621583fa034b88d9d9df40b28`, including format, workspace tests, Clippy, build, static checks, installer sandbox and Xvfb smoke. The Phase 2 subscription implementation separately passed branch CI [run #323](https://github.com/manivelx/MRX-Desktop/actions/runs/44761662970); the integration PR must pass CI on its exact current head before merge.
+The merged `main` baseline [run #502](https://github.com/manivelx/MRX-Desktop/actions/runs/44834724872) passed on commit `f55352e408e43613082d1e7bb1f916bb3b3b2f0e`. The current nested-X validation branch passed [PR #17 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44911498714) on commit `7d11ddb864d067c05fdf59a7f424d9f68cdde377`, including formatting, workspace tests, Clippy, build, static checks, installer sandbox, Xvfb server/smoke and the complete nested Xephyr smoke suite.
 
 ## Remaining Phase 1 acceptance work
 
 - Complete EWMH state semantics: exact geometry restoration after replacing another WM and advanced withdrawal and nested-dialog focus edge cases. Managed-client layer ordering now reconciles state changes, map/unmap, configure and destroy transitions.
 - Improve ICCCM corner-case coverage: very small workareas, aspect/increment interactions, focus/withdrawal and transient/dialog behavior.
 - Validate overlapping/multiple/vertical struts, mixed-DPI/mixed-resolution geometry and physical hotplug/disconnect/reconnect on actual multi-output hardware.
-- Validate Xephyr/nested Xorg session behavior and complete QML runtime interactions.
+- Expand Xephyr/Xorg coverage for pathological ICCCM size-hint combinations, withdrawal and nested-dialog focus; complete Quickshell runtime interactions.
 
 ## Phase 1 exit boundary
 
-Phase 1 is **not complete** while those protocol and runtime criteria remain. A successful CI/Xvfb run does not prove real monitor hardware behavior, Quickshell session stability or NVIDIA proprietary driver support.
+Phase 1 is **not complete** while those protocol and runtime criteria remain. A successful CI/Xvfb/Xephyr run does not prove physical monitor behavior, Quickshell session stability or NVIDIA proprietary driver support.
 
 ## Hardware and runtime validation not performed
 

@@ -65,7 +65,7 @@ The repository contains shell screenshots showing the imported/adapted visual di
 
 ### Desktop shell
 
-- Quickshell/QML interface adapted from the supplied end4-pC X11 port.
+- Quickshell/QML interface adapted from the supplied end4-pC X11 port, with MRX-specific monitor geometry, static wallpaper and screen-recording paths.
 - MRX-specific backend for monitor, workspace and window information.
 - Compatibility dispatch for a limited, explicit set of supported actions.
 - Imported upstream modules remain under audit; unsupported compositor actions are not claimed as implemented.
@@ -90,7 +90,7 @@ MRX is not a finished desktop environment yet. The table reflects the implementa
 | Per-monitor workspaces | Implemented with monitor-aware IPC and shell routing |
 | Dock workareas | Initial partial/legacy strut support; complex panel geometry remains |
 | IPC | Protocol v3 request/reply, persistent change-only snapshot subscriptions, structured async operation results, health reporting and subscriber backpressure metrics |
-| Quickshell/QML | MRX adapter exists; complete shell runtime is unverified |
+| Quickshell/QML | MRX IPC adapter plus X11 wallpaper/recording paths and mocked backend tests; complete shell runtime remains unverified |
 | Graphics/animations | Isolated XComposite/XDamage capture prototype passes Xvfb/Xephyr; production renderer and workspace animations remain future work |
 | Installer | Experimental; isolated temporary-home regression tests only |
 | NVIDIA 470 / GT 740 | Not tested |
@@ -209,7 +209,7 @@ The compiled-WM integration suite exercises virtual RandR monitors, monitor-loca
 
 ### Latest CI baseline
 
-The latest merged `main` baseline passed [GitHub Actions run #518](https://github.com/manivelx/MRX-Desktop/actions/runs/44912544584) on commit `ebbbce695428a284c75e1a8d341a36a7edef487e`. The Phase 3 prototype branch passed [PR #19 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44912799891) on commit `b63a00f4ed1e4c9558922dca809ec3bf845438f8`; XComposite 0.4 named a 64×64 pixmap and XDamage 1.1 delivered a non-empty damage event on both Xvfb and nested Xephyr.
+The latest merged `main` baseline passed [GitHub Actions run #529](https://github.com/manivelx/MRX-Desktop/actions/runs/44913109742) on commit `68d40d08304c728aaa154aea2134b958b03e2bc8`. The Quickshell X11 backend branch passed [PR #20 CI run](https://github.com/manivelx/MRX-Desktop/actions/runs/44914024803) on commit `73cff5cdd7435f16c7781a106f84bbb2c4ee0a06`, including mocked MRX monitor/session helper tests, shell syntax/static checks and the existing Xvfb/Xephyr suites.
 
 That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
 

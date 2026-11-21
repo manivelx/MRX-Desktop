@@ -2,6 +2,8 @@
 
 ## Implemented and CI-covered
 
+Latest CI evidence: [PR #20 run](https://github.com/manivelx/MRX-Desktop/actions/runs/44914024803), commit `73cff5cdd7435f16c7781a106f84bbb2c4ee0a06`.
+
 - MRXBackend obtains state from \`mrxctl\` and consumes the IPC snapshot stream with reconnect/fallback behavior.
 - Wallpaper-selector search toggles Quickshell state directly; it no longer sends a Hyprland-only compositor IPC command.
 - Shared \`mrx-session.sh\` identifies MRX as an X11 session and provides mrxctl monitor names, active-monitor selection, focused-monitor geometry and root display geometry.

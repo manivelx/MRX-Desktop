@@ -5,7 +5,8 @@ use x11rb::{
     protocol::{
         composite::{ConnectionExt as CompositeExt, Redirect},
         damage::{ConnectionExt as DamageExt, ReportLevel},
-        xproto::{ConnectionExt as XprotoExt, CreateWindowAux, WindowClass},
+        xproto::{ConnectionExt as XprotoExt, CreateWindowAux, ImageFormat, Rectangle, WindowClass},
+        render::{ConnectionExt as RenderExt, Color, CreatePictureAux, PictOp},
         Event,
     },
     COPY_DEPTH_FROM_PARENT, COPY_FROM_PARENT, NONE,
@@ -121,6 +122,100 @@ fn main() -> Result<()> {
         .context("acknowledge XDamage event")?
         .check()
         .context("acknowledge XDamage event")?;
+    // Validate the XRender composition path off-screen. This deliberately
+    // does not claim compositor-manager ownership or redirect managed clients.
+    let render_version = conn
+        .render_query_version(0, 11)
+        .context("query XRender version")?
+        .reply()
+        .context("negotiate XRender version")?;
+    let formats = conn
+        .render_query_pict_formats()
+        .context("query XRender picture formats")?
+        .reply()
+        .context("read XRender picture formats")?;
+    let window_visual = conn
+        .get_window_attributes(window)
+        .context("query probe window visual")?
+        .reply()
+        .context("read probe window visual")?
+        .visual;
+    let visual_format = |visual: u32| {
+        formats.screens[screen_num]
+            .depths
+            .iter()
+            .flat_map(|depth| depth.visuals.iter())
+            .find(|entry| entry.visual == visual)
+            .map(|entry| entry.format)
+    };
+    let source_format = visual_format(window_visual)
+        .context("XRender has no picture format for the probe window visual")?;
+    let destination_format = visual_format(screen.root_visual)
+        .context("XRender has no picture format for the root visual")?;
+
+    let destination_pixmap = conn.generate_id().context("allocate XRender destination pixmap")?;
+    conn.create_pixmap(screen.root_depth, destination_pixmap, screen.root, 64, 64)
+        .context("create XRender destination pixmap")?
+        .check()
+        .context("create XRender destination pixmap")?;
+    let source_picture = conn.generate_id().context("allocate XRender source picture")?;
+    conn.render_create_picture(source_picture, pixmap, source_format, &CreatePictureAux::new())
+        .context("create picture for XComposite named pixmap")?
+        .check()
+        .context("create picture for XComposite named pixmap")?;
+    let destination_picture = conn.generate_id().context("allocate XRender destination picture")?;
+    conn.render_create_picture(destination_picture, destination_pixmap, destination_format, &CreatePictureAux::new())
+        .context("create off-screen XRender destination picture")?
+        .check()
+        .context("create off-screen XRender destination picture")?;
+    conn.render_fill_rectangles(
+        PictOp::CLEAR,
+        destination_picture,
+        Color::default(),
+        &[Rectangle { x: 0, y: 0, width: 64, height: 64 }],
+    )
+    .context("clear XRender destination")?
+    .check()
+    .context("clear XRender destination")?;
+    conn.render_composite(
+        PictOp::OVER,
+        source_picture,
+        NONE,
+        destination_picture,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        64,
+        64,
+    )
+    .context("composite captured pixmap with XRender")?
+    .check()
+    .context("composite captured pixmap with XRender")?;
+    conn.flush().context("flush XRender composition")?;
+    let rendered = conn
+        .get_image(ImageFormat::Z_PIXMAP, destination_pixmap, 0, 0, 64, 64, u32::MAX)
+        .context("read back XRender destination pixels")?
+        .reply()
+        .context("read back XRender destination pixels")?;
+    if !rendered.data.iter().any(|byte| *byte != 0) {
+        bail!("XRender composition produced an empty off-screen destination");
+    }
+    conn.render_free_picture(source_picture)
+        .context("free XRender source picture")?
+        .check()
+        .context("free XRender source picture")?;
+    conn.render_free_picture(destination_picture)
+        .context("free XRender destination picture")?
+        .check()
+        .context("free XRender destination picture")?;
+    conn.free_pixmap(destination_pixmap)
+        .context("free XRender destination pixmap")?
+        .check()
+        .context("free XRender destination pixmap")?;
+
     conn.damage_destroy(damage_id)
         .context("destroy XDamage tracker")?
         .check()
@@ -146,6 +241,10 @@ fn main() -> Result<()> {
     println!(
         "PASS: XDamage {}.{} delivered {} non-empty damage event",
         damage.major_version, damage.minor_version, damage_events
+    );
+    println!(
+        "PASS: XRender {}.{} composited the captured pixmap into a readable off-screen destination",
+        render_version.major_version, render_version.minor_version
     );
     println!("NOTE: capture ran only on a disposable probe window; managed clients were not redirected");
     Ok(())

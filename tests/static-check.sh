@@ -11,6 +11,8 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrx-wm/src/main.rs ]] || fail 'mrx-wm source missing'
 [[ -f crates/mrxctl/src/main.rs ]] || fail 'mrxctl source missing'
 [[ -f crates/mrx-graphics-probe/src/main.rs ]] || fail 'graphics probe source missing'
+grep -Fq '"render"' Cargo.toml || fail 'XRender protocol support is not enabled'
+grep -Fq 'render_composite' crates/mrx-graphics-probe/src/main.rs || fail 'graphics probe omits XRender composition
 [[ -f shell/scripts/lib/mrx-session.sh ]] || fail 'shared MRX shell session helper missing'
 [[ -f tests/mrx-shell-backend.sh ]] || fail 'MRX shell backend test missing'
 [[ -f scripts/mrx-diagnose.sh ]] || fail 'MRX startup diagnostics script missing'
@@ -40,6 +42,7 @@ grep -Fq 'startup-diagnostics-*.txt' tests/diagnostics.sh || fail 'diagnostics t
 grep -Fq 'mrx-diagnose' install.sh || fail 'installer does not install the diagnostics command'
 grep -Fq 'softprops/action-gh-release@v2' .github/workflows/release.yml || fail 'tagged release workflow does not publish GitHub releases'
 grep -Fq 'mrx-graphics-probe' tests/xvfb-smoke.sh || fail 'X11 smoke test omits the Composite/Damage probe'
+grep -Fq 'PASS: XRender' tests/xvfb-smoke.sh || fail 'X11 smoke test does not assert XRender composition'
 grep -Fq 'mrx-session.sh' shell/scripts/colors/switchwall.sh || fail 'wallpaper script omits the shared MRX/X11 session helper'
 grep -Fq 'mrx-session.sh' shell/scripts/videos/record.sh || fail 'recording script omits the shared MRX/X11 session helper'
 grep -Fq 'mrx_get_focused_monitor_geometry' shell/scripts/colors/switchwall.sh || fail 'MRX wallpaper script omits monitor-aware geometry'

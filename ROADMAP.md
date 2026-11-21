@@ -65,6 +65,7 @@ Items are marked complete only when implementation and relevant automated valida
 ## Phase 5 — Session, installer and release engineering
 
 - [x] Add reversible user-scoped install/uninstall scaffolding with isolated regression tests.
+- [x] Add native Arch Linux container CI for Rust build, installer sandbox and Xvfb/Xephyr integration coverage.
 - [ ] Test installation, upgrade, rollback and removal in disposable Arch/CachyOS VMs.
 - [ ] Validate coexistence with existing BSPWM/SDDM/lock-screen configuration.
 - [ ] Add recovery and diagnostics for failed session startup.

@@ -81,6 +81,10 @@ The suite exercises simultaneous top/vertical dock struts, same-edge maximum res
 - Suspend/resume, power management and long-running session stability.
 - Install/upgrade/removal in a disposable Arch/CachyOS VM; current installer test is a temporary-home sandbox.
 
+## Arch Linux native-container validation
+
+A dedicated Arch Linux CI job is being added to run the Rust toolchain, static checks, installer sandbox and Xvfb/Xephyr suite using pacman-installed dependencies. This improves distro parity but is not a booted Arch/CachyOS VM test; it does not validate SDDM, logind, kernel modules, NVIDIA drivers or a full desktop session.
+
 ## Local reproduction
 
 On an Arch/CachyOS development machine with Rust, Quickshell and X11 test dependencies installed:

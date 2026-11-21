@@ -21,6 +21,8 @@ pass 'Shell scripts pass bash -n'
 for gate in 'bash ./check-deps.sh' 'bash ./tests/mrx-shell-backend.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
   grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
 done
+grep -Fq 'container: archlinux:latest' .github/workflows/ci.yml || fail 'CI does not validate the Arch Linux build environment'
+grep -Fq 'name: Install Arch Linux toolchain and X11 test dependencies' .github/workflows/ci.yml || fail 'Arch Linux CI job omits its native dependency setup'
 grep -Fq 'mrx-graphics-probe' tests/xvfb-smoke.sh || fail 'X11 smoke test omits the Composite/Damage probe'
 grep -Fq 'mrx-session.sh' shell/scripts/colors/switchwall.sh || fail 'wallpaper script omits the shared MRX/X11 session helper'
 grep -Fq 'mrx-session.sh' shell/scripts/videos/record.sh || fail 'recording script omits the shared MRX/X11 session helper'

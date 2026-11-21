@@ -27,6 +27,14 @@ DISPLAY=:99 target/debug/mrx-wm
 
 In another terminal, launch an X11 client with `DISPLAY=:99`. Check mapping, focus, close, workspace changes, restart behavior and logs. Do not use the nested server command as a substitute for a full integration test.
 
+The CI suite also runs the complete WM smoke suite inside Xephyr, backed by a separate host Xvfb display:
+
+```bash
+./tests/xephyr-smoke.sh
+```
+
+This exercises the WM and X11 clients against a nested X server rather than only a standalone Xvfb server. It still does not replace physical GPU, monitor hotplug, suspend/resume or full Quickshell session validation.
+
 ## Hardware validation record
 
 For every GPU test, record:

@@ -23,6 +23,31 @@ tar -tzf "$ARCHIVE" > "$TMP/files.txt"
 for expected in '/bin/mrx-wm' '/bin/mrxctl' '/install.sh' '/uninstall.sh' '/session/mrx-session' '/session/mrx-wm-supervisor' '/scripts/mrx-diagnose.sh' '/shell/' '/LICENSE' '/THIRD_PARTY_NOTICES.md' '/docs/VALIDATION.md'; do
   grep -Fq "$expected" "$TMP/files.txt" || { echo "FAIL: release archive omits $expected" >&2; exit 1; }
 done
+
+# Install and uninstall the extracted archive with isolated HOME/XDG paths.
+tar -xzf "$ARCHIVE" -C "$TMP"
+RELEASE_ROOT="$(find "$TMP" -maxdepth 1 -type d -name 'mrx-desktop-*' -print -quit)"
+[[ -x "$RELEASE_ROOT/bin/mrx-wm" && -x "$RELEASE_ROOT/bin/mrxctl" ]]
+mkdir -p "$TMP/mock" "$TMP/install-home"
+cat > "$TMP/mock/qs" <<'MOCK'
+#!/usr/bin/env bash
+echo "mock quickshell"
+MOCK
+chmod +x "$TMP/mock/qs"
+HOME="$TMP/install-home" XDG_CONFIG_HOME="$TMP/install-home/.config" XDG_DATA_HOME="$TMP/install-home/.local/share" PATH="$TMP/mock:$PATH" "$RELEASE_ROOT/install.sh"
+[[ -x "$TMP/install-home/.local/bin/mrx-wm" ]]
+[[ -x "$TMP/install-home/.local/bin/mrxctl" ]]
+[[ -x "$TMP/install-home/.local/bin/mrx-diagnose" ]]
+[[ -f "$TMP/install-home/.config/mrx/settings.toml" ]]
+[[ -f "$TMP/install-home/.config/mrx/picom.conf" ]]
+[[ -f "$TMP/install-home/.local/share/xsessions/mrx.desktop" ]]
+HOME="$TMP/install-home" XDG_CONFIG_HOME="$TMP/install-home/.config" XDG_DATA_HOME="$TMP/install-home/.local/share" "$RELEASE_ROOT/uninstall.sh"
+[[ ! -e "$TMP/install-home/.local/bin/mrx-wm" ]]
+[[ ! -e "$TMP/install-home/.local/bin/mrx-diagnose" ]]
+[[ -d "$TMP/install-home/.config/mrx" ]]
+[[ -f "$TMP/install-home/.config/mrx/settings.toml" ]]
+find "$TMP/install-home/.config/quickshell" -maxdepth 1 -type d -name 'mrx.removed.*' | grep -q .
+echo "PASS: extracted release archive installs/uninstalls and preserves user settings in an isolated environment"
 FIRST_SUM="$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"
 bash "$ROOT/scripts/package-release.sh"
 SECOND_SUM="$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"

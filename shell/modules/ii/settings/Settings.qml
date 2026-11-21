@@ -29,7 +29,7 @@ Scope {
     PanelWindow {
         aboveWindows: true
         focusable: visible
-                id: panelWindow
+        id: panelWindow
         visible: GlobalStates.settingsOpen && Config.options.settings.style !== "dashboard"
 
         function hide() {

@@ -12,14 +12,14 @@ pass() { printf 'PASS: %s\n' "$*"; }
 [[ -f crates/mrxctl/src/main.rs ]] || fail 'mrxctl source missing'
 pass 'Rust workspace source layout exists'
 
-bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/installer-sandbox.sh
+bash -n install.sh uninstall.sh build.sh check-deps.sh session/mrx-session shell/install.sh shell/check-deps.sh scripts/install-deps-arch.sh scripts/hardware-report.sh tests/xvfb-server-check.sh tests/xvfb-smoke.sh tests/xephyr-smoke.sh tests/installer-sandbox.sh
 pass 'Shell scripts pass bash -n'
 
-for gate in 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'cargo build --release --workspace'; do
+for gate in 'bash ./check-deps.sh' 'cargo fmt --all -- --check' 'cargo test --workspace' 'cargo clippy --workspace --all-targets -- -D warnings' 'cargo build --workspace' 'bash ./tests/static-check.sh' 'bash ./tests/installer-sandbox.sh' 'bash ./tests/xvfb-server-check.sh' 'bash ./tests/xvfb-smoke.sh' 'bash ./tests/xephyr-smoke.sh' 'cargo build --release --workspace'; do
   grep -Fq "$gate" build.sh || fail "build.sh is missing validation gate: $gate"
 done
 grep -Fq 'xmessage' check-deps.sh || fail 'dependency checker omits the Xvfb smoke-test client'
-grep -Fq 'Xvfb xdpyinfo xprop xmessage xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required Xvfb smoke tools'
+grep -Fq 'Xvfb Xephyr xdpyinfo xprop xmessage xrandr python3' check-deps.sh || fail 'dependency checker does not verify all required X11/Xephyr smoke tools'
 grep -Fq 'xrandr --setmonitor MRX-LEFT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the first virtual RandR monitor'
 grep -Fq 'xrandr --setmonitor MRX-RIGHT' tests/xvfb-smoke.sh || fail 'Xvfb smoke test omits the second virtual RandR monitor'
 grep -Fq 'MONITORS_READY' tests/xvfb-smoke.sh || fail 'Xvfb smoke test does not assert monitor snapshot refresh'

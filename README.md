@@ -191,6 +191,16 @@ Remove the user-scoped installation with:
 > [!CAUTION]
 > The installer is still experimental. Its sandbox test uses a temporary home directory; it is not a disposable Arch/CachyOS VM test. Do not use it on your daily driver yet. Keep your current BSPWM session, SDDM theme, Quickshell lock screen and a known recovery path untouched. System-wide session registration is deliberately not automatic.
 
+## Startup diagnostics
+
+If MRX fails to start, the session launcher attempts to save a privacy-conscious report under `~/.cache/mrx/`. After installation, a report can also be generated manually:
+
+```bash
+~/.local/bin/mrx-diagnose --output ~/mrx-diagnostics.txt
+```
+
+The report includes MRX IPC health, monitor/workspace counts, XRandR topology, relevant process names and the tail of the MRX WM log. It does not include window titles, application names or environment secrets, and it runs without elevated privileges.
+
 ## Configuration
 
 MRX reads its own configuration and settings. The live settings surface is still being expanded; not every imported shell setting is backed by a working MRX runtime option.

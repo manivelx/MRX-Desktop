@@ -47,6 +47,7 @@ Items are marked complete only when implementation and relevant automated valida
 ## Phase 3 — Graphics and animations
 
 - [x] Prototype isolated XComposite named-pixmap capture and XDamage event tracking on Xvfb/Xephyr; production WM redirection remains disabled until a renderer owns the compositor role.
+- [ ] Validate off-screen XRender composition of captured pixmaps on Xvfb/Xephyr (prototype implemented; CI pending).
 - [ ] Build/validate renderer with a no-animation fallback.
 - [ ] Add workspace transitions with correct input/focus handoff.
 - [ ] Verify GLX/Present behavior on supported hardware.

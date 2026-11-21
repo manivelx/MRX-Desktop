@@ -212,7 +212,13 @@ Useful places to start:
 - `shell/services/MRXBackend.qml` — shell-to-WM adapter.
 - `docs/BUILDING.md` — build and dependency guidance.
 
-The keybinding viewer is integrated for the MRX/X11 session where the source configuration is available. Imported end4/Hyprland shortcuts should not be assumed to map one-to-one to MRX capabilities.
+The keybinding viewer can display a user-provided `~/.config/mrx/sxhkdrc` reference file; it does not register those shortcuts with MRX. The Rust WM currently provides these built-in global bindings:
+
+- `Super+1` through `Super+9`: switch the focused monitor's workspace.
+- `Super+Left` / `Super+Right`: switch to the previous/next workspace.
+- `Super+Q`: politely close the focused window.
+
+Global Quickshell shortcut registration and an editable MRX keybinding manager are not implemented yet. Imported end4/Hyprland shortcuts must not be assumed to work in an MRX session.
 
 ## Development and testing
 

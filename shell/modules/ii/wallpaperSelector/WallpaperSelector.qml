@@ -40,7 +40,7 @@ Scope {
         sourceComponent: PanelWindow {
         aboveWindows: true
         focusable: visible
-                    id: panelWindow
+            id: panelWindow
             readonly property var monitor: WM.monitorFor(panelWindow.screen)
             property bool monitorIsFocused: WM.compositor === "hyprland"
                 ? (WM.focusedMonitor?.name == monitor?.name)

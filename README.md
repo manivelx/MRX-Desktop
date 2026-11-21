@@ -10,7 +10,7 @@
 [![Rust](https://img.shields.io/badge/core-Rust-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![X11](https://img.shields.io/badge/display-X11-blue)](#architecture)
 
-[Overview](#overview) · [Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Configuration](#configuration) · [Roadmap](#roadmap)
+[Overview](#overview) · [Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Configuration](#configuration) · [Roadmap](#roadmap) · [Shell X11 audit](docs/SHELL_AUDIT.md) · [Manual test checklist](docs/MANUAL_TEST_CHECKLIST.md) · [Validation](docs/VALIDATION.md)
 
 </div>
 
@@ -241,7 +241,7 @@ The compiled-WM integration suite exercises virtual RandR monitors, monitor-loca
 
 The CI badge above tracks the default-branch workflow. Exact validation evidence, the tested commit and known limitations are maintained in [Validation](docs/VALIDATION.md). A green CI run does not establish physical hardware compatibility.
 
-That CI result validates the automated software test suite, not a complete Quickshell session or physical hardware. Check [Validation](docs/VALIDATION.md) for details and limitations.
+CI validates automated software behavior only; it does not establish full visual/interactive shell stability or physical hardware compatibility.
 
 ## Roadmap
 

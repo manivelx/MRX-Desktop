@@ -10,7 +10,7 @@ fi
 
 packages=(
   # Rust/C/C++ build toolchain
-  base-devel rust cargo git clang cmake ninja pkgconf uv python
+  base-devel util-linux rust cargo git clang cmake ninja pkgconf uv python
   # X11 server, diagnostics and isolated test servers
   xorg-server xorg-server-xephyr xorg-server-xvfb xorg-xrandr xorg-xprop
   xorg-xwininfo xorg-xinput xorg-xdpyinfo xorg-xset xorg-xsetroot

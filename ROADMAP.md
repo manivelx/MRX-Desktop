@@ -61,7 +61,7 @@ Items are marked complete only when implementation and relevant automated valida
 - [x] Route wallpaper-selector search through Quickshell state instead of Hyprland-only compositor IPC.
 - [x] Add explicit disabled/unsupported states for MRX night-light and Hyprland-only shader quick toggles; continue the full imported-QML control audit.
 - [ ] Consolidate theme, typography, spacing, responsive layouts and accessibility.
-- [ ] Validate each QML page and interactive control in a complete session.
+- [ ] Validate every QML page and interactive control in a complete session (Arch CI now has a Quickshell/Xvfb startup + IPC smoke gate; full visual/control coverage remains).
 - [x] Replace normal Quickshell snapshot polling with the IPC event stream and retain reconnect/fallback snapshots.
 
 ## Phase 5 — Session, installer and release engineering
